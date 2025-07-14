@@ -1,0 +1,311 @@
+Metadata-Version: 2.1
+Name: xbox-webapi
+Version: 2.0.9
+Summary: A library to authenticate with Windows Live/Xbox Live and use their API
+Home-page: https://github.com/OpenXbox/xbox-webapi-python
+Author: OpenXbox
+License: GPL
+Keywords: xbox one live api
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Description-Content-Type: text/markdown
+Requires-Dist: aiohttp
+Requires-Dist: appdirs
+Requires-Dist: ms-cv
+Requires-Dist: pydantic
+Requires-Dist: ecdsa
+Provides-Extra: dev
+Requires-Dist: pip ; extra == 'dev'
+Requires-Dist: bump2version ; extra == 'dev'
+Requires-Dist: wheel ; extra == 'dev'
+Requires-Dist: watchdog ; extra == 'dev'
+Requires-Dist: flake8 ; extra == 'dev'
+Requires-Dist: tox ; extra == 'dev'
+Requires-Dist: coverage ; extra == 'dev'
+Requires-Dist: Sphinx ; extra == 'dev'
+Requires-Dist: sphinx-rtd-theme ; extra == 'dev'
+Requires-Dist: recommonmark ; extra == 'dev'
+Requires-Dist: twine ; extra == 'dev'
+Requires-Dist: pytest ; extra == 'dev'
+Requires-Dist: pytest-cov ; extra == 'dev'
+Requires-Dist: pytest-runner ; extra == 'dev'
+
+# Xbox-WebAPI
+
+[![PyPi - latest](https://pypip.in/version/xbox-webapi/badge.svg)](https://pypi.python.org/pypi/xbox-webapi/)
+[![Documentation status](https://readthedocs.org/projects/xbox-webapi-python/badge/?version=latest)](http://xbox-webapi-python.readthedocs.io/en/latest/?badge=latest)
+[![Build status](https://img.shields.io/github/workflow/status/OpenXbox/xbox-webapi-python/build?label=build)](https://github.com/OpenXbox/xbox-webapi-python/actions?query=workflow%3Abuild)
+[![Discord chat channel](https://img.shields.io/badge/discord-OpenXbox-blue.svg)](https://openxbox.org/discord)
+
+Xbox-WebAPI is a python library to authenticate with Xbox Live via your Microsoft Account and provides Xbox related Web-API.
+
+Authentication is supported via OAuth2.
+
+- Register a new application in [Azure AD](https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade)
+  - Name your app
+  - Select "Personal Microsoft accounts only" under supported account types
+  - Add <http://localhost/auth/callback> as a Redirect URI of type "Web"
+- Copy your Application (client) ID for later use
+- On the App Page, navigate to "Certificates & secrets"
+  - Generate a new client secret and save for later use
+
+## Dependencies
+
+- Python >= 3.6
+- Libraries: aiohttp, appdirs, ms_cv, pydantic, urwid, yarl, ecdsa
+
+## How to use
+
+Install
+
+```text
+pip install xbox-webapi
+```
+
+Authentication
+
+```text
+# Token save location: If tokenfile is not provided via cmdline, fallback
+# of <appdirs.user_data_dir>/tokens.json is used as save-location
+#
+# Specifically:
+# Windows: C:\\Users\\<username>\\AppData\\Local\\OpenXbox\\xbox
+# Mac OSX: /Users/<username>/Library/Application Support/xbox/tokens.json
+# Linux: /home/<username>/.local/share/xbox
+#
+# For more information, see: https://pypi.org/project/appdirs and module: xbox.webapi.scripts.constants
+
+xbox-authenticate --client-id <client-id> --client-secret <client-secret>
+```
+
+Example: Search Xbox Live via cmdline tool
+
+```text
+  # Search Xbox One Catalog
+  xbox-searchlive "Some game title"
+```
+
+API usage
+
+```py
+import sys
+
+from xbox.webapi.api.client import XboxLiveClient
+from xbox.webapi.authentication.manager import AuthenticationManager
+from xbox.webapi.common.exceptions import AuthenticationException
+
+"""
+For doing authentication, see xbox/webapi/scripts/authenticate.py
+"""
+tokens = "/path_to/tokens.json"
+async with ClientSession() as session:
+  auth_mgr = AuthenticationManager(
+      session, args.client_id, args.client_secret, ""
+  )
+
+  with open(args.tokens, mode="r") as f:
+      tokens = f.read()
+  auth_mgr.oauth = OAuth2TokenResponse.parse_raw(tokens)
+  try:
+      await auth_mgr.refresh_tokens()
+  except ClientResponseError:
+      print("Could not refresh tokens")
+      sys.exit(-1)
+
+  with open(args.tokens, mode="w") as f:
+      f.write(auth_mgr.oauth.json())
+
+  xbl_client = XboxLiveClient(auth_mgr)
+
+  # Some example API calls
+
+  # Get friendslist
+  friendslist = await xbl_client.people.get_friends_own()
+
+  # Get presence status (by list of XUID)
+  presence = await xbl_client.presence.get_presence_batch(["12344567687845", "453486346235151"])
+
+  # Get messages
+  messages = await xbl_client.message.get_inbox()
+
+  # Get profile by GT
+  profile = await xbl_client.profile.get_profile_by_gamertag("SomeGamertag")
+```
+
+## Contribute
+
+- Report bugs/suggest features
+- Add/update docs
+- Add additional xbox live endpoints
+
+## Credits
+
+This package uses parts of [Cookiecutter](https://github.com/audreyr/cookiecutter)
+and the [audreyr/cookiecutter-pypackage](https://github.com/audreyr/cookiecutter-pypackage) project template.
+The authentication code is based on [joealcorn/xbox](https://github.com/joealcorn/xbox)
+
+Informations on endpoints gathered from:
+
+- [XboxLive REST Reference](https://docs.microsoft.com/en-us/windows/uwp/xbox-live/xbox-live-rest/atoc-xboxlivews-reference)
+- [XboxLiveTraceAnalyzer APIMap](https://github.com/Microsoft/xbox-live-trace-analyzer/blob/master/Source/XboxLiveTraceAnalyzer.APIMap.csv)
+- [Xbox Live Service API](https://github.com/Microsoft/xbox-live-api)
+
+## Disclaimer
+
+Xbox, Xbox One, Smartglass and Xbox Live are trademarks of Microsoft Corporation. Team OpenXbox is in no way endorsed by or affiliated with Microsoft Corporation, or any associated subsidiaries, logos or trademarks.
+
+
+# Changelog
+
+## 2.0.9 (2020-00-00)
+
+* Fix titlehub endpoint
+* AuthenticationManager: Allow fetching title endpoints
+* RequestSigner: Extend to respect SigningPolicy
+
+## 2.0.8 (2020-10-14)
+
+* GH action: Use official docker setup-buildx-step
+* Make more CatalogResponse fields optional
+* Allow fetching all installed apps across devices (remove device_id requirement)
+
+## 2.0.7 (2020-10-12)
+
+* Fix broken 2.0.6 yarl dep
+* Change GitHub action to not deploy on failed build
+
+## 2.0.6 (2020-10-12)
+
+* Add constants for some system titles that do not have PFN in catalog
+
+## 2.0.5 (2020-10-12)
+
+* Fix catalog models for legacy products
+
+## 2.0.4 (2020-10-11)
+
+* Fix catalog fields template
+
+## 2.0.3 (2020-10-11)
+
+* Fix catalog alt id lookup
+
+## 2.0.2 (2020-10-11)
+
+* Fixed package includes for providers
+* No longer attempts to refresh tokens when no auth required
+* Fixed `xbox-searchlive`
+
+## 2.0.1 (2020-10-10)
+
+* Ensures token validity on every request
+
+## 2.0.0 (2020-10-10)
+
+* Major rewrite (thx @hunterjm)
+* Removed auth-TUI (text user interface)
+* async via aiohttp
+* Support full OAUTH2 flow
+* Add new smartglass endpoint (xccs.xboxlive.com)
+* Add new catalog endpoint (displaycatalog)
+* Easier tests (ditch betamax)
+* Add RequestSigner / SignedSession (thx @socram8888)
+
+## 1.1.8 (2020-02-29)
+
+* Update people.py - Added get friends by XUID
+* CI / metadata changes
+
+## 1.1.7 (2018-11-10)
+
+* Fix parsing of WindowsLive auth response
+
+## 1.1.6 (2018-09-30)
+
+* Consider (User-)privileges of (XSTS) userinfo optional
+* Fix: Always return bool for @Property AuthenticationManager.authenticated
+
+## 1.1.5 (2018-08-11)
+
+* Make property *authenticated* in AuthenticationManager check token validity
+* Break out of windows live auth early if cookies were cached previously
+
+## 1.1.4 (2018-07-01)
+
+* Implement convenience functions for Partner Service Authentication
+
+## 1.1.3 (2018-06-16)
+
+* Gracefully fail on wrong account password
+* Fix "ValueError: tui: Unexpected button pressed: Cancel"
+* provider.lists: Correct headers, GET list works
+* Titlehub: Support getting title history by xuid
+
+## 1.1.2 (2018-05-06)
+
+* Fixing appdir (aka. token save location) creation on windows
+
+## 1.1.1 (2018-05-03)
+
+* Removed python-dateutil dependency
+* Add auth-via-browser fallback script
+* Small changes
+
+## 1.1.0 (2018-04-17)
+
+* Auth: Updated 2FA authentication to meet current windows live auth flow
+* Auth: Redesigned 2FA authentication procedure
+* Auth: Implemented xbox-auth-ui script (xbox.webapi.scripts.tui: urwid terminal ui)
+* Auth: For password masking, getpass instead or raw input() is used
+* Scripts: Default to appdirs.user_data_dir if no tokenfile provided via cmdline argument (see README)
+
+## 1.0.9 (2018-03-30)
+
+* Extend **Gameclips** provider with title id filtering and saved clips
+* Add **Screenshots** provider
+* Add **Titlehub** provider
+
+## 1.0.8 (2018-03-29)
+
+* Added **Userstats** endpoint
+* Updated README
+
+## 1.0.7 (2018-03-28)
+
+* Support supplying auth credentials via stdin
+* Added tests for all endpoints
+* Added tests for authentication
+* Added **QCS** endpoint
+* Added **Profile** endpoint
+* Added **Achievements** endpoint
+* Added **Usersearch** endpoint
+* Added **Gameclips** endpoint
+* Added **People** endpoint
+* Added **Presence** endpoint
+* Added **Message** endpoint
+* Removed **Gamerpics** endpoint
+
+## 1.0.3 - 1.0.6 (2018-03-17)
+
+* Metadata changes
+
+## 1.0.2 (2018-03-17)
+
+* More metadata changes, rendering on PyPi is fine now
+
+## 1.0.1 (2018-03-17)
+
+* Metadata changes
+
+## 1.0.0 (2018-03-17)
+
+* First release on PyPI.
+
+
