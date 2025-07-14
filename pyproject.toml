@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "uc_intg_xbox"
+version = "2.0.0"
+authors = [
+  { name="Meir Miyara", email="meir.miyara@gmail.com" },
+]
+description = "An Unfolded Circle integration for Xbox"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "ucapi == 0.3.1",
+    # Pinning to specific, compatible versions
+    "xbox-webapi == 2.0.9",
+    "pydantic == 1.7.1",
+    "certifi",
+    "requests"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/mase1981/uc-intg-xbox"
+"Bug Tracker" = "https://github.com/mase1981/uc-intg-xbox/issues"
