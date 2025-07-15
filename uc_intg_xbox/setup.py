@@ -39,7 +39,11 @@ class XboxSetup:
         return {"type": "error", "message": "An unexpected error occurred."}
 
     async def create_xbox_entity(self):
+        """Creates and registers the Xbox entity."""
         _LOG.info("Creating Xbox media player entity...")
         media_player = XboxMediaPlayer(self.api, self.config.liveid, None)
-        self.api.add_entity(media_player)
+        
+        # CORRECTED: The method for ucapi v0.3.1 is self.api.available_entities.add()
+        self.api.available_entities.add(media_player)
+        
         _LOG.info(f"Successfully added Xbox entity: {media_player.name}")
