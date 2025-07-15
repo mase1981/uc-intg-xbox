@@ -10,27 +10,28 @@ features = [
 ]
 
 class XboxMediaPlayer(MediaPlayer):
-    """Representation of an Xbox MediaPlayer entity, based on the JVC pattern."""
+    """Definitive representation of an Xbox MediaPlayer entity."""
 
     def __init__(self, api, live_id: str, xbox_client):
-        _LOG.info("✅ Initializing final JVC-style XboxMediaPlayer...")
-
-        # Step 1: Initialize with ONLY official attributes and NO 'api=' argument.
+        # This constructor call is now definitively correct for ucapi v0.3.1
         super().__init__(
             identifier=f"xbox-{live_id}",
             name=f"Xbox ({live_id})",
             features=features,
             attributes={
                 media_player.Attributes.STATE: media_player.States.OFF,
-                media_player.Attributes.MEDIA_TYPE: media_player.MediaType.VIDEO
+                media_player.Attributes.MEDIA_TYPE: media_player.MediaType.VIDEO,
             },
             cmd_handler=self.handle_command
         )
         
-        # Step 2: Add custom attributes and store the api object AFTER initialization.
+        # Manually set the unique_id, as the base class uses 'id' internally
+        self.unique_id = f"xbox-{live_id}"
+        # Add custom attributes after initialization
         self.attributes["manufacturer"] = "Microsoft"
         self.attributes["model"] = "Xbox"
-        self.api = api # Storing api for our own use.
+        # Store api for our own use
+        self.api = api
 
         self.live_id = live_id
         self.device = None 
