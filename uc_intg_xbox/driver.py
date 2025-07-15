@@ -7,7 +7,6 @@ from .setup import XboxSetup
 
 _LOG = logging.getLogger(__name__)
 
-# This is the correct event loop boilerplate for ucapi v0.3.1
 try:
     loop = asyncio.get_running_loop()
 except RuntimeError:

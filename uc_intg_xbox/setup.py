@@ -1,5 +1,4 @@
 import logging
-# We need to import the specific message types we're handling
 from ucapi import DriverSetupRequest, AbortDriverSetup
 from .config import XboxConfig
 from .media_player import XboxMediaPlayer
@@ -15,10 +14,9 @@ class XboxSetup:
     async def handle_command(self, request):
         _LOG.info(f"👉 SETUP HANDLER CALLED! Request type: {type(request)}")
 
-        # Check if the remote sent the form data
         if isinstance(request, DriverSetupRequest):
-            # The older library uses setup_data, not input_values
             live_id = request.setup_data.get("liveid")
+            _LOG.info(f"...Data received from remote form: {request.setup_data}")
 
             if not live_id:
                 _LOG.warning("...Live ID was not found in the setup data.")
@@ -33,16 +31,12 @@ class XboxSetup:
             _LOG.info("...Setup is complete! Telling the remote we are done.")
             return {"type": "finish_setup"}
         
-        # Check if the user cancelled the setup
         if isinstance(request, AbortDriverSetup):
             _LOG.warning("...Setup was aborted by the user or remote.")
-            # We don't need to do anything, just acknowledge
             return
 
-        # If we get here, something unexpected happened.
-        _LOG.error(f"Unhandled setup request received: {request}")
+        _LOG.warning(f"Unhandled setup request received: {request}")
         return {"type": "error", "message": "An unexpected error occurred."}
-
 
     async def create_xbox_entity(self):
         _LOG.info("Creating Xbox media player entity...")
