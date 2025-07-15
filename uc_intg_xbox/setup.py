@@ -1,5 +1,6 @@
 import logging
-from ucapi import DriverSetupRequest, AbortDriverSetup
+# We need to import the official SetupAction classes
+from ucapi import DriverSetupRequest, AbortDriverSetup, SetupComplete, SetupError, IntegrationSetupError
 from .config import XboxConfig
 from .media_player import XboxMediaPlayer
 
@@ -20,7 +21,8 @@ class XboxSetup:
 
             if not live_id:
                 _LOG.warning("...Live ID was not found in the setup data.")
-                return {"type": "error", "message": "Live ID is required."}
+                # Return an official SetupError object
+                return SetupError(IntegrationSetupError.OTHER)
 
             self.config.liveid = live_id.strip()
             await self.config.save(self.api)
@@ -28,22 +30,20 @@ class XboxSetup:
 
             await self.create_xbox_entity()
             
-            _LOG.info("...Setup is complete! Telling the remote we are done.")
-            return {"type": "finish_setup"}
+            _LOG.info("...Setup is complete! Returning official SetupComplete object.")
+            # CORRECTED: Return the official SetupComplete object
+            return SetupComplete()
         
         if isinstance(request, AbortDriverSetup):
             _LOG.warning("...Setup was aborted by the user or remote.")
+            # We don't need to return anything for an abort.
             return
 
         _LOG.warning(f"Unhandled setup request received: {request}")
-        return {"type": "error", "message": "An unexpected error occurred."}
+        return SetupError(IntegrationSetupError.OTHER)
 
     async def create_xbox_entity(self):
-        """Creates and registers the Xbox entity."""
         _LOG.info("Creating Xbox media player entity...")
         media_player = XboxMediaPlayer(self.api, self.config.liveid, None)
-        
-        # CORRECTED: The method for ucapi v0.3.1 is self.api.available_entities.add()
         self.api.available_entities.add(media_player)
-        
         _LOG.info(f"Successfully added Xbox entity: {media_player.name}")
