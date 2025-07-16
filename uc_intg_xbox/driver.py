@@ -38,5 +38,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         _LOG.info("Driver stopped.")
     finally:
-        _LOG.info("Closing the event loop.")
         loop.close()

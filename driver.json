@@ -2,7 +2,7 @@
     "driver_id": "uc-intg-xbox",
     "name": { "en": "Xbox Integration" },
     "description": { "en": "Control your Xbox console" },
-    "version": "3.5.0",
+    "version": "4.0.0",
     "developer": { "name": "Meir Miyara" },
     "min_core_api": "0.3.1",
     "setup_data_schema": {
