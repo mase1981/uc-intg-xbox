@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "uc_intg_xbox"
-version = "2.0.0"
+version = "3.5.0"
 authors = [
   { name="Meir Miyara", email="meir.miyara@gmail.com" },
 ]
@@ -18,7 +18,6 @@ classifiers = [
 ]
 dependencies = [
     "ucapi == 0.3.1",
-    # Pinning to specific, compatible versions
     "xbox-webapi == 2.0.9",
     "pydantic == 1.7.1",
     "certifi",
