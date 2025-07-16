@@ -12,7 +12,7 @@ features = [
 class XboxMediaPlayer(MediaPlayer):
 
     def __init__(self, api, live_id: str, xbox_client):
-        _LOG.info("✅ Initializing definitive JVC-style XboxMediaPlayer...")
+        _LOG.info("✅ Definitive XboxMediaPlayer...")
 
         super().__init__(
             identifier=f"xbox-{live_id}",
