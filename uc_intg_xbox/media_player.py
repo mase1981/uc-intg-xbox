@@ -1,49 +1,52 @@
 import logging
-from ucapi.entity import Entity, EntityTypes
-from ucapi.media_player import Features, Attributes, Commands, MediaType, States
+from ucapi import MediaPlayer
+from ucapi import media_player
 from .xbox import XboxDevice
 
 _LOG = logging.getLogger("XBOX_ENTITY")
 
-class XboxMediaPlayer(Entity):
-    """
-    Represents an Xbox entity, built from the base Entity class for stability.
-    This pattern ensures all data sent to the remote is in a simple string format.
-    """
+features = [
+    media_player.Features.ON_OFF
+]
+
+class XboxMediaPlayer(MediaPlayer):
+
     def __init__(self, api, live_id: str, xbox_client):
-        # We manually define all properties, using .value to get simple strings.
+        _LOG.info("✅ Initializing definitive JVC-style XboxMediaPlayer...")
+
         super().__init__(
-            api=api,
             identifier=f"xbox-{live_id}",
             name=f"Xbox ({live_id})",
-            entity_type=EntityTypes.MEDIA_PLAYER.value,
-            features=[
-                Features.ON_OFF.value
-            ],
+            features=features,
             attributes={
-                Attributes.STATE.value: States.OFF.value,
-                Attributes.MEDIA_TYPE.value: MediaType.VIDEO.value,
-                "manufacturer": "Microsoft",
-                "model": "Xbox"
+                media_player.Attributes.STATE: media_player.States.OFF,
+                media_player.Attributes.MEDIA_TYPE: media_player.MediaType.VIDEO,
             },
             cmd_handler=self.handle_command
         )
         
-        self.live_id = live_id
-        self.device = None
-        _LOG.info(f"✅ JVC-STYLE XboxMediaPlayer entity initialized with ID: {self.unique_id}")
+        # Step 2: Add custom attributes and store the api object AFTER initialization.
+        self.attributes["manufacturer"] = "Microsoft"
+        self.attributes["model"] = "Xbox"
+        self.api = api
+        self.unique_id = f"xbox-{live_id}"
 
-    async def handle_command(self, entity, cmd_id: str, params: dict = None) -> bool:
+        self.live_id = live_id
+        self.device = None 
+        _LOG.info(f"✅ XboxMediaPlayer entity fully initialized with ID: {self.unique_id}")
+
+    async def handle_command(self, command: media_player.Commands, value: any = None) -> bool:
         """Handles commands sent from the remote."""
-        _LOG.info(f"Command '{cmd_id}' received for entity '{self.id}'.")
+        _LOG.info(f"Command '{command.name}' received for entity '{self.unique_id}'.")
         
-        # Compare the incoming command string to the Enum's string value
-        if cmd_id == Commands.TurnOn.value:
-            self.attributes[Attributes.STATE.value] = States.ON.value
+        if command == media_player.Commands.TurnOn:
+            self.attributes[media_player.Attributes.STATE] = media_player.States.ON
+            _LOG.info(f"POWER ON command received for {self.unique_id}")
             return True
         
-        if cmd_id == Commands.TurnOff.value:
-            self.attributes[Attributes.STATE.value] = States.OFF.value
+        if command == media_player.Commands.TurnOff:
+            self.attributes[media_player.Attributes.STATE] = media_player.States.OFF
+            _LOG.info(f"POWER OFF command received for {self.unique_id}")
             return True
             
         return False
