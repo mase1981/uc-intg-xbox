@@ -7,12 +7,10 @@ _LOG = logging.getLogger(__name__)
 
 @dataclass
 class XboxConfig:
-    """A self-contained class to manage the integration's configuration."""
     liveid: str | None = None
     tokens: dict | None = field(default_factory=dict)
 
     async def load(self, api):
-        """Loads the configuration from a file in the directory provided by the API."""
         config_path = os.path.join(api.config_dir_path, "config.json")
         _LOG.info(f"Attempting to load config from: {config_path}")
         try:
@@ -23,11 +21,10 @@ class XboxConfig:
             _LOG.info("Configuration loaded successfully.")
         except FileNotFoundError:
             _LOG.info("config.json not found. A new one will be created upon saving.")
-        except (json.JSONDecodeError, Exception) as e:
-            _LOG.error(f"Failed to load or parse config.json: {e}")
+        except Exception as e:
+            _LOG.error(f"Failed to load config.json: {e}")
 
     async def save(self, api):
-        """Saves the configuration to a file in the directory provided by the API."""
         config_path = os.path.join(api.config_dir_path, "config.json")
         _LOG.info(f"Saving config to: {config_path}")
         try:

@@ -1,28 +1,9 @@
 import asyncio
 import logging
 import os
-import ucapi # Import the top-level library to check its version
 from ucapi import IntegrationAPI
 from .config import XboxConfig
 from .setup import XboxSetup
-
-# --- Verification Step ---
-print("--- UCAPI Library Verification ---")
-print(f"ucapi version: {ucapi.__version__}")
-try:
-    from ucapi import media_player
-    print("\nAvailable MediaPlayer Attributes:")
-    for attr in dir(media_player.Attributes):
-        if not attr.startswith('_'):
-            print(f" - {attr}")
-    print("\nAvailable MediaPlayer Commands:")
-    for command in dir(media_player.Commands):
-        if not command.startswith('_'):
-            print(f" - {command}")
-except ImportError as e:
-    print(f"\nCould not import media_player attributes: {e}")
-print("---------------------------------")
-# --- End Verification Step ---
 
 _LOG = logging.getLogger(__name__)
 
@@ -57,4 +38,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         _LOG.info("Driver stopped.")
     finally:
+        _LOG.info("Closing the event loop.")
         loop.close()

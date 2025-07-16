@@ -10,11 +10,9 @@ class XboxDevice:
         self.live_id = live_id
 
     async def turn_on(self):
-        """Send the turn on command to the console."""
         _LOG.info(f"Sending power on to {self.live_id}")
         await self.client.smartglass.turn_on(self.live_id)
 
     async def turn_off(self):
-        """Send the turn off command to the console."""
         _LOG.info(f"Sending power off to {self.live_id}")
         await self.client.smartglass.turn_off(self.live_id)
