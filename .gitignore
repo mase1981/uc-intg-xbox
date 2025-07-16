@@ -9,6 +9,5 @@ wheels/
 # Virtual environments
 .venv
 uv.lock
+tokens.json
 tokens_old.json
-tokens.json
-tokens.json
