@@ -1,15 +1,19 @@
 import logging
+import aiohttp
+import ssl
+import certifi
 from ucapi import (
     DriverSetupRequest,
+    UserDataResponse,
     AbortDriverSetup,
     SetupComplete,
     SetupError,
     IntegrationSetupError,
-    RequestUserInput  # We need this to ask for the redirect URL
+    RequestUserInput
 )
 from .config import XboxConfig
 from .media_player import XboxMediaPlayer
-from .auth import XboxAuth # Import our new auth handler
+from .auth import XboxAuth
 
 _LOG = logging.getLogger("XBOX_SETUP")
 
@@ -17,64 +21,59 @@ class XboxSetup:
     def __init__(self, api, config: XboxConfig):
         self.api = api
         self.config = config
-        # Create an instance of our auth handler
-        self.auth = XboxAuth()
-        _LOG.info("✅ SETUP HANDLER INITIALIZED ✅")
+        self.auth_session = None
 
     async def handle_command(self, request):
         _LOG.info(f"👉 SETUP HANDLER CALLED! Request type: {type(request)}")
-
-        # This part remains the same: it gets the Live ID
+        
+        # This is the correct pattern for the setup flow
         if isinstance(request, DriverSetupRequest):
-            live_id = request.setup_data.get("liveid")
-            _LOG.info(f"...Data received from remote form: {live_id}")
-
-            if not live_id:
-                _LOG.warning("...Live ID was not found.")
-                return SetupError(IntegrationSetupError.OTHER)
-
-            self.config.liveid = live_id.strip()
-            # We don't save the config yet, we wait until auth is complete
+            self.config.liveid = request.setup_data.get("liveid").strip()
             _LOG.info(f"...Live ID captured: {self.config.liveid}")
 
-            # NEW STEP: Instead of finishing, we start the auth flow
-            try:
-                auth_url = await self.auth.generate_auth_url()
-                
-                # We now ask the user to go to the URL and paste the result
-                return RequestUserInput(
-                    {"en": "Xbox Authentication"},
-                    [
-                        {
-                            "id": "info",
-                            "label": {"en": "Please log in to your Microsoft Account in a browser."},
-                            "field": {"label": {"value": {"en": "A new window should have opened. If not, please copy and paste this URL into your browser."}}}
-                        },
-                        {
-                            "id": "auth_url",
-                            "label": {"en": "Login URL"},
-                            "field": {"text": {"value": auth_url, "read_only": True}}
-                        },
-                        {
-                            "id": "redirect_url",
-                            "label": {"en": "Paste the full redirect URL here"},
-                            "field": {"text": {"value": ""}}
-                        }
-                    ]
-                )
-            except Exception as e:
-                _LOG.error(f"Failed to generate auth URL: {e}")
-                return SetupError(IntegrationSetupError.OTHER)
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
+            self.auth_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl_context))
+            auth_handler = XboxAuth(self.auth_session)
+            auth_url = await auth_handler.generate_auth_url()
+            
+            return RequestUserInput(
+                {"en": "Xbox Authentication"},
+                [
+                    {"id": "info", "label": {"en": "Please log in to your Microsoft Account in a browser."}, "field": {"label": {"value": {"en": "A new window should have opened. If not, copy this URL."}}}},
+                    {"id": "auth_url", "label": {"en": "Login URL"}, "field": {"text": {"value": auth_url, "read_only": True}}},
+                    {"id": "redirect_url", "label": {"en": "Paste the full redirect URL here"}, "field": {"text": {"value": ""}}}
+                ]
+            )
 
-        # We will add the handler for the redirect URL in the next step
+        if isinstance(request, UserDataResponse):
+            redirect_url = request.input_values.get("redirect_url")
+            _LOG.info("...Received redirect URL from user.")
+
+            auth_handler = XboxAuth(self.auth_session)
+            tokens = await auth_handler.process_redirect_url(redirect_url)
+            await self.auth_session.close() # Close the session now that we're done with it
+
+            if not tokens:
+                return SetupError(IntegrationSetupError.AUTHORIZATION_ERROR)
+            
+            self.config.tokens = tokens
+            await self.config.save(self.api)
+            _LOG.info("✅ Tokens successfully retrieved and saved.")
+
+            await self.create_xbox_entity()
+            return SetupComplete()
 
         if isinstance(request, AbortDriverSetup):
-            _LOG.warning("...Setup was aborted by the user or remote.")
+            _LOG.warning("...Setup was aborted.")
+            if self.auth_session:
+                await self.auth_session.close()
             return
 
-        _LOG.warning(f"Unhandled setup request: {request}")
         return SetupError(IntegrationSetupError.OTHER)
 
     async def create_xbox_entity(self):
-        # We will move the logic here after auth is complete
-        pass
+        _LOG.info("Creating Xbox media player entity...")
+        media_player = XboxMediaPlayer(self.api, self.config.liveid, None)
+        # THIS IS THE FIX for the 'add_entity' error
+        self.api.available_entities.add(media_player)
+        _LOG.info(f"✅ Successfully added Xbox entity: {media_player.name}")
