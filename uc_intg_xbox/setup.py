@@ -17,7 +17,7 @@ from .auth import XboxAuth
 
 _LOG = logging.getLogger("XBOX_SETUP")
 
-
+# Starting Class #
 class XboxSetup:
     def __init__(self, api, config: XboxConfig):
         self.api = api
