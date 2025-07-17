@@ -7,7 +7,7 @@ wheels/
 *.egg-info
 
 # Virtual environments
-.venv
+venv
 uv.lock
 tokens.json
 tokens_old.json
