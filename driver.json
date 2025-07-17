@@ -1,19 +1,19 @@
 {
-    "driver_id": "uc-intg-xbox",
-    "name": { "en": "Xbox Integration" },
-    "description": { "en": "Control your Xbox console" },
-    "version": "4.0.0",
-    "developer": { "name": "Meir Miyara" },
-    "min_core_api": "0.3.1",
-    "setup_data_schema": {
-        "title": { "en": "Xbox Configuration" },
-        "settings": [
-            {
-                "id": "liveid",
-                "label": { "en": "Xbox Live Device ID" },
-                "value": { "en": "Found in Settings > Devices & connections > Remote features." },
-                "field": { "text": { "value": "" } }
-            }
-        ]
-    }
+  "driver_id": "uc-intg-xbox",
+  "name": { "en": "Xbox Integration" },
+  "description": { "en": "Control your Xbox console" },
+  "version": "4.0.0",
+  "developer": { "name": "Meir Miyara" },
+  "min_core_api": "0.3.1",
+  "setup_data_schema": {
+    "title": { "en": "Xbox Configuration" },
+    "settings": [
+      {
+        "id": "liveid",
+        "label": { "en": "Xbox Live Device ID" },
+        "value": { "en": "Found in Settings > Devices & connections > Remote features." },
+        "field": { "text": { "value": "" } }
+      }
+    ]
+  }
 }
