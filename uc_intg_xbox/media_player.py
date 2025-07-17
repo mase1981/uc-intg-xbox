@@ -2,51 +2,50 @@ import logging
 from ucapi import MediaPlayer
 from ucapi import media_player
 from .xbox import XboxDevice
+from .config import XboxConfig
 
 _LOG = logging.getLogger("XBOX_ENTITY")
 
-features = [
-    media_player.Features.ON_OFF
-]
-
 class XboxMediaPlayer(MediaPlayer):
-
-    def __init__(self, api, live_id: str, xbox_client):
-        _LOG.info("✅ Definitive XboxMediaPlayer...")
-
+    def __init__(self, api, config: XboxConfig, xbox_client):
+        # We pass the whole config object now
+        self.config = config
         super().__init__(
-            identifier=f"xbox-{live_id}",
-            name=f"Xbox ({live_id})",
-            features=features,
+            identifier=f"xbox-{config.liveid}",
+            name=f"Xbox ({config.liveid})",
+            features=[media_player.Features.ON_OFF],
             attributes={
                 media_player.Attributes.STATE: media_player.States.OFF,
                 media_player.Attributes.MEDIA_TYPE: media_player.MediaType.VIDEO,
+                "manufacturer": "Microsoft",
+                "model": "Xbox"
             },
             cmd_handler=self.handle_command
         )
-        
-        # Step 2: Add custom attributes and store the api object AFTER initialization.
-        self.attributes["manufacturer"] = "Microsoft"
-        self.attributes["model"] = "Xbox"
         self.api = api
-        self.unique_id = f"xbox-{live_id}"
-
-        self.live_id = live_id
-        self.device = None 
-        _LOG.info(f"✅ XboxMediaPlayer entity fully initialized with ID: {self.unique_id}")
+        self.unique_id = f"xbox-{config.liveid}"
+        self.device = None # We will create this on-demand
 
     async def handle_command(self, command: media_player.Commands, value: any = None) -> bool:
-        """Handles commands sent from the remote."""
         _LOG.info(f"Command '{command.name}' received for entity '{self.unique_id}'.")
         
+        try:
+            _LOG.info("Attempting to create live Xbox device for command...")
+            self.device = await XboxDevice.from_config(self.config)
+            _LOG.info("Live Xbox device created successfully.")
+        except Exception as e:
+            _LOG.error(f"❌ Failed to create live Xbox device: {e}")
+            self.attributes[media_player.Attributes.STATE] = media_player.States.UNAVAILABLE
+            return False
+
         if command == media_player.Commands.TurnOn:
+            await self.device.turn_on()
             self.attributes[media_player.Attributes.STATE] = media_player.States.ON
-            _LOG.info(f"POWER ON command received for {self.unique_id}")
             return True
         
         if command == media_player.Commands.TurnOff:
+            await self.device.turn_off()
             self.attributes[media_player.Attributes.STATE] = media_player.States.OFF
-            _LOG.info(f"POWER OFF command received for {self.unique_id}")
             return True
             
         return False
