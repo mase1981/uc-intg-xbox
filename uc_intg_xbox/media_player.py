@@ -1,5 +1,5 @@
 import logging
-import asyncio  # ✅ Required for background task creation
+import asyncio
 from ucapi.entity import Entity, EntityTypes
 from ucapi.media_player import Features, Attributes, Commands, MediaType, States
 from .xbox import XboxDevice
@@ -8,36 +8,36 @@ from .config import XboxConfig
 _LOG = logging.getLogger("XBOX_ENTITY")
 
 class XboxMediaPlayer(Entity):
-    """
-    Definitive representation of an Xbox entity, combining the best of our code.
-    """
+    """MediaPlayer entity for Xbox, safely integrated with UC API and token-based control."""
+
     def __init__(self, api, config: XboxConfig):
+        entity_id = f"xbox-{config.liveid}"
+        entity_name = {"en": f"Xbox ({config.liveid})"}
+
         super().__init__(
-            identifier=f"xbox-{config.liveid}",
-            name=f"Xbox ({config.liveid})",
-            entity_type=EntityTypes.MEDIA_PLAYER,
-            features=[
-                Features.ON_OFF.value
-            ],
+            identifier=entity_id,
+            name=entity_name,
+            entity_type=EntityTypes.MEDIA_PLAYER.value,
+            features=[Features.ON_OFF.value],
             attributes={
                 Attributes.STATE.value: States.UNAVAILABLE.value,
                 Attributes.MEDIA_TYPE.value: MediaType.VIDEO.value,
                 "manufacturer": "Microsoft",
                 "model": "Xbox Series X"
             },
-            cmd_handler=self.handle_command
+            cmd_handler=self.handle_command,
+            device_id=None
         )
 
         self.api = api
         self.config = config
-        self.unique_id = f"xbox-{config.liveid}"
+        self.unique_id = entity_id
         self.device = None
 
-        # ✅ Fixed: use asyncio directly for background task creation
         asyncio.create_task(self._init_device())
 
     async def _init_device(self):
-        """Initializes XboxDevice in the background."""
+        """Initializes the XboxDevice using current config tokens."""
         _LOG.info("🔧 Initializing XboxDevice in background...")
         try:
             self.device, refreshed_tokens = await XboxDevice.from_config(self.config)
@@ -45,26 +45,29 @@ class XboxMediaPlayer(Entity):
                 self.attributes[Attributes.STATE.value] = States.OFF.value
                 self.config.tokens = refreshed_tokens
                 await self.config.save(self.api)
-                _LOG.info("✅ XboxDevice created successfully and state set to OFF.")
+                _LOG.info("✅ XboxDevice initialized and tokens refreshed.")
             else:
-                _LOG.warning("⚠️ XboxDevice creation failed during init.")
+                _LOG.warning("⚠️ XboxDevice creation returned None.")
         except Exception as e:
-            _LOG.exception("❌ Exception during XboxDevice init:", exc_info=e)
+            _LOG.exception("❌ Exception during XboxDevice initialization:", exc_info=e)
 
     async def handle_command(self, entity, cmd_id: str, params: dict = None) -> bool:
-        """Handles TurnOn and TurnOff commands."""
+        """Handles On/Off commands sent by UC Remote."""
         _LOG.info(f"📥 Command received: '{cmd_id}' for entity '{self.id}'.")
 
         if not self.device:
-            _LOG.warning("Device was uninitialized. Attempting to recover.")
-            self.device, refreshed_tokens = await XboxDevice.from_config(self.config)
-            if self.device:
-                self.config.tokens = refreshed_tokens
-                await self.config.save(self.api)
+            _LOG.warning("⚠️ Device uninitialized. Attempting recovery...")
+            try:
+                self.device, refreshed_tokens = await XboxDevice.from_config(self.config)
+                if self.device:
+                    self.config.tokens = refreshed_tokens
+                    await self.config.save(self.api)
+            except Exception as e:
+                _LOG.error("❌ Failed to reinitialize XboxDevice.")
+                self.attributes[Attributes.STATE.value] = States.UNAVAILABLE.value
+                return False
 
         if not self.device:
-            _LOG.error("❌ Failed to create Xbox device. Command failed.")
-            self.attributes[Attributes.STATE.value] = States.UNAVAILABLE.value
             return False
 
         try:
@@ -73,7 +76,7 @@ class XboxMediaPlayer(Entity):
                 self.attributes[Attributes.STATE.value] = States.ON.value
                 return True
 
-            if cmd_id == Commands.TurnOff.value:
+            elif cmd_id == Commands.TurnOff.value:
                 await self.device.turn_off()
                 self.attributes[Attributes.STATE.value] = States.OFF.value
                 return True
