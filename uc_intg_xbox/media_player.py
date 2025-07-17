@@ -10,14 +10,15 @@ _LOG = logging.getLogger("XBOX_ENTITY")
 class XboxMediaPlayer(Entity):
     """MediaPlayer entity for Xbox, safely integrated with UC API and token-based control."""
 
-    def __init__(self, api, config: XboxConfig):
-        entity_id = f"xbox-{config.liveid}"
+    def __init__(self, api, config: XboxConfig,entity_id: str = ''):
+        if not entity_id:
+            entity_id = f"xbox-{config.liveid}"
         entity_name = {"en": f"Xbox ({config.liveid})"}
 
         super().__init__(
             identifier=entity_id,
             name=entity_name,
-            entity_type=EntityTypes.MEDIA_PLAYER.value,
+            entity_type=EntityTypes.MEDIA_PLAYER,
             features=[Features.ON_OFF.value],
             attributes={
                 Attributes.STATE.value: States.UNAVAILABLE.value,
@@ -26,7 +27,7 @@ class XboxMediaPlayer(Entity):
                 "model": "Xbox Series X"
             },
             cmd_handler=self.handle_command,
-            device_id=None
+            #device_id=None
         )
 
         self.api = api
