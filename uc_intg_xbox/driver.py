@@ -1,7 +1,8 @@
 import asyncio
 import logging
 import os
-from ucapi import IntegrationAPI
+import ucapi
+
 from .config import XboxConfig
 from .setup import XboxSetup
 
@@ -13,9 +14,17 @@ except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
+API = ucapi.IntegrationAPI(loop)
+
+@API.listens_to(ucapi.Events.CONNECT)
+async def on_connect() -> None:
+    """When the UCR2 connects, send the device state."""
+    # This example is ready all the time!
+    await API.set_device_state(ucapi.DeviceStates.CONNECTED)
+
 class XboxIntegration:
-    def __init__(self):
-        self.api = IntegrationAPI(loop)
+    def __init__(self, api):
+        self.api: ucapi.IntegrationAPI = api
         self.config = XboxConfig()
         self.setup = XboxSetup(self.api, self.config)
 
@@ -28,7 +37,7 @@ class XboxIntegration:
         _LOG.info("Driver is up and discoverable.")
 
 async def main():
-    integration = XboxIntegration()
+    integration = XboxIntegration(API)
     await integration.start()
 
 if __name__ == "__main__":
