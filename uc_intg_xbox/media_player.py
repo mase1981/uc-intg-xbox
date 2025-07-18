@@ -10,7 +10,7 @@ _LOG = logging.getLogger("XBOX_ENTITY")
 class XboxMediaPlayer(Entity):
     """MediaPlayer entity for Xbox, safely integrated with UC API and token-based control."""
 
-    def __init__(self, api, config: XboxConfig,entity_id: str = ''):
+    def __init__(self, api, config: XboxConfig, entity_id: str = ''):
         if not entity_id:
             entity_id = f"xbox-{config.liveid}"
         entity_name = {"en": f"Xbox ({config.liveid})"}
@@ -72,12 +72,12 @@ class XboxMediaPlayer(Entity):
             return False
 
         try:
-            if cmd_id == Commands.TurnOn.value:
+            if cmd_id == Commands.ON.value:
                 await self.device.turn_on()
                 self.attributes[Attributes.STATE.value] = States.ON.value
                 return True
 
-            elif cmd_id == Commands.TurnOff.value:
+            elif cmd_id == Commands.OFF.value:
                 await self.device.turn_off()
                 self.attributes[Attributes.STATE.value] = States.OFF.value
                 return True
