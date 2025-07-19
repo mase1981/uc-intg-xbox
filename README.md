@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Disclaimer:** This is my first contribution to the unfolded circle community, Disclaimer: truly hope it works out for you, Thank You: Meir Miyara
+**Disclaimer:** This is my first contribution to the unfolded circle community, truly hope it works out for you, Thank You: Meir Miyara
 
 This is a custom integration for the Unfolded Circle Remote that allows you to control your Xbox One, Xbox Series S, or Xbox Series X console.
 
