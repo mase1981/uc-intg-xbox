@@ -1,1 +1,110 @@
-# Xbox Integration for Unfolded Circle - WIP
+# Unfolded Circle Xbox Integration
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**Disclaimer:** This is my first contribution to the unfolded circle community, Disclaimer: truly hope it works out for you, Thank You: Meir Miyara
+
+This is a custom integration for the Unfolded Circle Remote that allows you to control your Xbox One, Xbox Series S, or Xbox Series X console.
+
+This integration allows for remote control of your console, including power, navigation, and media playback controls directly from your Unfolded Circle remote.
+
+## Features
+
+* **Power On/Off**: Turn your console on and off.
+* **Remote Control**: Full navigation with D-Pad, A (Select), and B (Back) buttons.
+* **System Commands**: Access the Home (Nexus) screen.
+* **Authentication**: Secure OAuth2-based authentication with your Microsoft account.
+* **Auto-Discovery**: The integration is discoverable by the Unfolded Circle remote on your network.
+
+## Prerequisites
+
+1.  An Unfolded Circle Remote (RC2 or RC3).
+2.  An Xbox One, Xbox Series S, or Xbox Series X console.
+3.  Your Xbox must be set to **Instant-on** power mode for Power-On (Wake-on-LAN) to function. You can find this in `Settings > General > Power options`.
+4.  You must enable remote features on your Xbox.
+5.  You will need your console's **Xbox Live Device ID**. To find it, go to `Settings > Devices & connections > Remote features` on your Xbox.
+
+## Installation
+
+There are two recommended ways to install and run this integration:
+
+### Method 1: Docker (Recommended)
+
+This is the easiest way to run the integration. You can use any machine that runs Docker, such as a home server or a Synology NAS.
+
+1.  Create a file named `docker-compose.yml`.
+2.  Paste the following content into the file:
+
+    ```yml
+    version: '3'
+    services:
+      uc-intg-xbox:
+        # NOTE: Use the correct image name once it is published to Docker Hub
+        image: your-dockerhub-username/uc-intg-xbox:latest
+        container_name: uc-intg-xbox
+        restart: unless-stopped
+        network_mode: host
+        volumes:
+          - ./config:/app/config
+    ```
+
+3.  Create a `config` directory next to your `docker-compose.yml` file. This is where the integration will store your authentication tokens.
+4.  Run the container: `docker-compose up -d`
+
+### Method 2: Manual Installation (`.tar.gz`)
+
+You can install the integration directly onto your Unfolded Circle remote.
+
+1.  Download the latest release `.tar.gz` file from the [releases page](https://github.com/mase1981/uc-intg-xbox/releases) of this repository.
+2.  Open your Unfolded Circle web configurator in a browser (`http://<your_remote_ip>`).
+3.  Navigate to `Settings > System > Integrations`.
+4.  Click the `+` button and select `Upload a custom integration`.
+5.  Select the `.tar.gz` file you downloaded.
+
+## Configuration
+
+After the integration is installed and running, you need to add it on your remote:
+
+1.  On the Unfolded Circle remote or in the web configurator, go to the screen for adding a new device/service.
+2.  The "Xbox Integration" should be listed as a discovered device. Select it.
+3.  You will be prompted to enter your **Xbox Live Device ID**. Enter the ID you found in the prerequisites and click Next.
+4.  The remote will display a URL and a field to paste a redirected URL.
+5.  Copy the login URL and open it in a web browser. Log in with the Microsoft account associated with your Xbox.
+6.  After successful login, you will be redirected to a blank page. **Copy the entire URL** from your browser's address bar.
+7.  Paste this full URL back into the "Paste the full redirect URL here" field on your remote and complete the setup.
+8.  The Xbox entity will be added to your remote and is ready to use!
+
+## Development
+
+Interested in contributing? Here’s how to set up a development environment.
+
+1.  Clone the repository:
+    ```bash
+    git clone [https://github.com/mase1981/uc-intg-xbox.git](https://github.com/mase1981/uc-intg-xbox.git)
+    cd uc-intg-xbox
+    ```
+2.  Create and activate a Python virtual environment. Python 3.10 or higher is required.
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate  # On Windows, use `.venv\Scripts\activate`
+    ```
+3.  Install the project in editable mode with its dependencies:
+    ```bash
+    pip install -e .
+    ```
+4.  Run the driver:
+    ```bash
+    python -m uc_intg_xbox.driver
+    ```
+
+## License
+
+This project is licensed under the MIT License. See the `LICENSE` file for details.
+
+## Acknowledgements
+
+* This project is powered by the [xbox-webapi](https://github.com/OpenXbox/xbox-webapi-python) library.
+* Special thanks to the [Unfolded Circle](https://www.unfoldedcircle.com/) team for creating a remote with an open API.
+* Thanks to [JackJPowell](https://github.com/JackJPowell) for the PSN and JVC integrations which served as excellent reference points.
+
+ 
