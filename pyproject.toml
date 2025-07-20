@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uc_intg_xbox"
-version = "1.0.1"
+version = "1.0.0"
 authors = [
   { name="Meir Miyara", email="meir.miyara@gmail.com" },
 ]
@@ -27,8 +27,5 @@ dependencies = [
 [project.scripts]
 uc-intg-xbox = "uc_intg_xbox.driver:main"
 
-# --- ADD THIS SECTION ---
-# This tells setuptools to find and include your uc_intg_xbox package
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["uc_intg_xbox*"]
+[tool.setuptools]
+packages = ["uc_intg_xbox"]
