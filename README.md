@@ -20,9 +20,9 @@ This integration allows for remote control of your console, including power, nav
 
 1.  An Unfolded Circle Remote (RC2 or RC3).
 2.  An Xbox One, Xbox Series S, or Xbox Series X console.
-3.  Your Xbox must be set to **Instant-on** power mode for Power-On (Wake-on-LAN) to function. You can find this in `Settings > General > Power options`.
-4.  You must enable remote features on your Xbox.
-5.  You will need your console's **Xbox Live Device ID**. To find it, go to `Settings > Devices & connections > Remote features` on your Xbox.
+3.  Your Xbox must be set to **Sleep** power mode (previously "Instant-on") for Power On to function. You can find this in `Settings > General > Power options`.
+4.  You must enable remote features on your Xbox. To do this, go to `Settings > Devices & connections > Remote features` and check the box for "Enable remote features".
+5.  You will need your console's **Xbox Live Device ID**, which is found on that same settings page.
 
 ## Installation
 
@@ -45,7 +45,7 @@ This is the easiest way to run the integration. You can use any machine that run
         restart: unless-stopped
         network_mode: host
         volumes:
-          - ./config:/app/config
+          - ./config:/app/uc_intg_xbox/config
     ```
 
 3.  Create a `config` directory next to your `docker-compose.yml` file. This is where the integration will store your authentication tokens.
@@ -72,7 +72,11 @@ After the integration is installed and running, you need to add it on your remot
 5.  Copy the login URL and open it in a web browser. Log in with the Microsoft account associated with your Xbox.
 6.  After successful login, you will be redirected to a blank page. **Copy the entire URL** from your browser's address bar.
 7.  Paste this full URL back into the "Paste the full redirect URL here" field on your remote and complete the setup.
-8.  The Xbox entity will be added to your remote and is ready to use!
+8.  **Manually Add the Remote Entity (If Needed):** Sometimes, the remote entity isn't added automatically. If you don't see the "Xbox Remote" after setup is complete, follow these extra steps:
+    * Navigate to the Xbox Integration's page in your Unfolded Circle settings.
+    * Find the **Configured Entities** section.
+    * You should see the "Xbox Remote" listed with an **Add** button. Tap "Add".
+9.  The Xbox entity will now be available to add to your activities and is ready to use!
 
 ## Development
 
@@ -99,12 +103,10 @@ Interested in contributing? Here’s how to set up a development environment.
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+This project is licensed under the MIT License.
 
 ## Acknowledgements
 
 * This project is powered by the [xbox-webapi](https://github.com/OpenXbox/xbox-webapi-python) library.
 * Special thanks to the [Unfolded Circle](https://www.unfoldedcircle.com/) team for creating a remote with an open API.
 * Thanks to [JackJPowell](https://github.com/JackJPowell) for the PSN and JVC integrations which served as excellent reference points.
-
- 
