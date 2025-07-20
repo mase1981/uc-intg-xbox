@@ -1,6 +1,7 @@
 {
   "driver_id": "uc-intg-xbox",
   "name": { "en": "Xbox Integration" },
+  "icon": "uc:gamepad-modern",
   "description": { "en": "Control your Xbox console" },
   "version": "4.0.0",
   "developer": { "name": "Meir Miyara" },
