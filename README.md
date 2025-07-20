@@ -6,20 +6,20 @@
 
 This is a custom integration for the Unfolded Circle Remote that allows you to control your Xbox One, Xbox Series S, or Xbox Series X console.
 
-This integration allows for remote control of your console, including power, navigation, and media playback controls directly from your Unfolded Circle remote.
+This integration allows for remote control of your console's dashboard, including power, navigation, volume, and media playback controls directly from your Unfolded Circle remote.
 
 ## Features
 
 * **Power On/Off**: Turn your console on and off.
-* **Dashboard Control**: Full navigation with D-Pad, A (Select), and B (Back) buttons on the main Xbox dashboard.
-* **System Commands**: Access the Home (Nexus) screen, Menu, and other system functions.
-* **Volume Control**: Control the volume of your TV or AV receiver via CEC if configured on your Xbox.
+* **Dashboard Control**: Full navigation with D-Pad and system buttons on the main Xbox dashboard.
+* **Volume Control**: Control the volume of your TV or AV receiver (via CEC if configured on your Xbox).
+* **Media Controls**: Play, Pause, and skip tracks on the Xbox dashboard.
 * **Authentication**: Secure OAuth2-based authentication with your Microsoft account.
 * **Auto-Discovery**: The integration is discoverable by the Unfolded Circle remote on your network.
 
-## Known Limitations!!!
+## Known Limitations
 
-* **No In-App Control for Media Apps:** This integration provides full control over the main Xbox dashboard and system menus. However, it **cannot** control third-party media applications (like Netflix, YouTube, Disney+, etc.) once they are launched. This is a limitation of the public Xbox Web API. For security and copyright (DRM) reasons, most media apps are designed to ignore remote commands sent this way and will only respond to physically paired controllers or official media remotes.
+* **No In-App Control for Media Apps:** This integration provides full control over the main Xbox dashboard. However, it **cannot** control third-party media applications (like Netflix, YouTube, etc.) once they are launched. This is a limitation of the public Xbox Web API, as most media apps are designed to ignore these types of remote commands for security and DRM reasons.
 
 ## Prerequisites
 
@@ -35,32 +35,38 @@ There are two recommended ways to install and run this integration:
 
 ### Method 1: Docker (Recommended)
 
-This is the easiest way to run the integration. You can use any machine that runs Docker, such as a home server or a Synology NAS.
+This is the easiest way to run the integration. This method works on any machine that runs Docker, such as a home server or a Synology NAS.
 
-1.  Create a file named `docker-compose.yml`.
-2.  Paste the following content into the file:
+1.  Clone or download the project files from this GitHub repository.
+2.  In the project's root directory, create an empty folder named `config`. This is where the integration will store your authentication tokens.
+3.  From a terminal in the project's root directory, run the following single command:
 
-    ```yml
-    version: '3'
-    services:
-      uc-intg-xbox:
-        # NOTE: Use the correct image name once it is published to Docker Hub
-        image: your-dockerhub-username/uc-intg-xbox:latest
-        container_name: uc-intg-xbox
-        restart: unless-stopped
-        network_mode: host
-        volumes:
-          - ./config:/app/uc_intg_xbox/config
+    ```bash
+    docker-compose up --build -d
     ```
+The integration will build and start in the background. It is now ready to be configured on your remote.
 
-3.  Create a `config` directory next to your `docker-compose.yml` file. This is where the integration will store your authentication tokens.
-4.  Run the container: `docker-compose up -d`
+#### Alternative Docker Commands
+If you don't have `docker-compose` installed, you can use these two standard Docker commands instead:
+
+1.  **Build the image:**
+    ```bash
+    docker build -t uc-intg-xbox .
+    ```
+2.  **Run the container:**
+    ```bash
+    # For PowerShell, Linux, or macOS
+    docker run -d --name uc-intg-xbox --network host -v "$(pwd)/config:/app/uc_intg_xbox/config" --restart unless-stopped uc-intg-xbox
+
+    # For Windows Command Prompt (cmd.exe)
+    docker run -d --name uc-intg-xbox --network host -v "%cd%/config:/app/uc_intg_xbox/config" --restart unless-stopped uc-intg-xbox
+    ```
 
 ### Method 2: Manual Installation (`.tar.gz`)
 
 You can install the integration directly onto your Unfolded Circle remote.
 
-1.  Download the latest release `.tar.gz` file from the [releases page](https://github.com/mase1981/uc-intg-xbox/releases) of this repository.
+1.  Download the latest release `.tar.gz` file from the [releases page](https://github.com/mase1-nase1/uc-intg-xbox/releases) of this repository.
 2.  Open your Unfolded Circle web configurator in a browser (`http://<your_remote_ip>`).
 3.  Navigate to `Settings > System > Integrations`.
 4.  Click the `+` button and select `Upload a custom integration`.
@@ -86,7 +92,7 @@ Interested in contributing? Here’s how to set up a development environment.
 
 1.  Clone the repository:
     ```bash
-    git clone [https://github.com/mase1981/uc-intg-xbox.git](https://github.com/mase1981/uc-intg-xbox.git)
+    git clone [https://github.com/mase1-nase1/uc-intg-xbox.git](https://github.com/mase1-nase1/uc-intg-xbox.git)
     cd uc-intg-xbox
     ```
 2.  Create and activate a Python virtual environment. Python 3.10 or higher is required.

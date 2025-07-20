@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  uc-intg-xbox:
+    build: .
+    container_name: uc-intg-xbox
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      # This links the 'config' folder inside the container to a
+      # 'config' folder on the host machine, to persist your tokens.
+      - ./config:/app/uc_intg_xbox/config
