@@ -1,13 +1,36 @@
-# Python-generated files
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
+*.pyc
+*.pyo
+*.pyd
 
-# Virtual environments
-venv
-uv.lock
-tokens.json
-tokens_old.json
+# Virtual environment
+venv/
+.venv/
+
+# VS Code folder
+.vscode/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# User-specific configuration
+# This is the most important line to protect your tokens
+config.json
+config/
