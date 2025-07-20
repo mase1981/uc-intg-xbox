@@ -9,17 +9,20 @@ from .config import XboxConfig
 
 _LOG = logging.getLogger("XBOX_ENTITY")
 
-# The list of commands we want the remote to show buttons for.
-# 'on' is not included as we decided to focus on a working 'off'.
 SUPPORTED_COMMANDS = [
-    "off", "up", "down", "left", "right", "select", 
-    "back", "home", "menu", "info"
+    "off", "up", "down", "left", "right", "select", "back", "home", "menu", "view",
+    "a_button", "b_button", "x_button", "y_button",
+    "play", "pause", "stop", "next_track", "previous_track"
 ]
 
-# This maps the commands from the remote to the commands the xbox-webapi needs.
+# A single, unified map for all buttons
 REMOTE_COMMANDS_MAP = {
-    "up": "dpad_up", "down": "dpad_down", "left": "dpad_left", "right": "dpad_right",
-    "select": "a", "back": "b", "home": "nexus", "menu": "menu", "info": "view",
+    "off": "off",
+    "up": "Up", "down": "Down", "left": "Left", "right": "Right",
+    "select": "A", "back": "B", "home": "Nexus", "menu": "Menu", "view": "View",
+    "a_button": "A", "b_button": "B", "x_button": "X", "y_button": "Y",
+    "play": "Play", "pause": "Pause", "stop": "Stop", 
+    "next_track": "NextTrack", "previous_track": "PreviousTrack"
 }
 
 class XboxRemote(Remote):
@@ -42,7 +45,6 @@ class XboxRemote(Remote):
         asyncio.create_task(self._init_device())
 
     async def _init_device(self):
-        _LOG.info("🔧 Initializing XboxDevice...")
         try:
             self.device, refreshed_tokens = await XboxDevice.from_config(self.config)
             if self.device:
@@ -51,31 +53,18 @@ class XboxRemote(Remote):
                 self.attributes.update(initial_state)
                 self.config.tokens = refreshed_tokens
                 await self.config.save(self.api)
-                _LOG.info("✅ XboxDevice initialized.")
         except Exception as e:
             _LOG.exception("❌ Exception during XboxDevice initialization:", e)
 
     async def handle_command(self, entity, cmd_id: str, params: dict = None) -> StatusCodes:
-        _LOG.info(f"📥 Command received: '{cmd_id}' with params: {params}")
         if not self.device:
             await self._init_device()
             if not self.device: return StatusCodes.ERROR
 
         try:
-            actual_command = None
-            # Check for the generic 'send_cmd' from our simple_commands list
-            if cmd_id == ucapi.remote.Commands.SEND_CMD:
-                actual_command = params.get("command")
-            # The main on/off buttons might send a direct command
-            elif cmd_id == ucapi.remote.Commands.OFF:
-                actual_command = "off"
-
-            if not actual_command:
-                _LOG.warning(f"⚠️ Could not determine actual command from cmd_id: {cmd_id}")
-                return StatusCodes.BAD_REQUEST
-
-            # Now, process the actual command
-            if actual_command == "off":
+            actual_command = params.get("command") if cmd_id == ucapi.remote.Commands.SEND_CMD else cmd_id
+            
+            if actual_command == "off" or actual_command == ucapi.remote.Commands.OFF:
                 await self.device.turn_off()
                 new_state = {Attributes.STATE: States.OFF}
                 self.api.configured_entities.update_attributes(self.id, new_state)
@@ -85,8 +74,7 @@ class XboxRemote(Remote):
                 button_to_press = REMOTE_COMMANDS_MAP[actual_command]
                 await self.device.press_button(button_to_press)
                 return StatusCodes.OK
-            
-            _LOG.warning(f"⚠️ Unsupported actual command: {actual_command}")
+                
             return StatusCodes.BAD_REQUEST
         except Exception as e:
             _LOG.exception(f"❌ Failed to execute command '{cmd_id}'", e)
