@@ -11,10 +11,15 @@ This integration allows for remote control of your console, including power, nav
 ## Features
 
 * **Power On/Off**: Turn your console on and off.
-* **Remote Control**: Full navigation with D-Pad, A (Select), and B (Back) buttons.
-* **System Commands**: Access the Home (Nexus) screen.
+* **Dashboard Control**: Full navigation with D-Pad, A (Select), and B (Back) buttons on the main Xbox dashboard.
+* **System Commands**: Access the Home (Nexus) screen, Menu, and other system functions.
+* **Volume Control**: Control the volume of your TV or AV receiver via CEC if configured on your Xbox.
 * **Authentication**: Secure OAuth2-based authentication with your Microsoft account.
 * **Auto-Discovery**: The integration is discoverable by the Unfolded Circle remote on your network.
+
+## Known Limitations!!!
+
+* **No In-App Control for Media Apps:** This integration provides full control over the main Xbox dashboard and system menus. However, it **cannot** control third-party media applications (like Netflix, YouTube, Disney+, etc.) once they are launched. This is a limitation of the public Xbox Web API. For security and copyright (DRM) reasons, most media apps are designed to ignore remote commands sent this way and will only respond to physically paired controllers or official media remotes.
 
 ## Prerequisites
 
@@ -72,11 +77,8 @@ After the integration is installed and running, you need to add it on your remot
 5.  Copy the login URL and open it in a web browser. Log in with the Microsoft account associated with your Xbox.
 6.  After successful login, you will be redirected to a blank page. **Copy the entire URL** from your browser's address bar.
 7.  Paste this full URL back into the "Paste the full redirect URL here" field on your remote and complete the setup.
-8.  **Manually Add the Remote Entity (If Needed):** Sometimes, the remote entity isn't added automatically. If you don't see the "Xbox Remote" after setup is complete, follow these extra steps:
-    * Navigate to the Xbox Integration's page in your Unfolded Circle settings.
-    * Find the **Configured Entities** section.
-    * You should see the "Xbox Remote" listed with an **Add** button. Tap "Add".
-9.  The Xbox entity will now be available to add to your activities and is ready to use!
+8.  **Manually Add the Remote Entity (If Needed):** If the "Xbox Remote" entity doesn't appear automatically, go to the integration's settings page, find "Configured Entities," and tap "Add" next to the Xbox Remote.
+9.  The Xbox entity is now ready to use!
 
 ## Development
 
