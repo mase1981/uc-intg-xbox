@@ -1,4 +1,3 @@
-# Change the build system from hatchling to setuptools
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
@@ -25,9 +24,11 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/mase1981/uc-intg-xbox"
 
-# This [project.scripts] section is still required for setuptools
 [project.scripts]
 uc-intg-xbox = "uc_intg_xbox.driver:main"
 
-# We no longer need the [tool.hatch.metadata] section, 
-# as that is specific to the hatchling build system.
+# --- ADD THIS SECTION ---
+# This tells setuptools to find and include your uc_intg_xbox package
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["uc_intg_xbox*"]
