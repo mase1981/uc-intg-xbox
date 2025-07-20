@@ -28,6 +28,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./dist/uc_intg_xbox-${{ github.ref_name }}.tar.gz
-          asset_name: uc-intg-xbox-${{ github.ref_name }}.tar.gz
+          # THE FIX IS HERE: Use a wildcard to find the correct file
+          asset_path: ./dist/*.tar.gz
+          # The asset_name is now inferred from the found file
           asset_content_type: application/gzip
