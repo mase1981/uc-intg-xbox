@@ -21,13 +21,14 @@ This integration allows for remote control of your console's dashboard, includin
 
 * **No In-App Control for Media Apps:** This integration provides full control over the main Xbox dashboard. However, it **cannot** control third-party media applications (like Netflix, YouTube, etc.) once they are launched. This is a limitation of the public Xbox Web API, as most media apps are designed to ignore these types of remote commands for security and DRM reasons.
 
-## Prerequisites
+## IMPORTANT: Prerequisites
 
 1.  An Unfolded Circle Remote (RC2 or RC3).
 2.  An Xbox One, Xbox Series S, or Xbox Series X console.
 3.  Your Xbox must be set to **Sleep** power mode (previously "Instant-on") for Power On to function. You can find this in `Settings > General > Power options`.
 4.  You must enable remote features on your Xbox. To do this, go to `Settings > Devices & connections > Remote features` and check the box for "Enable remote features".
 5.  You will need your console's **Xbox Live Device ID**, which is found on that same settings page.
+6. Your remote and xBox console **must** be on the same network. 
 
 ## Installation
 
@@ -72,18 +73,18 @@ You can install the integration directly onto your Unfolded Circle remote.
 4.  Click the `+` button and select `Upload a custom integration`.
 5.  Select the `.tar.gz` file you downloaded.
 
-## Configuration
+## READ CAREFULLY: Configuration
 
 After the integration is installed and running, you need to add it on your remote:
 
-1.  On the Unfolded Circle remote or in the web configurator, go to the screen for adding a new device/service.
-2.  The "Xbox Integration" should be listed as a discovered device. Select it.
+1.  On the Unfolded Circle remote or in the web configurator, go to "Integrations".
+2.  Click on "Add New", find the "Xbox Integration" - you might need to wait a second if you are using Docker as it will show as "External"
 3.  You will be prompted to enter your **Xbox Live Device ID**. Enter the ID you found in the prerequisites and click Next.
-4.  The remote will display a URL and a field to paste a redirected URL.
-5.  Copy the login URL and open it in a web browser. Log in with the Microsoft account associated with your Xbox.
+4.  The Web Configurator will display a URL and a field to paste a redirected URL.
+5.  Copy the login URL (make sure to copy the entire URL) and open it in a web browser/Tab. Log in with the Microsoft account associated with your Xbox.
 6.  After successful login, you will be redirected to a blank page. **Copy the entire URL** from your browser's address bar.
 7.  Paste this full URL back into the "Paste the full redirect URL here" field on your remote and complete the setup.
-8.  **Manually Add the Remote Entity (If Needed):** If the "Xbox Remote" entity doesn't appear automatically, go to the integration's settings page, find "Configured Entities," and tap "Add" next to the Xbox Remote.
+8.  **Manually Add the Remote Entity (If Needed):** If the "Xbox Remote" entity doesn't appear automatically, go to the xBox Integration's settings page, find "Configured Entities," and tap "Add" next to the Xbox Remote.
 9.  The Xbox entity is now ready to use!
 
 ## Development
