@@ -5,7 +5,7 @@ import httpx
 import ssl
 import certifi
 import re
-from ucapi.media_player import Attributes, States
+from ucapi.media_player import Attributes, States, Commands, Features
 from ucapi import Remote, StatusCodes 
 
 from .xbox_device import XboxDevice
@@ -13,15 +13,15 @@ from .config import XboxConfig
 
 _LOG = logging.getLogger("XBOX_ENTITY")
 
-# Add all desired buttons to the UI list
+# Add the specific volume and mute commands to the UI list
 SUPPORTED_COMMANDS = [
     "on", "off", "up", "down", "left", "right", "select", "back", "home", "menu", "view",
     "a_button", "b_button", "x_button", "y_button",
     "play", "pause", "stop", "next_track", "previous_track",
-    "red", "green", "blue", "yellow"
+    "red", "green", "blue", "yellow",
+    "volume_up", "volume_down", "mute_toggle"
 ]
 
-# Complete map from UI button ID to Xbox command
 REMOTE_COMMANDS_MAP = {
     "on": "on", "off": "off", 
     "up": "DpadUp", "down": "DpadDown", "left": "DpadLeft", "right": "DpadRight", 
@@ -38,8 +38,10 @@ class XboxRemote(Remote):
             entity_id = f"xbox-{config.liveid}"
         entity_name = {"en": f"Xbox ({config.liveid})"}
         super().__init__(
-            entity_id, entity_name, [ucapi.remote.Features.ON_OFF],
-            {Attributes.STATE: States.UNAVAILABLE},
+            entity_id, entity_name, 
+            # Revert features list to the simplest version
+            features=[Features.ON_OFF],
+            attributes={Attributes.STATE: States.UNAVAILABLE},
             simple_commands=SUPPORTED_COMMANDS,
             cmd_handler=self.handle_command
         )
@@ -82,6 +84,8 @@ class XboxRemote(Remote):
         try:
             actual_command = params.get("command") if cmd_id == ucapi.remote.Commands.SEND_CMD else cmd_id
             
+            # The command handler logic is already correct for volume,
+            # it just needed the remote to show the buttons.
             if actual_command == "on" or actual_command == ucapi.remote.Commands.ON:
                 await self.device.turn_on()
                 new_state = {Attributes.STATE: States.ON}
@@ -94,10 +98,22 @@ class XboxRemote(Remote):
                 self.api.configured_entities.update_attributes(self.id, new_state)
                 self.attributes.update(new_state)
                 return StatusCodes.OK
+            
+            elif actual_command == Commands.VOLUME_UP:
+                await self.device.change_volume("Up")
+                return StatusCodes.OK
+            elif actual_command == Commands.VOLUME_DOWN:
+                await self.device.change_volume("Down")
+                return StatusCodes.OK
+            elif actual_command == Commands.MUTE_TOGGLE:
+                await self.device.mute()
+                return StatusCodes.OK
+                
             elif actual_command in REMOTE_COMMANDS_MAP:
                 button_to_press = REMOTE_COMMANDS_MAP[actual_command]
                 await self.device.press_button(button_to_press)
                 return StatusCodes.OK
+                
             return StatusCodes.BAD_REQUEST
         except Exception as e:
             _LOG.exception(f"❌ Failed to execute command '{cmd_id}'", e)
