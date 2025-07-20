@@ -1,7 +1,8 @@
 import logging
-import aiohttp
+import httpx
 import ssl
 import certifi
+import re
 from ucapi import (
     DriverSetupRequest, UserDataResponse, AbortDriverSetup,
     SetupComplete, SetupError, IntegrationSetupError, RequestUserInput
@@ -11,6 +12,13 @@ from .media_player import XboxRemote
 from .auth import XboxAuth
 
 _LOG = logging.getLogger("XBOX_SETUP")
+
+async def fix_microsoft_timestamps(response):
+    if "user.auth.xboxlive.com" in str(response.url):
+        await response.aread()
+        response_text = response.text
+        fixed_text = re.sub(r"(\.\d{6})\d+Z", r"\1Z", response_text)
+        response._content = fixed_text.encode('utf-8')
 
 class XboxSetup:
     def __init__(self, api, config: XboxConfig):
@@ -30,10 +38,13 @@ class XboxSetup:
 
     async def _handle_driver_setup(self, request):
         self.config.liveid = request.setup_data.get("liveid", "").strip()
+        
         ssl_context = ssl.create_default_context(cafile=certifi.where())
-        self.auth_session = aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(ssl=ssl_context)
+        self.auth_session = httpx.AsyncClient(
+            verify=ssl_context,
+            event_hooks={'response': [fix_microsoft_timestamps]}
         )
+        
         auth_handler = XboxAuth(self.auth_session)
         auth_url = auth_handler.generate_auth_url()
         return RequestUserInput(
@@ -51,23 +62,20 @@ class XboxSetup:
             tokens = await auth_handler.process_redirect_url(redirect_url)
         finally:
             await self._cleanup_session()
-        if not tokens:
-            return SetupError(IntegrationSetupError.AUTHORIZATION_ERROR)
+        if not tokens: return SetupError(IntegrationSetupError.AUTHORIZATION_ERROR)
         self.config.tokens = tokens
         await self.config.save(self.api)
         try:
             await self.create_xbox_entity()
             return SetupComplete()
         except Exception as e:
-            _LOG.exception(f"❌ Failed during Xbox entity creation", exc_info=e)
+            _LOG.exception(f"❌ Failed during entity creation", exc_info=e)
             return SetupError(IntegrationSetupError.OTHER)
 
     async def create_xbox_entity(self):
-        _LOG.info("🔧 Creating XboxRemote entity...")
         remote_entity = XboxRemote(self.api, self.config)
         self.api.available_entities.add(remote_entity)
-        _LOG.info(f"✅ XboxRemote '{remote_entity.name}' registered.")
 
     async def _cleanup_session(self):
-        if self.auth_session and not self.auth_session.closed:
-            await self.auth_session.close()
+        if self.auth_session and not self.auth_session.is_closed:
+            await self.auth_session.aclose()
