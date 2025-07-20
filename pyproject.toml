@@ -23,7 +23,7 @@ dependencies = [
     "pydantic == 1.7.1",
     "certifi",
     "requests",
-    "aiohttp" # Use aiohttp instead of httpx
+    "aiohttp"
 ]
 
 [project.urls]
