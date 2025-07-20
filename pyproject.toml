@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "uc_intg_xbox"
-version = "5.0.0"
+version = "1.0.0"
 authors = [
   { name="Meir Miyara", email="meir.miyara@gmail.com" },
 ]
