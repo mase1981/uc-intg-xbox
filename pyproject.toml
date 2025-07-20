@@ -25,3 +25,6 @@ dependencies = [
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[project.scripts]
+uc-intg-xbox = "uc_intg_xbox.driver:main"
