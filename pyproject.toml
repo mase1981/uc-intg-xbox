@@ -1,10 +1,11 @@
+# Change the build system from hatchling to setuptools
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "uc_intg_xbox"
-version = "1.0.0"
+version = "1.0.1"
 authors = [
   { name="Meir Miyara", email="meir.miyara@gmail.com" },
 ]
@@ -17,14 +18,16 @@ dependencies = [
     "pydantic>=2.0",
     "certifi",
     "requests",
-    "httpx"
+    "httpx",
+    "xbox-smartglass-core"
 ]
 
 [project.urls]
 "Homepage" = "https://github.com/mase1981/uc-intg-xbox"
 
-[tool.hatch.metadata]
-allow-direct-references = true
-
+# This [project.scripts] section is still required for setuptools
 [project.scripts]
 uc-intg-xbox = "uc_intg_xbox.driver:main"
+
+# We no longer need the [tool.hatch.metadata] section, 
+# as that is specific to the hatchling build system.
