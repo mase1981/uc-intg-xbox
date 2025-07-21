@@ -9,25 +9,39 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
+      
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
 
       - name: Get version from tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Install build tools
-        run: pip install build
+      # --- Start of Custom Manual Packaging ---
+      - name: Create staging and dist directories
+        run: |
+          mkdir staging
+          mkdir dist
 
-      - name: Build package
-        run: python -m build
+      - name: Copy project files to staging area
+        run: |
+          cp -r uc_intg_xbox staging/
+          cp pyproject.toml driver.json README.md staging/
+
+      - name: Create the bin/uc-intg-xbox script
+        run: |
+          mkdir -p staging/bin
+          # The script name here must match the 'name' in pyproject.toml
+          echo '#!/bin/sh' > staging/bin/uc_intg_xbox
+          echo 'python3 -m uc_intg_xbox.driver' >> staging/bin/uc_intg_xbox
+          chmod +x staging/bin/uc_intg_xbox
+
+      - name: Create the final .tar.gz archive
+        run: |
+          # This command creates the archive with all files at the root
+          tar -czf dist/uc-intg-xbox-${{ steps.get_version.outputs.VERSION }}.tar.gz -C staging .
+      # --- End of Custom Packaging ---
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
@@ -35,6 +49,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./dist/uc_intg_xbox-${{ steps.get_version.outputs.VERSION }}.tar.gz
+          asset_path: ./dist/uc-intg-xbox-${{ steps.get_version.outputs.VERSION }}.tar.gz
           asset_name: uc_intg_xbox-${{ steps.get_version.outputs.VERSION }}.tar.gz
           asset_content_type: application/gzip
