@@ -10,6 +10,7 @@ venv/
 
 # VS Code folder
 .vscode/
+.vscode
 
 # Distribution / packaging
 .Python
@@ -28,6 +29,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.github/
 MANIFEST
 
 # User-specific configuration
