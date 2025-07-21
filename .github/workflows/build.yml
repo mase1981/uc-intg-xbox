@@ -5,8 +5,7 @@ on:
 
 env:
   INTG_NAME: xbox
-  # THE FIX IS HERE: Revert to the last known working version
-  PYTHON_VER: 3.11.12-0.3.0
+  PYTHON_VER: 3.11.9-0.3.0
 
 jobs:
   build:
@@ -25,28 +24,73 @@ jobs:
         id: get-version-and-id
         run: |
           echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_ENV
-          echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_ENV
+          echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
           echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_OUTPUT
           echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
 
-      - name: Build
+      - name: Build with PyInstaller
         run: |
-          sudo apt-get update && sudo apt-get install -y qemu-system binfmt-support qemu-user-static
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-          echo "Starting pyinstaller build"
           docker run --rm --name builder \
-            --platform=aarch64 \
             --user=$(id -u):$(id -g) \
             -v ${GITHUB_WORKSPACE}:/workspace \
             docker.io/unfoldedcircle/r2-pyinstaller:${PYTHON_VER} \
             bash -c \
             "cd /workspace && \
-             python -m pip install -r requirements.txt && \
-             pyinstaller --clean --onedir --name intg-${DRIVER_ID} --collect-all zeroconf --collect-all httpx --collect-all pydantic uc_intg_xbox/driver.py"
+             python -m pip install . && \
+             pyinstaller --clean --onedir --name intg-${DRIVER_ID} uc_intg_xbox/driver.py"
 
       - name: Prepare artifacts
         shell: bash
         run: |
           mkdir -p artifacts/bin
+          # Move the compiled binary and all its supporting files
           mv dist/intg-${{ env.DRIVER_ID }}/* artifacts/bin
-          # This creates the final executable script that will be run by the
+          
+          # Create a NEW wrapper script named 'driver' that the remote will execute
+          echo '#!/bin/sh' > artifacts/bin/driver
+          # This script runs the real binary and passes along all arguments ("$@")
+          echo 'DIR=$(dirname "$0")' >> artifacts/bin/driver
+          echo '$DIR/intg-${{ env.DRIVER_ID }} "$@"' >> artifacts/bin/driver
+          chmod +x artifacts/bin/driver
+          
+          cp driver.json artifacts/
+          echo "ARTIFACT_NAME=${{ env.DRIVER_ID }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
+          
+      - name: Create upload artifact archive
+        shell: bash
+        run: | 
+          tar czvf ${{ env.ARTIFACT_NAME }}.tar.gz -C ${GITHUB_WORKSPACE}/artifacts .
+          
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_NAME }}.tar.gz
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build]
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Extract build archives
+        run: |
+          SUB_DIR=$(find . -mindepth 1 -maxdepth 1 -type d)
+          if [ -d "$SUB_DIR" ]; then
+            mv "$SUB_DIR"/* .
+          fi
+
+      - name: Create hash file
+        run: |
+          for filename in *.tar.gz; do sha256sum $filename | awk '{print $1}' > ${{needs.build.outputs.driver_id}}.hash; done;
+
+      - name: Create release draft
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "*.tar.gz,*.hash"
+          draft: true
+          generateReleaseNotes: true
+          tag: v${{needs.build.outputs.version}}
