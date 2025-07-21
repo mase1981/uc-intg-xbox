@@ -7,8 +7,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # --- THE FIX IS HERE ---
-    # Grant the workflow permission to write to releases
     permissions:
       contents: write
       
@@ -21,9 +19,11 @@ jobs:
         with:
           python-version: '3.10'
 
+      # This step gets the tag (e.g., v1.0.4) and removes the 'v'
+      # It uses the modern GITHUB_OUTPUT method to pass the version to the next steps
       - name: Get version from tag
-        id: tag_version
-        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Install build tools
         run: pip install build
@@ -37,6 +37,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./dist/uc_intg_xbox-${{ env.RELEASE_VERSION }}.tar.gz
-          asset_name: uc_intg_xbox-${{ env.RELEASE_VERSION }}.tar.gz
+          # Use the output from the 'get_version' step to build the exact filename
+          asset_path: ./dist/uc_intg_xbox-${{ steps.get_version.outputs.VERSION }}.tar.gz
+          asset_name: uc_intg_xbox-${{ steps.get_version.outputs.VERSION }}.tar.gz
           asset_content_type: application/gzip
