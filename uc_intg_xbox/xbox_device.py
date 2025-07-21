@@ -7,11 +7,13 @@ from enum import Enum
 from xbox.webapi.api.client import XboxLiveClient
 from xbox.webapi.authentication.manager import AuthenticationManager
 from xbox.webapi.authentication.models import OAuth2TokenResponse
+from xbox.webapi.api.provider.smartglass.models import VolumeDirection
 
 _LOG = logging.getLogger("XBOX_DEVICE")
 
 OAUTH2_DESKTOP_REDIRECT_URI = "https://login.live.com/oauth20_desktop.srf"
 
+# Your working SystemInput class
 class SystemInput(str, Enum):
     A = "A"
     B = "B"
@@ -21,6 +23,7 @@ class SystemInput(str, Enum):
     Nexus = "Nexus"
     View = "View"
 
+# Your working ControllerButtons class with media commands
 class ControllerButtons(str, Enum):
     A = "A"
     B = "B"
@@ -77,6 +80,7 @@ class XboxDevice:
         except Exception as e:
             _LOG.exception(f"❌ Failed to send power off command", exc_info=e)
             
+    # Add the volume methods
     async def change_volume(self, direction: str):
         _LOG.info(f"🔊 Sending Volume {direction} to {self.live_id}")
         direction_enum = VolumeDirection(direction)
