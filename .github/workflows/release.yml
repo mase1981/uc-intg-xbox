@@ -24,14 +24,14 @@ jobs:
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
       - name: Install dependencies and official build tool
-        run: pip install build uc-dist-utils
+        # THE FIX IS HERE: Use the correct package name 'uc-build-utils'
+        run: pip install . uc-build-utils
 
       - name: Build the Python wheel
         run: python -m build --wheel
 
-      - name: Build the final distributable package using uc-dist
-        # This command takes the .whl file as input and creates the .tar.gz
-        run: python -m uc_dist --outdir dist dist/*.whl
+      - name: Build the final distributable package using uc-build
+        run: python -m uc_build --outdir dist dist/*.whl
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
@@ -39,7 +39,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          # The tool automatically names the file correctly, we just need to find it
           asset_path: ./dist/uc_intg_xbox-*.tar.gz
           asset_name: uc-intg-xbox-${{ steps.get_version.outputs.VERSION }}.tar.gz
           asset_content_type: application/gzip
