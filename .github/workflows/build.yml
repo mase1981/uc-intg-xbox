@@ -41,22 +41,17 @@ jobs:
             bash -c \
             "cd /workspace && \
              python -m pip install -r requirements.txt && \
-             pyinstaller --clean --onedir --name intg-${DRIVER_ID} \
-             --collect-all zeroconf \
-             --collect-all httpx \
-             --collect-all pydantic \
-             uc_intg_xbox/driver.py" # CORRECTED: Use correct source path uc_intg_xbox/
+             pyinstaller --clean --onedir --name intg-${DRIVER_ID} --collect-all zeroconf --collect-all httpx --collect-all pydantic uc_intg_xbox/driver.py"
 
       - name: Prepare artifacts
         shell: bash
         run: |
           mkdir -p artifacts/bin
-          # CORRECTED: The executable is in a subfolder, not the root of dist/
-          mv dist/*/* artifacts/bin
-          # CORRECTED: The executable has the name we gave it, not 'driver' yet
+          mv dist/intg-${{ env.DRIVER_ID }}/* artifacts/bin
           mv artifacts/bin/intg-${{ env.DRIVER_ID }} artifacts/bin/driver
           cp driver.json artifacts/
-          echo "ARTIFACT_NAME=uc-intg-${{ env.DRIVER_ID }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
+          # THE FIX IS HERE: Use the DRIVER_ID directly without the extra prefix
+          echo "ARTIFACT_NAME=${{ env.DRIVER_ID }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
           
       - name: Create upload artifact archive
         shell: bash
@@ -86,10 +81,12 @@ jobs:
       - name: Extract build archives from downloaded files
         run: |
           ls -R
-          for D in * do if [ -d "${D}" ]; then
-              mv $D/* ./
-            fi
-          done;
+          # THE FIX IS HERE: A simpler, more robust command to move the files
+          # It finds the single sub-directory and moves its contents to the current directory.
+          SUB_DIR=$(find . -mindepth 1 -maxdepth 1 -type d)
+          if [ -d "$SUB_DIR" ]; then
+            mv "$SUB_DIR"/* .
+          fi
 
       - name: Create hash file
         run: |
