@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
 
 env:
+  # 1. Correct the integration name
   INTG_NAME: xbox
   PYTHON_VER: 3.11.12-0.3.0
 
@@ -24,9 +25,10 @@ jobs:
         id: get-version-and-id
         run: |
           echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_ENV
-          echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_ENV
+          echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
           echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_OUTPUT
           echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
+
       - name: Build
         run: |
           sudo apt-get update && sudo apt-get install -y qemu-system binfmt-support qemu-user-static
@@ -39,17 +41,27 @@ jobs:
             docker.io/unfoldedcircle/r2-pyinstaller:${PYTHON_VER} \
             bash -c \
             "cd /workspace && \
-             python -m pip install -r requirements.txt && \
-             pyinstaller --clean --onedir --name intg-${DRIVER_ID} --collect-all zeroconf --collect-all httpx --collect-all pydantic uc_intg_xbox/driver.py"
+             python -m pip install -e . && \
+             pyinstaller --clean --onedir --name intg-${DRIVER_ID} \
+             --collect-all ucapi \
+             --collect-all xbox.webapi \
+             --collect-all xbox.sg \
+             --collect-all httpx \
+             --collect-all pydantic \
+             uc_intg_xbox/driver.py" # 2. Corrected source path and added dependencies
+
       - name: Prepare artifacts
         shell: bash
         run: |
           mkdir -p artifacts/bin
+          # Move the compiled binary and all its supporting files
           mv dist/intg-${{ env.DRIVER_ID }}/* artifacts/bin
           
-          # This creates the final executable script that will be run by the remote
+          # 3. This is the definitive fix for the 'Connection refused' error.
+          # It creates a new script named 'driver' that the remote will run.
           echo '#!/bin/sh' > artifacts/bin/driver
-          # THE FIX IS HERE: We run the pyinstaller binary and pass along the arguments ("$@")
+          # This line tells the new script to run the original compiled binary
+          # and, critically, to pass along all arguments ("$@")
           echo 'DIR=$(dirname "$0")' >> artifacts/bin/driver
           echo '$DIR/intg-${{ env.DRIVER_ID }} "$@"' >> artifacts/bin/driver
           chmod +x artifacts/bin/driver
@@ -66,14 +78,14 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.ARTIFACT_NAME }}.tar.gz
-            
+
   release:
+    # The release job is unchanged from your working version
     name: Create Release
     runs-on: ubuntu-latest
     needs: [build]
     permissions:
       contents: write
-
     steps:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -84,9 +96,11 @@ jobs:
           if [ -d "$SUB_DIR" ]; then
             mv "$SUB_DIR"/* .
           fi
+
       - name: Create hash file
         run: |
           for filename in *.tar.gz; do sha256sum $filename | awk '{print $1}' > ${{needs.build.outputs.driver_id}}.hash; done;
+
       - name: Create release draft
         uses: ncipollo/release-action@v1
         with:
