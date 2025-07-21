@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-import argparse
 import ucapi
 
 from .config import XboxConfig
@@ -9,22 +8,18 @@ from .setup import XboxSetup
 
 _LOG = logging.getLogger(__name__)
 
-# Reads the --port argument provided by the Unfolded Circle remote
-parser = argparse.ArgumentParser()
-parser.add_argument("--port", type=int, help="Port to listen on", default=0)
-args = parser.parse_args()
-
 try:
     loop = asyncio.get_running_loop()
 except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-# Uses the provided port to initialize the API
-API = ucapi.IntegrationAPI(loop, port=args.port)
+API = ucapi.IntegrationAPI(loop)
 
 @API.listens_to(ucapi.Events.CONNECT)
 async def on_connect() -> None:
+    """When the UCR2 connects, send the device state."""
+    # This example is ready all the time!
     await API.set_device_state(ucapi.DeviceStates.CONNECTED)
 
 class XboxIntegration:
@@ -39,7 +34,7 @@ class XboxIntegration:
         driver_path = os.path.join(os.path.dirname(__file__), '..', 'driver.json')
         await self.api.init(driver_path, self.setup.handle_command)
         await self.config.load(self.api)
-        _LOG.info(f"Driver is up and discoverable, listening on port {API.port}")
+        _LOG.info("Driver is up and discoverable.")
 
 async def main():
     integration = XboxIntegration(API)
@@ -52,4 +47,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         _LOG.info("Driver stopped.")
     finally:
+        _LOG.info("Closing the event loop.")
         loop.close()
