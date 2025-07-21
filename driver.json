@@ -3,7 +3,7 @@
   "name": { "en": "Xbox Integration" },
   "icon": "uc:gamepad-modern",
   "description": { "en": "Control your Xbox console" },
-  "version": "1.0.4",
+  "version": "1.0.5",
   "developer": { "name": "Meir Miyara" },
   "min_core_api": "0.3.1",
   "setup_data_schema": {
