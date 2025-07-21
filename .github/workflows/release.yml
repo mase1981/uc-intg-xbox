@@ -25,18 +25,19 @@ jobs:
 
       - name: Create package structure
         run: |
-          mkdir -p dist/package/bin
-          cp -r uc_intg_xbox dist/package/
-          cp driver.json README.md dist/package/
+          mkdir -p dist/package/bin/_internal
+          cp driver.json dist/package/
 
       - name: Create executable script
         run: |
-          echo '#!/bin/sh' > dist/package/bin/uc-intg-xbox
-          echo 'python3 -m uc_intg_xbox.driver' >> dist/package/bin/uc-intg-xbox
-          chmod +x dist/package/bin/uc-intg-xbox
+          echo '#!/bin/sh' > dist/package/bin/uc_intg_xbox
+          echo 'python3 -m uc_intg_xbox.driver' >> dist/package/bin/uc_intg_xbox
+          chmod +x dist/package/bin/uc_intg_xbox
 
-      - name: Install dependencies into the package
-        run: pip install --target=dist/package/_internal -r requirements.txt
+      - name: Install dependencies and source code into the package
+        run: |
+          pip install --target=dist/package/bin/_internal -r requirements.txt
+          cp -r uc_intg_xbox dist/package/bin/_internal/
 
       - name: Create the final .tar.gz archive
         run: tar -czf uc-intg-xbox-${{ steps.get_version.outputs.VERSION }}.tar.gz -C dist/package .

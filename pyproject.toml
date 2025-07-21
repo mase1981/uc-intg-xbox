@@ -1,24 +1,11 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "uc_intg_xbox"
-version = "1.0.16"
+version = "1.0.17"
 authors = [
   { name="Meir Miyara", email="meir.miyara@gmail.com" },
 ]
 description = "An Unfolded Circle integration for Xbox"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = [
-    "ucapi == 0.3.1",
-    'xbox-webapi @ git+https://github.com/OpenXbox/xbox-webapi-python.git',
-    "pydantic>=2.0",
-    "certifi",
-    "requests",
-    "httpx"
-]
-
-[project.urls]
-"Homepage" = "https://github.com/mase1981/uc-intg-xbox"
+# Dependencies are now managed by requirements.txt for the build
+dependencies = []
