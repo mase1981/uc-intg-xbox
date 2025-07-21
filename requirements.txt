@@ -4,3 +4,4 @@ pydantic>=2.0
 certifi
 requests
 httpx
+xbox-smartglass-core
