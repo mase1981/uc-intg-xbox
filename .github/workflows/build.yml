@@ -5,8 +5,8 @@ on:
 
 env:
   INTG_NAME: xbox
-  # THE FIX IS HERE: Use a known-good, compatible version of the builder image
-  PYTHON_VER: 3.11.8-0.2.0
+  # THE FIX IS HERE: Use a current, valid version of the builder image
+  PYTHON_VER: 3.11.9-0.3.0
 
 jobs:
   build:
