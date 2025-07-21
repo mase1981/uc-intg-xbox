@@ -29,7 +29,6 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-.github/
 MANIFEST
 
 # User-specific configuration
