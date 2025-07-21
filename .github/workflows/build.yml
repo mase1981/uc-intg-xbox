@@ -4,8 +4,10 @@ on:
   workflow_dispatch:
 
 env:
+  # 1. Set the correct integration name
   INTG_NAME: xbox
-  PYTHON_VER: '3.12.3-0.3.0'
+  # 2. Use the exact, proven Docker image version from the Apple TV example
+  PYTHON_VER: 3.11.12-0.3.0
 
 jobs:
   build:
@@ -30,31 +32,34 @@ jobs:
 
       - name: Build with PyInstaller
         run: |
+          # This setup is copied directly from the working Apple TV example
+          sudo apt-get update && sudo apt-get install -y qemu-system-arm binfmt-support qemu-user-static
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          echo "Starting pyinstaller build"
           docker run --rm --name builder \
+            --platform=aarch64 \
             --user=$(id -u):$(id -g) \
             -v ${GITHUB_WORKSPACE}:/workspace \
             docker.io/unfoldedcircle/r2-pyinstaller:${PYTHON_VER} \
             bash -c \
             "cd /workspace && \
-             python -m pip install -e . && \
+             python -m pip install -r requirements.txt && \
              pyinstaller --clean --onedir --name intg-${DRIVER_ID} \
              --collect-all ucapi \
              --collect-all xbox.webapi \
              --collect-all httpx \
              --collect-all pydantic \
+             --collect-all certifi \
              uc_intg_xbox/driver.py"
 
       - name: Prepare artifacts
         shell: bash
         run: |
           mkdir -p artifacts/bin
+          # Move the compiled binary and all its supporting files
           mv dist/intg-${{ env.DRIVER_ID }}/* artifacts/bin
-          
-          echo '#!/bin/sh' > artifacts/bin/driver
-          echo 'DIR=$(dirname "$0")' >> artifacts/bin/driver
-          echo '$DIR/intg-${{ env.DRIVER_ID }} "$@"' >> artifacts/bin/driver
-          chmod +x artifacts/bin/driver
-          
+          # This creates the final executable that the remote will run
+          mv artifacts/bin/intg-${{ env.DRIVER_ID }} artifacts/bin/driver
           cp driver.json artifacts/
           echo "ARTIFACT_NAME=${{ env.DRIVER_ID }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
           
