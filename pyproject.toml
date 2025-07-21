@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uc_intg_xbox"
-version = "1.0.13"
+version = "1.0.14"
 authors = [
   { name="Meir Miyara", email="meir.miyara@gmail.com" },
 ]
@@ -17,8 +17,7 @@ dependencies = [
     "pydantic>=2.0",
     "certifi",
     "requests",
-    "httpx",
-    "xbox-smartglass-core"
+    "httpx"
 ]
 
 [project.urls]
@@ -26,3 +25,6 @@ dependencies = [
 
 [project.scripts]
 uc_intg_xbox = "uc_intg_xbox.driver:main"
+
+[tool.setuptools]
+packages = ["uc_intg_xbox"]
