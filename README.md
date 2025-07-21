@@ -93,7 +93,7 @@ Interested in contributing? Here’s how to set up a development environment.
 
 1.  Clone the repository:
     ```bash
-    git clone [https://github.com/mase1-nase1/uc-intg-xbox.git](https://github.com/mase1-nase1/uc-intg-xbox.git)
+    git clone [https://github.com/mase1981/uc-intg-xbox.git](https://github.com/mase1981/uc-intg-xbox.git)
     cd uc-intg-xbox
     ```
 2.  Create and activate a Python virtual environment. Python 3.10 or higher is required.
