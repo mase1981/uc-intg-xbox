@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uc_intg_xbox"
-version = "1.0.5"
+version = "1.0.6"
 authors = [
   { name="Meir Miyara", email="meir.miyara@gmail.com" },
 ]
@@ -23,9 +23,3 @@ dependencies = [
 
 [project.urls]
 "Homepage" = "https://github.com/mase1981/uc-intg-xbox"
-
-[project.scripts]
-uc-intg-xbox = "uc_intg_xbox.driver:main"
-
-[tool.setuptools]
-packages = ["uc_intg_xbox"]

@@ -14,22 +14,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      # This step gets the tag (e.g., v1.0.4) and removes the 'v'
-      # It uses the modern GITHUB_OUTPUT method to pass the version to the next steps
       - name: Get version from tag
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        id: tag_version
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
 
-      - name: Install build tools
-        run: pip install build
+      # --- Start of Custom Packaging ---
+      - name: Create staging and dist directories
+        run: |
+          mkdir staging
+          mkdir dist
 
-      - name: Build package
-        run: python -m build
+      - name: Copy project files to staging area
+        run: |
+          cp -r uc_intg_xbox staging/
+          cp pyproject.toml driver.json README.md staging/
+
+      - name: Create the bin/uc-intg-xbox script
+        run: |
+          mkdir -p staging/bin
+          # The script name must match the 'name' in pyproject.toml
+          echo '#!/bin/sh' > staging/bin/uc_intg_xbox
+          echo 'python3 -m uc_intg_xbox.driver' >> staging/bin/uc_intg_xbox
+          chmod +x staging/bin/uc_intg_xbox
+
+      - name: Create the final .tar.gz archive
+        # The archive name in this example is static for simplicity, but can be updated
+        run: |
+          tar -czf dist/uc-intg-xbox-${{ env.RELEASE_VERSION }}.tar.gz -C staging .
+      # --- End of Custom Packaging ---
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
@@ -37,7 +49,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          # Use the output from the 'get_version' step to build the exact filename
-          asset_path: ./dist/uc_intg_xbox-${{ steps.get_version.outputs.VERSION }}.tar.gz
-          asset_name: uc_intg_xbox-${{ steps.get_version.outputs.VERSION }}.tar.gz
+          asset_path: ./dist/uc-intg-xbox-${{ env.RELEASE_VERSION }}.tar.gz
+          asset_name: uc-intg-xbox-${{ env.RELEASE_VERSION }}.tar.gz
           asset_content_type: application/gzip
