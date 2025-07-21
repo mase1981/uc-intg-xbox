@@ -8,56 +8,93 @@ env:
   PYTHON_VER: 3.11.12-0.3.0
 
 jobs:
-  build_and_release:
-    name: Build and Draft Release
+  build:
+    name: Build Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
+    outputs:
+      version: ${{ steps.get-version-and-id.outputs.VERSION }}
+      driver_id: ${{ steps.get-version-and-id.outputs.DRIVER_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 200
 
-      - name: Get version and id from driver.json
-        id: get_version
+      - name: Get version and id
+        id: get-version-and-id
         run: |
+          echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_ENV
+          echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_ENV
           echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_OUTPUT
           echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
 
-      - name: Build integration binary
+      - name: Build
         run: |
           sudo apt-get update && sudo apt-get install -y qemu-system binfmt-support qemu-user-static
           docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          echo "Starting pyinstaller build"
           docker run --rm --name builder \
             --platform=aarch64 \
             --user=$(id -u):$(id -g) \
             -v ${GITHUB_WORKSPACE}:/workspace \
-            docker.io/unfoldedcircle/r2-pyinstaller:${{ env.PYTHON_VER }} \
+            docker.io/unfoldedcircle/r2-pyinstaller:${PYTHON_VER} \
             bash -c \
             "cd /workspace && \
              python -m pip install -r requirements.txt && \
-             pyinstaller --clean --onedir --name intg-${{ steps.get_version.outputs.DRIVER_ID }} --collect-all zeroconf --collect-all httpx --collect-all pydantic uc_intg_xbox/driver.py"
+             pyinstaller --clean --onedir --name intg-${DRIVER_ID} --collect-all zeroconf --collect-all httpx --collect-all pydantic uc_intg_xbox/driver.py"
 
-      - name: Prepare package for release
-        id: prepare_package
+      - name: Prepare artifacts
+        shell: bash
         run: |
-          ARTIFACT_NAME=${{ steps.get_version.outputs.DRIVER_ID }}-${{ steps.get_version.outputs.VERSION }}-aarch64
-          echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
+          mkdir -p artifacts/bin
+          mv dist/intg-${{ env.DRIVER_ID }}/* artifacts/bin
           
-          mkdir -p release_assets/bin
-          mv dist/intg-${{ steps.get_version.outputs.DRIVER_ID }}/* release_assets/bin
-          mv release_assets/bin/intg-${{ steps.get_version.outputs.DRIVER_ID }} release_assets/bin/driver
-          cp driver.json release_assets/
+          # This creates the final executable script that will be run by the remote
+          echo '#!/bin/sh' > artifacts/bin/driver
+          # THE FIX IS HERE: We run the pyinstaller binary and pass along the arguments ("$@")
+          echo 'DIR=$(dirname "$0")' >> artifacts/bin/driver
+          echo '$DIR/intg-${{ env.DRIVER_ID }} "$@"' >> artifacts/bin/driver
+          chmod +x artifacts/bin/driver
           
-          tar -czvf ${ARTIFACT_NAME}.tar.gz -C release_assets .
-          sha256sum ${ARTIFACT_NAME}.tar.gz | awk '{print $1}' > ${{ steps.get_version.outputs.DRIVER_ID }}.hash
+          cp driver.json artifacts/
+          echo "ARTIFACT_NAME=${{ env.DRIVER_ID }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
+          
+      - name: Create upload artifact archive
+        shell: bash
+        run: | 
+          tar czvf ${{ env.ARTIFACT_NAME }}.tar.gz -C ${GITHUB_WORKSPACE}/artifacts .
+          
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_NAME }}.tar.gz
+            
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build]
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Extract build archives
+        run: |
+          SUB_DIR=$(find . -mindepth 1 -maxdepth 1 -type d)
+          if [ -d "$SUB_DIR" ]; then
+            mv "$SUB_DIR"/* .
+          fi
+
+      - name: Create hash file
+        run: |
+          for filename in *.tar.gz; do sha256sum $filename | awk '{print $1}' > ${{needs.build.outputs.driver_id}}.hash; done;
 
       - name: Create release draft
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "${{ steps.prepare_package.outputs.ARTIFACT_NAME }}.tar.gz,${{ steps.get_version.outputs.DRIVER_ID }}.hash"
+          artifacts: "*.tar.gz,*.hash"
           draft: true
           generateReleaseNotes: true
-          tag: v${{ steps.get_version.outputs.VERSION }}
+          tag: v${{needs.build.outputs.version}}
