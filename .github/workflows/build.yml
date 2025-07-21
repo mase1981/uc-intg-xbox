@@ -5,7 +5,8 @@ on:
 
 env:
   INTG_NAME: xbox
-  PYTHON_VER: 3.11.12-0.3.0
+  # THE FIX IS HERE: Use the stable '3.11' tag
+  PYTHON_VER: '3.11'
 
 jobs:
   build:
@@ -36,19 +37,21 @@ jobs:
             docker.io/unfoldedcircle/r2-pyinstaller:${PYTHON_VER} \
             bash -c \
             "cd /workspace && \
-             python -m pip install . && \
-             pyinstaller --clean --onedir --name intg-${DRIVER_ID} uc_intg_xbox/driver.py"
+             python -m pip install -e . && \
+             pyinstaller --clean --onedir --name intg-${DRIVER_ID} \
+             --collect-all ucapi \
+             --collect-all xbox.webapi \
+             --collect-all httpx \
+             --collect-all pydantic \
+             uc_intg_xbox/driver.py"
 
       - name: Prepare artifacts
         shell: bash
         run: |
           mkdir -p artifacts/bin
-          # Move the compiled binary and all its supporting files
           mv dist/intg-${{ env.DRIVER_ID }}/* artifacts/bin
           
-          # Create a NEW wrapper script named 'driver' that the remote will execute
           echo '#!/bin/sh' > artifacts/bin/driver
-          # This script runs the real binary and passes along all arguments ("$@")
           echo 'DIR=$(dirname "$0")' >> artifacts/bin/driver
           echo '$DIR/intg-${{ env.DRIVER_ID }} "$@"' >> artifacts/bin/driver
           chmod +x artifacts/bin/driver
