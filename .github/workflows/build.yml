@@ -5,8 +5,7 @@ on:
 
 env:
   INTG_NAME: xbox
-  # THE FIX IS HERE: Use the stable '3.11' tag instead of a hyper-specific version
-  PYTHON_VER: '3.11'
+  PYTHON_VER: 3.11.12-0.3.0
 
 jobs:
   build:
@@ -48,8 +47,17 @@ jobs:
         shell: bash
         run: |
           mkdir -p artifacts/bin
+          # This moves the compiled binary into the bin folder
           mv dist/intg-${{ env.DRIVER_ID }}/* artifacts/bin
-          mv artifacts/bin/intg-${{ env.DRIVER_ID }} artifacts/bin/driver
+          
+          # This creates a NEW script named 'driver' that the remote will run
+          echo '#!/bin/sh' > artifacts/bin/driver
+          # This line tells the new script to run the original compiled binary
+          # and, critically, to pass along all arguments ("$@")
+          echo 'DIR=$(dirname "$0")' >> artifacts/bin/driver
+          echo '$DIR/intg-${{ env.DRIVER_ID }} "$@"' >> artifacts/bin/driver
+          chmod +x artifacts/bin/driver
+          
           cp driver.json artifacts/
           echo "ARTIFACT_NAME=${{ env.DRIVER_ID }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
           
