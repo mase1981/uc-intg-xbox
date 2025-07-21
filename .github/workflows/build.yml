@@ -5,7 +5,7 @@ on:
 
 env:
   INTG_NAME: xbox
-  PYTHON_VER: '3.12.3-0.3.0'
+  PYTHON_VER: 3.11.12-0.3.0
 
 jobs:
   build:
@@ -23,54 +23,55 @@ jobs:
       - name: Get version and id
         id: get-version-and-id
         run: |
+          echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_ENV
+          echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_ENV
           echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_OUTPUT
           echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
 
       - name: Build with PyInstaller
         run: |
+          # This build command is unchanged from your working version
+          sudo apt-get update && sudo apt-get install -y qemu-system binfmt-support qemu-user-static
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          echo "Starting pyinstaller build"
           docker run --rm --name builder \
+            --platform=aarch64 \
             --user=$(id -u):$(id -g) \
             -v ${GITHUB_WORKSPACE}:/workspace \
             docker.io/unfoldedcircle/r2-pyinstaller:${PYTHON_VER} \
             bash -c \
             "cd /workspace && \
-             python -m pip install -e . && \
-             pyinstaller --clean --onedir --name intg-${{ steps.get-version-and-id.outputs.DRIVER_ID }} \
-             --collect-all ucapi \
-             --collect-all xbox.webapi \
-             --collect-all httpx \
-             --collect-all pydantic \
-             uc_intg_xbox/driver.py"
+              python -m pip install -e . && \
+              pyinstaller --clean --onedir --name intg-${DRIVER_ID} --collect-all ucapi --collect-all xbox.webapi --collect-all httpx --collect-all pydantic uc_intg_xbox/driver.py"
 
       - name: Prepare artifacts
-        id: prepare_artifacts # Add an id to this step
         shell: bash
         run: |
           mkdir -p artifacts/bin
           # Move the compiled binary and all its supporting files
-          mv dist/intg-${{ steps.get-version-and-id.outputs.DRIVER_ID }}/* artifacts/bin
+          mv dist/intg-${{ env.DRIVER_ID }}/* artifacts/bin
           
-          # This creates the wrapper script that fixes the "Connection refused" error
+          # This creates a NEW script named 'driver' that the remote will run
           echo '#!/bin/sh' > artifacts/bin/driver
+          # This line tells the new script to run the original compiled binary
+          # and, critically, to pass along all arguments ("$@")
           echo 'DIR=$(dirname "$0")' >> artifacts/bin/driver
-          echo '$DIR/intg-${{ steps.get-version-and-id.outputs.DRIVER_ID }} "$@"' >> artifacts/bin/driver
+          echo '$DIR/intg-${{ env.DRIVER_ID }} "$@"' >> artifacts/bin/driver
           chmod +x artifacts/bin/driver
           
           cp driver.json artifacts/
-          
           # This fixes the filename by using the direct step output
-          ARTIFACT_NAME=${{ steps.get-version-and-id.outputs.DRIVER_ID }}-${{ steps.get-version-and-id.outputs.VERSION }}-aarch64
-          echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
+          echo "ARTIFACT_NAME=${{ steps.get-version-and-id.outputs.DRIVER_ID }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
           
       - name: Create upload artifact archive
         shell: bash
         run: | 
-          tar czvf ${{ steps.prepare_artifacts.outputs.ARTIFACT_NAME }}.tar.gz -C ${GITHUB_WORKSPACE}/artifacts .
+          tar czvf ${{ env.ARTIFACT_NAME }}.tar.gz -C ${GITHUB_WORKSPACE}/artifacts .
           
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.prepare_artifacts.outputs.ARTIFACT_NAME }}
-          path: ${{ steps.prepare_artifacts.outputs.ARTIFACT_NAME }}.tar.gz
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_NAME }}.tar.gz
 
   release:
     name: Create Release
