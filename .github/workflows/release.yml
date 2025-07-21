@@ -14,8 +14,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # This is a more reliable way to get the version number
       - name: Get version from tag
-        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
       - name: Create staging and dist directories
         run: |
@@ -35,7 +37,7 @@ jobs:
           chmod +x staging/bin/uc-intg-xbox
 
       - name: Create the final .tar.gz archive
-        run: tar -czf dist/uc-intg-xbox-${{ env.RELEASE_VERSION }}.tar.gz -C staging .
+        run: tar -czf dist/uc-intg-xbox-${{ steps.get_version.outputs.VERSION }}.tar.gz -C staging .
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
@@ -43,6 +45,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./dist/uc-intg-xbox-${{ env.RELEASE_VERSION }}.tar.gz
-          asset_name: uc-intg-xbox-${{ env.RELEASE_VERSION }}.tar.gz
+          asset_path: ./dist/uc-intg-xbox-${{ steps.get_version.outputs.VERSION }}.tar.gz
+          asset_name: uc-intg-xbox-${{ steps.get_version.outputs.VERSION }}.tar.gz
           asset_content_type: application/gzip
