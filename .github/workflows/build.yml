@@ -5,8 +5,8 @@ on:
 
 env:
   INTG_NAME: xbox
-  # THE FIX IS HERE: Use a current, valid version of the builder image
-  PYTHON_VER: '3.12.3-0.3.0'
+  # THE FIX IS HERE: Use the 'latest' tag to always get the current, stable builder
+  PYTHON_VER: 'latest'
 
 jobs:
   build:
@@ -31,6 +31,7 @@ jobs:
 
       - name: Build with PyInstaller
         run: |
+          # The multiarch setup is no longer needed with the 'latest' tag
           docker run --rm --name builder \
             --user=$(id -u):$(id -g) \
             -v ${GITHUB_WORKSPACE}:/workspace \
