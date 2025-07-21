@@ -5,8 +5,7 @@ on:
 
 env:
   INTG_NAME: xbox
-  # THE FIX IS HERE: Use the 'latest' tag to always get the current, stable builder
-  PYTHON_VER: 'latest'
+  PYTHON_VER: 3.11.12-0.3.0
 
 jobs:
   build:
@@ -25,34 +24,32 @@ jobs:
         id: get-version-and-id
         run: |
           echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_ENV
-          echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
+          echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_ENV
           echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_OUTPUT
           echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
-
-      - name: Build with PyInstaller
+      - name: Build
         run: |
-          # The multiarch setup is no longer needed with the 'latest' tag
+          sudo apt-get update && sudo apt-get install -y qemu-system binfmt-support qemu-user-static
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          echo "Starting pyinstaller build"
           docker run --rm --name builder \
+            --platform=aarch64 \
             --user=$(id -u):$(id -g) \
             -v ${GITHUB_WORKSPACE}:/workspace \
             docker.io/unfoldedcircle/r2-pyinstaller:${PYTHON_VER} \
             bash -c \
             "cd /workspace && \
-             python -m pip install -e . && \
-             pyinstaller --clean --onedir --name intg-${DRIVER_ID} \
-             --collect-all ucapi \
-             --collect-all xbox.webapi \
-             --collect-all httpx \
-             --collect-all pydantic \
-             uc_intg_xbox/driver.py"
-
+             python -m pip install -r requirements.txt && \
+             pyinstaller --clean --onedir --name intg-${DRIVER_ID} --collect-all zeroconf --collect-all httpx --collect-all pydantic uc_intg_xbox/driver.py"
       - name: Prepare artifacts
         shell: bash
         run: |
           mkdir -p artifacts/bin
           mv dist/intg-${{ env.DRIVER_ID }}/* artifacts/bin
           
+          # This creates the final executable script that will be run by the remote
           echo '#!/bin/sh' > artifacts/bin/driver
+          # THE FIX IS HERE: We run the pyinstaller binary and pass along the arguments ("$@")
           echo 'DIR=$(dirname "$0")' >> artifacts/bin/driver
           echo '$DIR/intg-${{ env.DRIVER_ID }} "$@"' >> artifacts/bin/driver
           chmod +x artifacts/bin/driver
@@ -69,13 +66,14 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.ARTIFACT_NAME }}.tar.gz
-
+            
   release:
     name: Create Release
     runs-on: ubuntu-latest
     needs: [build]
     permissions:
       contents: write
+
     steps:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -86,11 +84,9 @@ jobs:
           if [ -d "$SUB_DIR" ]; then
             mv "$SUB_DIR"/* .
           fi
-
       - name: Create hash file
         run: |
           for filename in *.tar.gz; do sha256sum $filename | awk '{print $1}' > ${{needs.build.outputs.driver_id}}.hash; done;
-
       - name: Create release draft
         uses: ncipollo/release-action@v1
         with:
