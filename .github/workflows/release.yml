@@ -14,29 +14,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
       - name: Get version from tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
-      # --- Start of Custom Manual Packaging ---
-      - name: Create staging directory for archive contents
-        run: mkdir staging
+      - name: Install dependencies and official build tool
+        run: pip install . uc-dist-utils
 
-      - name: Copy project files to staging area
-        run: |
-          cp -r uc_intg_xbox staging/
-          cp pyproject.toml driver.json README.md staging/
-
-      - name: Create the required bin/uc-intg-xbox script
-        run: |
-          mkdir -p staging/bin
-          echo '#!/bin/sh' > staging/bin/uc-intg-xbox
-          echo 'python3 -m uc_intg_xbox.driver' >> staging/bin/uc-intg-xbox
-          chmod +x staging/bin/uc-intg-xbox
-
-      - name: Create the final .tar.gz archive
-        run: tar -czf uc-intg-xbox-${{ steps.get_version.outputs.VERSION }}.tar.gz -C staging .
-      # --- End of Custom Packaging ---
+      - name: Build the distributable package using uc-dist
+        # This is the official command that creates the correct tar.gz
+        run: python3 -m uc_dist --outdir dist .
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
@@ -44,6 +36,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./uc-intg-xbox-${{ steps.get_version.outputs.VERSION }}.tar.gz
+          # The tool automatically names the file correctly, we just need to find it
+          asset_path: ./dist/uc_intg_xbox-*.tar.gz
           asset_name: uc-intg-xbox-${{ steps.get_version.outputs.VERSION }}.tar.gz
           asset_content_type: application/gzip

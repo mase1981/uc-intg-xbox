@@ -1,8 +1,10 @@
-# No build system configuration is needed anymore
+[build-system]
+requires = ["setuptools>=61.0", "uc-dist-utils"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "uc_intg_xbox"
-version = "1.0.13"
+version = "1.0.14"
 authors = [
   { name="Meir Miyara", email="meir.miyara@gmail.com" },
 ]
@@ -15,8 +17,12 @@ dependencies = [
     "pydantic>=2.0",
     "certifi",
     "requests",
-    "httpx"
+    "httpx",
+    "xbox-smartglass-core"
 ]
 
 [project.urls]
 "Homepage" = "https://github.com/mase1981/uc-intg-xbox"
+
+[project.scripts]
+uc_intg_xbox = "uc_intg_xbox.driver:main"
