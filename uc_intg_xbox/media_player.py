@@ -13,7 +13,6 @@ from .config import XboxConfig
 
 _LOG = logging.getLogger("XBOX_ENTITY")
 
-# Add the specific volume and mute commands to the UI list
 SUPPORTED_COMMANDS = [
     "on", "off", "up", "down", "left", "right", "select", "back", "home", "menu", "view",
     "a_button", "b_button", "x_button", "y_button",
@@ -24,12 +23,28 @@ SUPPORTED_COMMANDS = [
 
 REMOTE_COMMANDS_MAP = {
     "on": "on", "off": "off", 
-    "up": "DpadUp", "down": "DpadDown", "left": "DpadLeft", "right": "DpadRight", 
-    "select": "A", "back": "B", "home": "Home", "menu": "Menu", "view": "View", 
-    "a_button": "A", "b_button": "B", "x_button": "X", "y_button": "Y",
-    "play": "Play", "pause": "Pause", "stop": "Stop", 
-    "next_track": "NextTrack", "previous_track": "PrevTrack",
-    "green": "A", "red": "B", "blue": "X", "yellow": "Y"
+    "up": "Up", 
+    "down": "Down", 
+    "left": "Left", 
+    "right": "Right", 
+    "select": "A", 
+    "back": "B", 
+    "home": "Home", 
+    "menu": "Menu", 
+    "view": "View", 
+    "a_button": "A", 
+    "b_button": "B", 
+    "x_button": "X", 
+    "y_button": "Y",
+    "play": "Play", 
+    "pause": "Pause", 
+    "stop": "Stop", 
+    "next_track": "NextTrack", 
+    "previous_track": "PrevTrack",
+    "green": "A", 
+    "red": "B", 
+    "blue": "X", 
+    "yellow": "Y"
 }
 
 class XboxRemote(Remote):
@@ -39,8 +54,11 @@ class XboxRemote(Remote):
         entity_name = {"en": f"Xbox ({config.liveid})"}
         super().__init__(
             entity_id, entity_name, 
-            # Revert features list to the simplest version
-            features=[Features.ON_OFF],
+            features=[
+                Features.ON_OFF,
+                Features.VOLUME,
+                Features.MUTE
+            ],
             attributes={Attributes.STATE: States.UNAVAILABLE},
             simple_commands=SUPPORTED_COMMANDS,
             cmd_handler=self.handle_command
@@ -84,8 +102,6 @@ class XboxRemote(Remote):
         try:
             actual_command = params.get("command") if cmd_id == ucapi.remote.Commands.SEND_CMD else cmd_id
             
-            # The command handler logic is already correct for volume,
-            # it just needed the remote to show the buttons.
             if actual_command == "on" or actual_command == ucapi.remote.Commands.ON:
                 await self.device.turn_on()
                 new_state = {Attributes.STATE: States.ON}
