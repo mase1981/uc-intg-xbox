@@ -18,7 +18,7 @@ API = ucapi.IntegrationAPI(loop)
 
 @API.listens_to(ucapi.Events.CONNECT)
 async def on_connect() -> None:
-    """When the UCR2 connects, send the device state."""
+    """When the remote connects, send the device state."""
     await API.set_device_state(ucapi.DeviceStates.CONNECTED)
 
 class XboxIntegration:
@@ -32,9 +32,7 @@ class XboxIntegration:
         _LOG.info("Starting Xbox Integration Driver...")
         driver_path = os.path.join(os.path.dirname(__file__), '..', 'driver.json')
         
-        # THE FIX IS HERE: Explicitly tell the server to listen on all interfaces
-        # This is crucial for Docker's host networking on Synology.
-        await self.api.init(driver_path, self.setup.handle_command, address="0.0.0.0")
+        await self.api.init(driver_path, self.setup.handle_command)
         
         await self.config.load(self.api)
         _LOG.info(f"Driver is up and discoverable, listening on port {API.port}")
@@ -50,5 +48,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         _LOG.info("Driver stopped.")
     finally:
-        _LOG.info("Closing the event loop.")
         loop.close()
