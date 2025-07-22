@@ -3,10 +3,11 @@ FROM python:3.11-slim-bullseye
 WORKDIR /app
 
 COPY driver.json driver.json
-COPY /requirements.txt requirements.txt
-COPY ./uc_intg_xbox uc_intg_xbox
+COPY requirements.txt requirements.txt
+COPY ./uc_intg_xbox ./uc_intg_xbox
 
 RUN pip3 install --no-cache-dir --upgrade -r requirements.txt
+
 RUN mkdir /config
 
 ADD . .
@@ -19,4 +20,4 @@ ENV UC_INTEGRATION_HTTP_PORT="9094"
 
 ENV UC_CONFIG_HOME="/config"
 
-CMD ["python3", "-u", "uc_intg_xbox/driver.py"]
+CMD ["python3", "-u", "-m", "uc_intg_xbox.driver"]
