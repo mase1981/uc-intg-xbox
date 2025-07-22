@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-import argparse
 import ucapi
 
 from .config import XboxConfig
@@ -9,24 +8,18 @@ from .setup import XboxSetup
 
 _LOG = logging.getLogger(__name__)
 
-# 1. This part correctly reads the port from the environment variable set by Docker
-#    or defaults for local testing.
-try:
-    port = int(os.environ.get("UC_PORT", 9090))
-except (ValueError, TypeError):
-    port = 9090
-
 try:
     loop = asyncio.get_running_loop()
 except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-# 2. THE FIX IS HERE: Pass the port to the IntegrationAPI constructor
-API = ucapi.IntegrationAPI(loop, port=port)
+# Create the API object simply. It will read the UC_PORT environment variable automatically.
+API = ucapi.IntegrationAPI(loop)
 
 @API.listens_to(ucapi.Events.CONNECT)
 async def on_connect() -> None:
+    """When the remote connects, send the device state."""
     await API.set_device_state(ucapi.DeviceStates.CONNECTED)
 
 class XboxIntegration:
@@ -40,10 +33,11 @@ class XboxIntegration:
         _LOG.info("Starting Xbox Integration Driver...")
         driver_path = os.path.join(os.path.dirname(__file__), '..', 'driver.json')
         
-        # 3. The init() call is now simple and correct.
+        # The init method does not need the port argument.
         await self.api.init(driver_path, self.setup.handle_command)
         
         await self.config.load(self.api)
+        # The library finds the port itself. We log it here for confirmation.
         _LOG.info(f"Driver is up and discoverable, listening on port {API.port}")
 
 async def main():
@@ -57,4 +51,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         _LOG.info("Driver stopped.")
     finally:
+        _LOG.info("Closing the event loop.")
         loop.close()
