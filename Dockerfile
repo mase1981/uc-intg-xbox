@@ -1,15 +1,22 @@
-# Start from a lightweight Python image
-FROM python:3.10-slim
+FROM python:3.11-slim-bullseye
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Copy all project files into the container
-COPY . .
+COPY driver.json driver.json
+COPY /requirements.txt requirements.txt
+COPY ./uc_intg_xbox uc_intg_xbox
 
-# Install the project and all its dependencies from pyproject.toml
-# This will also install xbox-webapi from GitHub
-RUN pip install .
+RUN pip3 install --no-cache-dir --upgrade -r requirements.txt
+RUN mkdir /config
 
-# The command to run when the container starts
-CMD ["python", "-m", "uc_intg_xbox.driver"]
+ADD . .
+
+ENV UC_DISABLE_MDNS_PUBLISH="false"
+ENV UC_MDNS_LOCAL_HOSTNAME=""
+
+ENV UC_INTEGRATION_INTERFACE="0.0.0.0"
+ENV UC_INTEGRATION_HTTP_PORT="9094"
+
+ENV UC_CONFIG_HOME="/config"
+
+CMD ["python3", "-u", "uc_intg_xbox/driver.py"]
