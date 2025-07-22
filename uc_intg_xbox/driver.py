@@ -31,7 +31,7 @@ class XboxIntegration:
     async def start(self):
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         _LOG.info("Starting Xbox Integration Driver...")
-        driver_path = os.path.join(os.path.dirname(__file__), '..', 'driver.json')
+        driver_path = 'driver.json'
         await self.api.init(driver_path, self.setup.handle_command)
         await self.config.load(self.api)
         _LOG.info("Driver is up and discoverable.")
