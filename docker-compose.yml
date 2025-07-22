@@ -6,5 +6,5 @@ services:
     environment:
     UC_INTEGRATION_HTTP_PORT: 9094
   volumes: 
-    - /volume1/docker/uc-intg-xbox/config:/config
+  - /volume1/docker/uc-intg-xbox/config:/config
 restart: unless-stopped
