@@ -9,7 +9,8 @@ from .setup import XboxSetup
 
 _LOG = logging.getLogger(__name__)
 
-# This part is correct and reads the port from the environment
+# 1. This part correctly reads the port from the environment variable set by Docker
+#    or defaults for local testing.
 try:
     port = int(os.environ.get("UC_PORT", 9090))
 except (ValueError, TypeError):
@@ -21,8 +22,8 @@ except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-# THE FIX IS HERE: Create the API without the port argument
-API = ucapi.IntegrationAPI(loop)
+# 2. THE FIX IS HERE: Pass the port to the IntegrationAPI constructor
+API = ucapi.IntegrationAPI(loop, port=port)
 
 @API.listens_to(ucapi.Events.CONNECT)
 async def on_connect() -> None:
@@ -39,8 +40,8 @@ class XboxIntegration:
         _LOG.info("Starting Xbox Integration Driver...")
         driver_path = os.path.join(os.path.dirname(__file__), '..', 'driver.json')
         
-        # AND THE FIX IS HERE: Pass the port to the api.init() method
-        await self.api.init(driver_path, self.setup.handle_command, port=port)
+        # 3. The init() call is now simple and correct.
+        await self.api.init(driver_path, self.setup.handle_command)
         
         await self.config.load(self.api)
         _LOG.info(f"Driver is up and discoverable, listening on port {API.port}")
