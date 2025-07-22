@@ -14,6 +14,7 @@ except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
+# Create the API object simply, without any arguments
 API = ucapi.IntegrationAPI(loop)
 
 @API.listens_to(ucapi.Events.CONNECT)
@@ -32,10 +33,12 @@ class XboxIntegration:
         _LOG.info("Starting Xbox Integration Driver...")
         driver_path = os.path.join(os.path.dirname(__file__), '..', 'driver.json')
         
+        # Call init simply, with no extra arguments
         await self.api.init(driver_path, self.setup.handle_command)
         
         await self.config.load(self.api)
-        _LOG.info(f"Driver is up and discoverable, listening on port {API.port}")
+        # THE FIX IS HERE: The log message is now simpler and correct.
+        _LOG.info("Driver is up and discoverable.")
 
 async def main():
     integration = XboxIntegration(API)
@@ -48,4 +51,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         _LOG.info("Driver stopped.")
     finally:
+        _LOG.info("Closing the event loop.")
         loop.close()
