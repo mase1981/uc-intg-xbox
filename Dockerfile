@@ -4,11 +4,13 @@ FROM python:3.10-slim
 # Set the working directory inside the container
 WORKDIR /app
 
+# THE FIX IS HERE: Install git before trying to install Python packages
+RUN apt-get update && apt-get install -y git
+
 # Copy the files needed to install dependencies
 COPY pyproject.toml .
 
 # Install all dependencies from your pyproject.toml
-# This includes xbox-webapi from GitHub and all other libraries
 RUN pip install .
 
 # Copy the rest of your project's source code
