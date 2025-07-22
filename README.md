@@ -28,7 +28,7 @@ This integration allows for remote control of your console's dashboard, includin
 3.  Your Xbox must be set to **Sleep** power mode (previously "Instant-on") for Power On to function. You can find this in `Settings > General > Power options`.
 4.  You must enable remote features on your Xbox. To do this, go to `Settings > Devices & connections > Remote features` and check the box for "Enable remote features".
 5.  You will need your console's **Xbox Live Device ID**, which is found on that same settings page.
-6. Your remote and xBox console **must** be on the same network. 
+6.  Your remote and xBox console **must** be on the same network.
 
 ## Installation
 
@@ -38,29 +38,36 @@ There are two recommended ways to install and run this integration:
 
 This is the easiest way to run the integration. This method works on any machine that runs Docker, such as a home server or a Synology NAS.
 
-1.  Clone or download the project files from this GitHub repository.
-2.  In the project's root directory, create an empty folder named `config`. This is where the integration will store your authentication tokens.
-3.  From a terminal in the project's root directory, run the following single command:
+1.  **Clone or download** the project files from this GitHub repository.
+
+2.  **Configure the Docker Host IP Address.** To ensure auto-discovery works correctly, you must provide the integration with the IP address of the machine Docker is running on (e.g., your Synology NAS).
+    * Open the `docker-compose.yml` file in a text editor.
+    * Find the line that says `UC_MDNS_LOCAL_HOSTNAME=YOUR_NAS_IP_ADDRESS_HERE`.
+    * Replace `YOUR_NAS_IP_ADDRESS_HERE` with the actual local IP address of your NAS/server.
+
+3.  **Start the integration.** From a terminal in the project's root directory, run the following command:
 
     ```bash
     docker-compose up --build -d
     ```
-The integration will build and start in the background. It is now ready to be configured on your remote.
+
+The integration will build and start in the background. It is now ready to be added on your remote via auto-discovery.
 
 #### Alternative Docker Commands
-If you don't have `docker-compose` installed, you can use these two standard Docker commands instead:
+
+If you don't have `docker-compose` installed, you can use these standard Docker commands instead.
 
 1.  **Build the image:**
     ```bash
     docker build -t uc-intg-xbox .
     ```
-2.  **Run the container:**
+2.  **Run the container.** **Important:** Replace `YOUR_NAS_IP_ADDRESS_HERE` in the command below with the actual IP address of your Docker host machine.
     ```bash
     # For PowerShell, Linux, or macOS
-    docker run -d --name uc-intg-xbox --network host -v "$(pwd)/config:/app/uc_intg_xbox/config" --restart unless-stopped uc-intg-xbox
+    docker run -d --name uc-intg-xbox --network host -e "UC_MDNS_LOCAL_HOSTNAME=YOUR_NAS_IP_ADDRESS_HERE" -v "$(pwd)/config:/config" --restart unless-stopped uc-intg-xbox
 
     # For Windows Command Prompt (cmd.exe)
-    docker run -d --name uc-intg-xbox --network host -v "%cd%/config:/app/uc_intg_xbox/config" --restart unless-stopped uc-intg-xbox
+    docker run -d --name uc-intg-xbox --network host -e "UC_MDNS_LOCAL_HOSTNAME=YOUR_NAS_IP_ADDRESS_HERE" -v "%cd%/config:/config" --restart unless-stopped uc-intg-xbox
     ```
 
 ### Method 2: Manual Installation (`.tar.gz`)
@@ -99,7 +106,7 @@ Interested in contributing? Here’s how to set up a development environment.
 2.  Create and activate a Python virtual environment. Python 3.10 or higher is required.
     ```bash
     python -m venv .venv
-    source .venv/bin/activate  # On Windows, use `.venv\Scripts\activate`
+    source .venv/bin/activate  # On Windows, use .venv\Scripts\activate
     ```
 3.  Install the project in editable mode with its dependencies:
     ```bash
@@ -118,4 +125,5 @@ This project is licensed under the MIT License.
 
 * This project is powered by the [xbox-webapi](https://github.com/OpenXbox/xbox-webapi-python) library.
 * Special thanks to the [Unfolded Circle](https://www.unfoldedcircle.com/) team for creating a remote with an open API.
-* Thanks to [JackJPowell](https://github.com/JackJPowell) for the PSN and JVC integrations which served as excellent reference points.
+* Thanks to [Jack Powell](https://github.com/JackJPowell) for the PSN and JVC integrations which served as excellent reference points.
+* Thanks to (Mike Hobin) (https://github.com/mikehobin) for the help with the container proper configuration.
