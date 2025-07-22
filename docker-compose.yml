@@ -4,8 +4,9 @@ services:
     build: .
     container_name: uc-intg-xbox
     restart: unless-stopped
+    # Use host networking so the Unfolded Circle remote can discover it
     network_mode: host
     volumes:
-      # This links the 'config' folder inside the container to a
-      # 'config' folder on the host machine, to persist your tokens.
+      # This links a 'config' folder on your host machine to the container
+      # to permanently store your authentication tokens.
       - ./config:/app/uc_intg_xbox/config
