@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  INTG_NAME: xbox
+  # Use the exact, proven Docker image version from the Apple TV example
   PYTHON_VER: 3.11.12-0.3.0
 
 jobs:
@@ -24,58 +24,52 @@ jobs:
         id: get-version-and-id
         run: |
           echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_ENV
-          echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_ENV
+          echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
           echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_OUTPUT
           echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
 
       - name: Build with PyInstaller
         run: |
-          sudo apt-get update && sudo apt-get install -y qemu-system binfmt-support qemu-user-static
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-          echo "Starting pyinstaller build"
+          # This build command is adapted from the official examples
           docker run --rm --name builder \
-            --platform=aarch64 \
             --user=$(id -u):$(id -g) \
             -v ${GITHUB_WORKSPACE}:/workspace \
             docker.io/unfoldedcircle/r2-pyinstaller:${PYTHON_VER} \
             bash -c \
             "cd /workspace && \
-             python -m pip install -e . && \
-             pyinstaller --clean --onedir --name intg-${DRIVER_ID} \
-             --collect-all ucapi \
-             --collect-all xbox.webapi \
-             --collect-all httpx \
-             --collect-all pydantic \
-             uc_intg_xbox/driver.py"
+             python -m pip install -r requirements.txt && \
+             pyinstaller --clean --onedir --name ${{ steps.get-version-and-id.outputs.DRIVER_ID }} uc_intg_xbox/driver.py"
 
-      - name: Prepare artifacts
+      - name: Prepare artifacts for packaging
         shell: bash
         run: |
+          ARTIFACT_NAME=${{ steps.get-version-and-id.outputs.DRIVER_ID }}-${{ steps.get-version-and-id.outputs.VERSION }}-aarch64
+          echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
+          
           mkdir -p artifacts/bin
-          # Move the compiled binary and its supporting files into the bin folder
-          mv dist/intg-${{ env.DRIVER_ID }}/* artifacts/bin
+          # Move the compiled binary and all its libraries into the bin folder
+          mv dist/${{ steps.get-version-and-id.outputs.DRIVER_ID }}/* artifacts/bin
           
           # Create the wrapper script that fixes the "Connection refused" error
-          echo '#!/bin/sh' > artifacts/bin/driver
-          echo 'DIR=$(dirname "$0")' >> artifacts/bin/driver
-          echo '$DIR/intg-${{ env.DRIVER_ID }} "$@"' >> artifacts/bin/driver
-          chmod +x artifacts/bin/driver
+          echo '#!/bin/sh' > artifacts/bin/${{ steps.get-version-and-id.outputs.DRIVER_ID }}
+          echo 'DIR=$(dirname "$0")' >> artifacts/bin/${{ steps.get-version-and-id.outputs.DRIVER_ID }}
+          echo '$DIR/${{ steps.get-version-and-id.outputs.DRIVER_ID }} "$@"' >> artifacts/bin/${{ steps.get-version-and-id.outputs.DRIVER_ID }}
+          chmod +x artifacts/bin/${{ steps.get-version-and-id.outputs.DRIVER_ID }}
           
+          # Copy the driver.json to the root of the package
           cp driver.json artifacts/
-          echo "ARTIFACT_NAME=${{ env.DRIVER_ID }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
           
-      - name: Create upload artifact archive
+      - name: Create final .tar.gz archive
         shell: bash
         run: | 
-          tar czvf ${{ env.ARTIFACT_NAME }}.tar.gz -C ${GITHUB_WORKSPACE}/artifacts .
+          tar czvf ${{ steps.prepare_artifacts.outputs.ARTIFACT_NAME }}.tar.gz -C ${GITHUB_WORKSPACE}/artifacts .
           
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACT_NAME }}.tar.gz
+          name: ${{ steps.prepare_artifacts.outputs.ARTIFACT_NAME }}
+          path: ${{ steps.prepare_artifacts.outputs.ARTIFACT_NAME }}.tar.gz
 
   release:
-    # This job is unchanged from your working version
     name: Create Release
     runs-on: ubuntu-latest
     needs: [build]
