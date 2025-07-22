@@ -57,10 +57,10 @@ If you don't have `docker-compose` installed, you can use these two standard Doc
 2.  **Run the container:**
     ```bash
     # For PowerShell, Linux, or macOS
-    docker run -d --name uc-intg-xbox --network host -v "$(pwd)/config:/app/uc_intg_xbox/config" --restart unless-stopped uc-intg-xbox
+docker run -d --name uc-intg-xbox --network host -v "$(pwd)/config:/config" --restart unless-stopped uc-intg-xbox
 
-    # For Windows Command Prompt (cmd.exe)
-    docker run -d --name uc-intg-xbox --network host -v "%cd%/config:/app/uc_intg_xbox/config" --restart unless-stopped uc-intg-xbox
+# For Windows Command Prompt (cmd.exe)
+docker run -d --name uc-intg-xbox --network host -v "%cd%/config:/config" --restart unless-stopped uc-intg-xbox
     ```
 
 ### Method 2: Manual Installation (`.tar.gz`)
