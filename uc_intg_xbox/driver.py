@@ -2,17 +2,11 @@ import asyncio
 import logging
 import os
 import ucapi
-import argparse # 1. Import the argument parsing library
 
 from .config import XboxConfig
 from .setup import XboxSetup
 
 _LOG = logging.getLogger(__name__)
-
-# 2. Add the parser to read the --port argument from the command line
-parser = argparse.ArgumentParser(add_help=False)
-parser.add_argument("--port", type=int, default=0)
-args = parser.parse_args()
 
 try:
     loop = asyncio.get_running_loop()
@@ -25,7 +19,6 @@ API = ucapi.IntegrationAPI(loop)
 @API.listens_to(ucapi.Events.CONNECT)
 async def on_connect() -> None:
     """When the UCR2 connects, send the device state."""
-    # This example is ready all the time!
     await API.set_device_state(ucapi.DeviceStates.CONNECTED)
 
 class XboxIntegration:
@@ -38,8 +31,11 @@ class XboxIntegration:
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         _LOG.info("Starting Xbox Integration Driver...")
         driver_path = os.path.join(os.path.dirname(__file__), '..', 'driver.json')
-        # 3. Pass the parsed port argument to the init() function
-        await self.api.init(driver_path, self.setup.handle_command, port=args.port)
+        
+        # THE FIX IS HERE: Explicitly tell the server to listen on all interfaces
+        # This is crucial for Docker's host networking on Synology.
+        await self.api.init(driver_path, self.setup.handle_command, address="0.0.0.0")
+        
         await self.config.load(self.api)
         _LOG.info(f"Driver is up and discoverable, listening on port {API.port}")
 
