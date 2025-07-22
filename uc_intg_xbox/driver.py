@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import argparse
 import ucapi
 
 from .config import XboxConfig
@@ -8,15 +9,11 @@ from .setup import XboxSetup
 
 _LOG = logging.getLogger(__name__)
 
-# --- THE FIX IS HERE ---
-# 1. Read the port from the UC_PORT environment variable.
-#    Default to 9090 if it's not set.
+# This part is correct and reads the port from the environment
 try:
     port = int(os.environ.get("UC_PORT", 9090))
 except (ValueError, TypeError):
     port = 9090
-# --- END OF FIX ---
-
 
 try:
     loop = asyncio.get_running_loop()
@@ -24,13 +21,11 @@ except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-# 2. Pass the port we just read to the IntegrationAPI constructor.
-API = ucapi.IntegrationAPI(loop, port=port)
-
+# THE FIX IS HERE: Create the API without the port argument
+API = ucapi.IntegrationAPI(loop)
 
 @API.listens_to(ucapi.Events.CONNECT)
 async def on_connect() -> None:
-    """When the remote connects, send the device state."""
     await API.set_device_state(ucapi.DeviceStates.CONNECTED)
 
 class XboxIntegration:
@@ -44,7 +39,8 @@ class XboxIntegration:
         _LOG.info("Starting Xbox Integration Driver...")
         driver_path = os.path.join(os.path.dirname(__file__), '..', 'driver.json')
         
-        await self.api.init(driver_path, self.setup.handle_command)
+        # AND THE FIX IS HERE: Pass the port to the api.init() method
+        await self.api.init(driver_path, self.setup.handle_command, port=port)
         
         await self.config.load(self.api)
         _LOG.info(f"Driver is up and discoverable, listening on port {API.port}")
@@ -60,5 +56,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         _LOG.info("Driver stopped.")
     finally:
-        _LOG.info("Closing the event loop.")
         loop.close()
