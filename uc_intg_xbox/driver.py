@@ -14,13 +14,12 @@ except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-# Create the API object simply. It will read the UC_PORT environment
-# variable that is set by your docker-compose.yml.
 API = ucapi.IntegrationAPI(loop)
 
 @API.listens_to(ucapi.Events.CONNECT)
 async def on_connect() -> None:
-    """When the remote connects, send the device state."""
+    """When the UCR2 connects, send the device state."""
+    # This example is ready all the time!
     await API.set_device_state(ucapi.DeviceStates.CONNECTED)
 
 class XboxIntegration:
@@ -33,12 +32,8 @@ class XboxIntegration:
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         _LOG.info("Starting Xbox Integration Driver...")
         driver_path = os.path.join(os.path.dirname(__file__), '..', 'driver.json')
-        
-        # The init method does not need any port arguments.
         await self.api.init(driver_path, self.setup.handle_command)
-        
         await self.config.load(self.api)
-        # THE FIX IS HERE: Remove the problematic logging line.
         _LOG.info("Driver is up and discoverable.")
 
 async def main():
