@@ -1,9 +1,11 @@
+version: '3.8'
 services:
-  intg-xbox-uc:
+  uc-intg-xbox:
+    build: .
     container_name: uc-intg-xbox
-    image: uc-xbox
+    restart: unless-stopped
     network_mode: host
     environment:
     UC_INTEGRATION_HTTP_PORT: 9094
-  volumes: /volume1/docker/uc-intg-xbox/config:/config
-restart: unless-stopped
+  volumes:
+       - - /volume1/docker/uc-intg-xbox/config:/app/uc_intg_xbox/config
