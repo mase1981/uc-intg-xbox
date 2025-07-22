@@ -5,8 +5,8 @@ services:
     container_name: uc-intg-xbox
     restart: unless-stopped
     network_mode: host
-    # THE FIX IS HERE: Set the environment variable for the ucapi library
     environment:
-      - UC_ADDRESS=0.0.0.0
+      # THE FIX IS HERE: Set a specific, approved port for the integration
+      - UC_PORT=9123
     volumes:
       - /volume1/docker/uc-intg-xbox/config:/app/uc_intg_xbox/config
