@@ -1,7 +1,7 @@
 services:
   intg-xbox-uc:
-    container_name: intg-xbox-uc
-    image: xbox-uc
+    container_name: uc-intg-xbox
+    image: uc-xbox
     network_mode: host
     environment:
       
