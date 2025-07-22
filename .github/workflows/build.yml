@@ -5,7 +5,7 @@ on:
 
 env:
   INTG_NAME: xbox
-  PYTHON_VER: 3.11.12-0.3.0
+  PYTHON_VER: '3.11'
 
 jobs:
   build:
@@ -24,35 +24,26 @@ jobs:
         id: get-version-and-id
         run: |
           echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_ENV
-          echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_ENV
+          echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
           echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_OUTPUT
           echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
 
       - name: Build with PyInstaller
         run: |
-          sudo apt-get update && sudo apt-get install -y qemu-system binfmt-support qemu-user-static
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-          echo "Starting pyinstaller build"
           docker run --rm --name builder \
-            --platform=aarch64 \
             --user=$(id -u):$(id -g) \
             -v ${GITHUB_WORKSPACE}:/workspace \
             docker.io/unfoldedcircle/r2-pyinstaller:${PYTHON_VER} \
             bash -c \
             "cd /workspace && \
              python -m pip install -e . && \
-             pyinstaller --clean --onedir --name intg-${DRIVER_ID} \
-             --collect-all ucapi \
-             --collect-all xbox.webapi \
-             --collect-all httpx \
-             --collect-all pydantic \
-             uc_intg_xbox/driver.py"
+             pyinstaller --clean --onedir --name intg-${DRIVER_ID} --collect-all ucapi --collect-all xbox.webapi --collect-all httpx --collect-all pydantic uc_intg_xbox/driver.py"
 
       - name: Prepare artifacts
         shell: bash
         run: |
           mkdir -p artifacts/bin
-          # Move the compiled binary and its supporting files into the bin folder
+          # Move the compiled binary and all its supporting files
           mv dist/intg-${{ env.DRIVER_ID }}/* artifacts/bin
           
           # Create the wrapper script that fixes the "Connection refused" error
@@ -75,7 +66,6 @@ jobs:
           path: ${{ env.ARTIFACT_NAME }}.tar.gz
 
   release:
-    # This job is unchanged from your working version
     name: Create Release
     runs-on: ubuntu-latest
     needs: [build]
@@ -84,18 +74,15 @@ jobs:
     steps:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
-
       - name: Extract build archives
         run: |
           SUB_DIR=$(find . -mindepth 1 -maxdepth 1 -type d)
           if [ -d "$SUB_DIR" ]; then
             mv "$SUB_DIR"/* .
           fi
-
       - name: Create hash file
         run: |
           for filename in *.tar.gz; do sha256sum $filename | awk '{print $1}' > ${{needs.build.outputs.driver_id}}.hash; done;
-
       - name: Create release draft
         uses: ncipollo/release-action@v1
         with:
