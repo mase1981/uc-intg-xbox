@@ -126,4 +126,4 @@ This project is licensed under the MIT License.
 * This project is powered by the [xbox-webapi](https://github.com/OpenXbox/xbox-webapi-python) library.
 * Special thanks to the [Unfolded Circle](https://www.unfoldedcircle.com/) team for creating a remote with an open API.
 * Thanks to [Jack Powell](https://github.com/JackJPowell) for the PSN and JVC integrations which served as excellent reference point and help with local build.
-* Thanks to (Mike Hobin) (https://github.com/mikehobin) for the help with the container proper configuration.
+* Thanks to [Mike Hobin](https://github.com/mikehobin) for the help with the container proper configuration.
