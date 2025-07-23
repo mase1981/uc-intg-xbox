@@ -6,62 +6,83 @@ import ssl
 import certifi
 import re
 from ucapi.media_player import Attributes, States, Commands, Features
-from ucapi import Remote, StatusCodes 
+from ucapi import Remote, StatusCodes
 
-from .xbox_device import XboxDevice
-from .config import XboxConfig
+from xbox_device import XboxDevice
+from config import XboxConfig
 
 _LOG = logging.getLogger("XBOX_ENTITY")
 
 SUPPORTED_COMMANDS = [
-    "on", "off", "up", "down", "left", "right", "select", "back", "home", "menu", "view",
-    "a_button", "b_button", "x_button", "y_button",
-    "play", "pause", "stop", "next_track", "previous_track",
-    "red", "green", "blue", "yellow",
-    "volume_up", "volume_down", "mute_toggle"
+    "on",
+    "off",
+    "up",
+    "down",
+    "left",
+    "right",
+    "select",
+    "back",
+    "home",
+    "menu",
+    "view",
+    "a_button",
+    "b_button",
+    "x_button",
+    "y_button",
+    "play",
+    "pause",
+    "stop",
+    "next_track",
+    "previous_track",
+    "red",
+    "green",
+    "blue",
+    "yellow",
+    "volume_up",
+    "volume_down",
+    "mute_toggle",
 ]
 
 REMOTE_COMMANDS_MAP = {
-    "on": "on", "off": "off", 
-    "up": "Up", 
-    "down": "Down", 
-    "left": "Left", 
-    "right": "Right", 
-    "select": "A", 
-    "back": "B", 
-    "home": "Home", 
-    "menu": "Menu", 
-    "view": "View", 
-    "a_button": "A", 
-    "b_button": "B", 
-    "x_button": "X", 
+    "on": "on",
+    "off": "off",
+    "up": "Up",
+    "down": "Down",
+    "left": "Left",
+    "right": "Right",
+    "select": "A",
+    "back": "B",
+    "home": "Home",
+    "menu": "Menu",
+    "view": "View",
+    "a_button": "A",
+    "b_button": "B",
+    "x_button": "X",
     "y_button": "Y",
-    "play": "Play", 
-    "pause": "Pause", 
-    "stop": "Stop", 
-    "next_track": "NextTrack", 
+    "play": "Play",
+    "pause": "Pause",
+    "stop": "Stop",
+    "next_track": "NextTrack",
     "previous_track": "PrevTrack",
-    "green": "A", 
-    "red": "B", 
-    "blue": "X", 
-    "yellow": "Y"
+    "green": "A",
+    "red": "B",
+    "blue": "X",
+    "yellow": "Y",
 }
 
+
 class XboxRemote(Remote):
-    def __init__(self, api, config: XboxConfig, entity_id: str = ''):
+    def __init__(self, api, config: XboxConfig, entity_id: str = ""):
         if not entity_id:
             entity_id = f"xbox-{config.liveid}"
         entity_name = {"en": f"Xbox ({config.liveid})"}
         super().__init__(
-            entity_id, entity_name, 
-            features=[
-                Features.ON_OFF,
-                Features.VOLUME,
-                Features.MUTE
-            ],
+            entity_id,
+            entity_name,
+            features=[Features.ON_OFF, Features.VOLUME, Features.MUTE],
             attributes={Attributes.STATE: States.UNAVAILABLE},
             simple_commands=SUPPORTED_COMMANDS,
-            cmd_handler=self.handle_command
+            cmd_handler=self.handle_command,
         )
         self.api = api
         self.config = config
@@ -73,19 +94,20 @@ class XboxRemote(Remote):
         _LOG.info("🔧 Initializing XboxDevice in background...")
         try:
             ssl_context = ssl.create_default_context(cafile=certifi.where())
-            
+
             async def fix_microsoft_timestamps(response):
                 if "user.auth.xboxlive.com" in str(response.url):
                     await response.aread()
                     response_text = response.text
                     fixed_text = re.sub(r"(\.\d{6})\d+Z", r"\1Z", response_text)
-                    response._content = fixed_text.encode('utf-8')
+                    response._content = fixed_text.encode("utf-8")
 
             self.device_session = httpx.AsyncClient(
-                verify=ssl_context, 
-                event_hooks={'response': [fix_microsoft_timestamps]}
+                verify=ssl_context, event_hooks={"response": [fix_microsoft_timestamps]}
             )
-            self.device, refreshed_tokens = await XboxDevice.from_config(self.config, self.device_session)
+            self.device, refreshed_tokens = await XboxDevice.from_config(
+                self.config, self.device_session
+            )
             if self.device:
                 initial_state = {Attributes.STATE: States.OFF}
                 self.api.configured_entities.update_attributes(self.id, initial_state)
@@ -96,12 +118,18 @@ class XboxRemote(Remote):
         except Exception:
             _LOG.exception("❌ Exception during XboxDevice initialization")
 
-    async def handle_command(self, entity, cmd_id: str, params: dict = None) -> StatusCodes:
+    async def handle_command(
+        self, entity, cmd_id: str, params: dict = None
+    ) -> StatusCodes:
         if not self.device:
-            return StatusCodes.ERROR
+            return StatusCodes.BAD_REQUEST
         try:
-            actual_command = params.get("command") if cmd_id == ucapi.remote.Commands.SEND_CMD else cmd_id
-            
+            actual_command = (
+                params.get("command")
+                if cmd_id == ucapi.remote.Commands.SEND_CMD
+                else cmd_id
+            )
+
             if actual_command == "on" or actual_command == ucapi.remote.Commands.ON:
                 await self.device.turn_on()
                 new_state = {Attributes.STATE: States.ON}
@@ -114,7 +142,7 @@ class XboxRemote(Remote):
                 self.api.configured_entities.update_attributes(self.id, new_state)
                 self.attributes.update(new_state)
                 return StatusCodes.OK
-            
+
             elif actual_command == Commands.VOLUME_UP:
                 await self.device.change_volume("Up")
                 return StatusCodes.OK
@@ -124,13 +152,13 @@ class XboxRemote(Remote):
             elif actual_command == Commands.MUTE_TOGGLE:
                 await self.device.mute()
                 return StatusCodes.OK
-                
+
             elif actual_command in REMOTE_COMMANDS_MAP:
                 button_to_press = REMOTE_COMMANDS_MAP[actual_command]
                 await self.device.press_button(button_to_press)
                 return StatusCodes.OK
-                
+
             return StatusCodes.BAD_REQUEST
         except Exception as e:
             _LOG.exception(f"❌ Failed to execute command '{cmd_id}'", e)
-            return StatusCodes.ERROR
+            return StatusCodes.BAD_REQUEST
