@@ -41,19 +41,15 @@ There are two recommended ways to install and run this integration:
 This is the easiest way to run the integration. This method works on any machine that runs Docker, such as a home server or a Synology NAS.
 
 1.  **Clone or download** the project files from this GitHub repository.
-
-2.  **Configure the Docker Host IP Address.** To ensure auto-discovery works correctly, you must provide the integration with the IP address of the machine Docker is running on (e.g., your Synology NAS).
-    * Open the `docker-compose.yml` file in a text editor.
-    * Find the line that says `UC_MDNS_LOCAL_HOSTNAME=YOUR_NAS_IP_ADDRESS_HERE`.
-    * Replace `YOUR_NAS_IP_ADDRESS_HERE` with the actual local IP address of your NAS/server.
-
-3.  **Start the integration.** From a terminal in the project's root directory, run the following command:
+2.  **Start the integration.** From a terminal in the project's root directory, run the following command:
 
     ```bash
     docker-compose up --build -d
     ```
 
-The integration will build and start in the background. It is now ready to be added on your remote via auto-discovery.
+The integration will build and start in the background. It is now ready to be added on your remote via auto-discovery. 
+**NOTE** mDNS sometime does not work properly, if the remote is giving you issues passing configuration when using docker, click advance when selecting this integration and enter the Docker container IP instead eg: ws://CONTAINERIP:9094/
+**NOTE2** This integration development uses port 9094 to avoid conflict with the default 9090, if you already using another integration on port 9094, you will need to edit your docker-compose
 
 #### Alternative Docker Commands
 ** Please read Docker instructions carefully **
@@ -63,13 +59,13 @@ If you don't have `docker-compose` installed, you can use these standard Docker 
     ```bash
     docker build -t uc-intg-xbox .
     ```
-2.  **Run the container.** **Important:** Replace `YOUR_NAS_IP_ADDRESS_HERE` in the command below with the actual IP address of your Docker host machine.
+2.  **Run the container.**
     ```bash
     # For PowerShell, Linux, or macOS
-    docker run -d --name uc-intg-xbox --network host -e "UC_MDNS_LOCAL_HOSTNAME=YOUR_NAS_IP_ADDRESS_HERE" -v "$(pwd)/config:/config" --restart unless-stopped uc-intg-xbox
+    docker run -d --name uc-intg-xbox --network host -v "$(pwd)/config:/config" --restart unless-stopped uc-intg-xbox
 
     # For Windows Command Prompt (cmd.exe)
-    docker run -d --name uc-intg-xbox --network host -e "UC_MDNS_LOCAL_HOSTNAME=YOUR_NAS_IP_ADDRESS_HERE" -v "%cd%/config:/config" --restart unless-stopped uc-intg-xbox
+    docker run -d --name uc-intg-xbox --network host -v "%cd%/config:/config" --restart unless-stopped uc-intg-xbox
     ```
 
 ### Method 2: Manual Installation (`.tar.gz`)
@@ -87,7 +83,7 @@ You can install the integration directly onto your Unfolded Circle remote.
 After the integration is installed and running, you need to add it on your remote:
 
 1.  On the Unfolded Circle remote or in the web configurator, go to "Integrations".
-2.  Click on "Add New", find the "Xbox Integration" - you might need to wait a second if you are using Docker as it will show as "External"
+2.  Click on "Add New", find the "Xbox Integration" - you might need to wait a second if you are using Docker as it will show as "External".
 3.  You will be prompted to enter your **Xbox Live Device ID**. Enter the ID you found in the prerequisites and click Next.
 4.  The Web Configurator will display a URL and a field to paste a redirected URL.
 5.  Copy the login URL (make sure to copy the entire URL) and open it in a web browser/Tab. Log in with the Microsoft account associated with your Xbox.
