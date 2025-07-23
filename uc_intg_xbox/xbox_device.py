@@ -13,6 +13,7 @@ _LOG = logging.getLogger("XBOX_DEVICE")
 
 OAUTH2_DESKTOP_REDIRECT_URI = "https://login.live.com/oauth20_desktop.srf"
 
+
 # Your working SystemInput class
 class SystemInput(str, Enum):
     A = "A"
@@ -22,6 +23,7 @@ class SystemInput(str, Enum):
     Menu = "Menu"
     Nexus = "Nexus"
     View = "View"
+
 
 # Your working ControllerButtons class with media commands
 class ControllerButtons(str, Enum):
@@ -39,10 +41,6 @@ class ControllerButtons(str, Enum):
     NextTrack = "NextTrack"
     PrevTrack = "PrevTrack"
 
-# Add the local VolumeDirection class
-class VolumeDirection(str, Enum):
-    Up = "Up"
-    Down = "Down"
 
 class XboxDevice:
     def __init__(self, client: XboxLiveClient, live_id: str):
@@ -54,7 +52,10 @@ class XboxDevice:
         _LOG.info("Authenticating Xbox client...")
         try:
             auth_mgr = AuthenticationManager(
-                session, "388ea51c-0b25-4029-aae2-17df4f49d23905", None, OAUTH2_DESKTOP_REDIRECT_URI
+                session,
+                "388ea51c-0b25-4029-aae2-17df4f49d23905",
+                None,
+                OAUTH2_DESKTOP_REDIRECT_URI,
             )
             auth_mgr.oauth = OAuth2TokenResponse.model_validate(config.tokens)
             await auth_mgr.refresh_tokens()
@@ -79,7 +80,7 @@ class XboxDevice:
             _LOG.info("✅ Power off command sent.")
         except Exception as e:
             _LOG.exception(f"❌ Failed to send power off command", exc_info=e)
-            
+
     # Add the volume methods
     async def change_volume(self, direction: str):
         _LOG.info(f"🔊 Sending Volume {direction} to {self.live_id}")
