@@ -29,6 +29,8 @@ This integration allows for remote control of your console's dashboard, includin
 4.  You must enable remote features on your Xbox. To do this, go to `Settings > Devices & connections > Remote features` and check the box for "Enable remote features".
 5.  You will need your console's **Xbox Live Device ID**, which is found on that same settings page.
 6.  Your remote and xBox console **must** be on the same network.
+7.  It is ideal for both remote and xBox to have static IP. 
+8.  As integration rely on internet connection, some responses will be delayed - especially if remote sleep settings are set to low value (eg: 30 seconds)
 
 ## Installation
 
@@ -54,7 +56,7 @@ This is the easiest way to run the integration. This method works on any machine
 The integration will build and start in the background. It is now ready to be added on your remote via auto-discovery.
 
 #### Alternative Docker Commands
-
+** Please read Docker instructions carefully **
 If you don't have `docker-compose` installed, you can use these standard Docker commands instead.
 
 1.  **Build the image:**
@@ -125,5 +127,5 @@ This project is licensed under the MIT License.
 
 * This project is powered by the [xbox-webapi](https://github.com/OpenXbox/xbox-webapi-python) library.
 * Special thanks to the [Unfolded Circle](https://www.unfoldedcircle.com/) team for creating a remote with an open API.
-* Thanks to [Jack Powell](https://github.com/JackJPowell) for the PSN and JVC integrations which served as excellent reference points.
+* Thanks to [Jack Powell](https://github.com/JackJPowell) for the PSN and JVC integrations which served as excellent reference point and help with local build.
 * Thanks to (Mike Hobin) (https://github.com/mikehobin) for the help with the container proper configuration.
