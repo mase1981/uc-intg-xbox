@@ -9,4 +9,4 @@ services:
       - UC_INTEGRATION_HTTP_PORT=9094
       - UC_CONFIG_HOME=/config
     volumes:
-      - /volume1/docker/uc-intg-xbox/config:/config
+      - ./config:/config
