@@ -47,9 +47,11 @@ This is the easiest way to run the integration. This method works on any machine
     docker-compose up --build -d
     ```
 
-The integration will build and start in the background. It is now ready to be added on your remote via auto-discovery. 
-**NOTE** mDNS sometime does not work properly, if the remote is giving you issues passing configuration when using docker, click advance when selecting this integration and enter the Docker container IP instead eg: ws://CONTAINERIP:9094/
-**NOTE2** This integration development uses port 9094 to avoid conflict with the default 9090, if you already using another integration on port 9094, you will need to edit your docker-compose
+The integration will build and start in the background. It is now ready to be added on your remote via auto-discovery.
+
+ **NOTE:** mDNS sometime does not work properly, if the remote is giving you issues passing configuration when using docker, click advance when selecting this integration and enter the Docker container IP instead eg: ws://CONTAINERIP:9094/
+
+ **NOTE2:** This integration development uses port 9094 to avoid conflict with the default 9090, if you already using another integration on port 9094, you will need to edit your docker-compose
 
 #### Alternative Docker Commands
 ** Please read Docker instructions carefully **
