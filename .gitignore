@@ -35,3 +35,5 @@ MANIFEST
 # This is the most important line to protect your tokens
 config.json
 config/
+.env
+.nix-venv/
