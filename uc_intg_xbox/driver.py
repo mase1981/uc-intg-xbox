@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import traceback
 import os
 import ucapi
 import httpx
@@ -137,6 +138,7 @@ if __name__ == "__main__":
         _LOG.info("Driver stopped by user.")
     finally:
         _LOG.info("Closing the event loop and shutting down API.")
+        traceback.print_exc()
         if 'API' in globals() and API.is_running():
             loop.run_until_complete(API.stop())
 
