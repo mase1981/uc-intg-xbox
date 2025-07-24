@@ -17,9 +17,11 @@ except RuntimeError:
 
 API = ucapi.IntegrationAPI(loop)
 
+
 @API.listens_to(ucapi.Events.CONNECT)
 async def on_connect() -> None:
     """When the UCR2 connects, send the device state."""
+    # This example is ready all the time!
     await API.set_device_state(ucapi.DeviceStates.CONNECTED)
 
 
@@ -41,8 +43,7 @@ class XboxIntegration:
         await self.config.load(self.api)
         _LOG.info("Driver is up and discoverable.")
 
-        # Start the presence update loop after initialization
-        self.start_presence_updates()
+self.start_presence_updates()
 
     def start_presence_updates(self):
         """Starts the background presence update loop."""
