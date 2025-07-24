@@ -9,7 +9,6 @@
     "copyright": { "en": "Copyright (c) 2025, Meir Miyara" },
     "license": "MIT",
     "categories": [ "media_player" ],
-    "entities": [],
     "setup_data_schema": {
         "title": { "en": "Xbox Configuration" },
         "settings": [
