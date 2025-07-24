@@ -16,11 +16,15 @@ from setup import XboxSetup
 _LOG = logging.getLogger(__name__)
 UPDATE_INTERVAL_SECONDS = 60
 
-# ... (loop and API setup remain the same) ...
+try:
+    loop = asyncio.get_running_loop()
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
-@API.listens_to(ucapi.Events.CONNECT)
-async def on_connect() -> None:
-    await API.set_device_state(ucapi.DeviceStates.CONNECTED)
+API = ucapi.IntegrationAPI(loop)
+
+# The @API.listens_to decorator has been removed as it causes issues in the packaged environment.
 
 class XboxIntegration:
     def __init__(self, api):
@@ -32,7 +36,14 @@ class XboxIntegration:
         self.http_session: httpx.AsyncClient | None = None
 
     async def start(self):
-        # ... (logging setup and api.init remain the same) ...
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        )
+        _LOG.info("Starting Xbox Integration Driver...")
+        # Use the robust pathing method
+        driver_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "driver.json"))
+        await self.api.init(driver_path, self.setup.handle_command)
         await self.config.load(self.api)
         _LOG.info("Driver is up and discoverable.")
         await self.connect_and_create_entities()
@@ -54,21 +65,14 @@ class XboxIntegration:
             await self.config.save(self.api)
 
             self.client = XboxLiveClient(auth_mgr)
+            _LOG.info("✅ Successfully authenticated with Xbox Live.")
+            await self.api.set_device_state(ucapi.DeviceStates.CONNECTED)
 
-            _LOG.info("Fetching profile to get gamertag...")
-            profile = await self.client.profile.get_profile_by_xuid(self.client.xuid)
-            gamertag = profile.profile_users[0].settings.get_setting_by_id("ModernGamertag").value
-
-            # Create both entities
-            if not self.setup.remote_entity:
-                self.setup.remote_entity = self.setup.XboxRemote(self.api, self.config)
-                self.api.available_entities.add(self.setup.remote_entity)
-                self.api.configured_entities.add(self.setup.remote_entity)
-
-            if not self.setup.presence_entity:
-                self.setup.presence_entity = self.setup.XboxPresenceMediaPlayer(self.api, self.config.liveid, gamertag)
-                self.api.available_entities.add(self.setup.presence_entity)
-                self.api.configured_entities.add(self.setup.presence_entity)
+            # Create and register the remote entity
+            if not self.setup.entity:
+                self.setup.entity = self.setup.XboxRemote(self.api, self.config)
+                self.api.available_entities.add(self.setup.entity)
+                self.api.configured_entities.add(self.setup.entity)
 
             self.start_presence_updates()
 
@@ -77,12 +81,53 @@ class XboxIntegration:
             if self.http_session: await self.http_session.aclose()
 
     def start_presence_updates(self):
-        pass  # TODO: implement this method
+        if self.update_task:
+            self.update_task.cancel()
+        self.update_task = loop.create_task(self.presence_update_loop())
 
     async def presence_update_loop(self):
-        # ... (this method remains the same, but updates self.setup.presence_entity) ...
-        if self.setup.presence_entity and self.client:
-            # ... fetch presence ...
-            self.setup.presence_entity.update_presence(game_info)
+        _LOG.info(f"Starting presence update loop (will refresh every {UPDATE_INTERVAL_SECONDS}s).")
+        await asyncio.sleep(10)
+        while True:
+            try:
+                if self.setup.entity and self.client:
+                    _LOG.info("Fetching Xbox presence...")
+                    presence = await self.client.presence.get_presence(self.client.xuid)
 
-# ... (main and __main__ block remain the same) ...
+                    game_info = {"state": presence.state}
+                    if presence.state.lower() == "online" and presence.title_records:
+                        active_title = presence.title_records[0]
+                        game_info["title"] = active_title.name
+                        for item in active_title.display_image:
+                            if item.type == "Icon":
+                                game_info["image"] = item.url
+                                break
+                    else:
+                        game_info["title"] = "Home" if presence.state.lower() == "online" else "Offline"
+                        game_info["image"] = None
+
+                    self.setup.entity.update_presence(game_info)
+                else:
+                    _LOG.debug("Entity or client not ready, skipping presence check.")
+            except Exception as e:
+                _LOG.exception("❌ Error during presence update loop", exc_info=e)
+
+            await asyncio.sleep(UPDATE_INTERVAL_SECONDS)
+
+
+async def main():
+    integration = XboxIntegration(API)
+    await integration.start()
+
+
+if __name__ == "__main__":
+    try:
+        loop.run_until_complete(main())
+        loop.run_forever()
+    except KeyboardInterrupt:
+        _LOG.info("Driver stopped.")
+    finally:
+        _LOG.info("Closing the event loop.")
+        if 'integration' in locals() and integration.http_session:
+            loop.run_until_complete(integration.http_session.aclose())
+        loop.close()
