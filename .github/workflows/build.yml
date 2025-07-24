@@ -44,7 +44,6 @@ jobs:
               python -m pip install -r requirements.txt && \
               pyinstaller --clean --onedir --name intg-${DRIVER_ID} \
               --paths . \
-              --collect-all xbox-webapi \
               --collect-all zeroconf \
               --add-data \"driver.json:. \" \
               uc_intg_${INTG_NAME}/driver.py"
