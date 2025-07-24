@@ -77,7 +77,7 @@ class XboxIntegration:
             if self.http_session: await self.http_session.aclose()
 
     def start_presence_updates(self):
-        # ... (this method remains the same) ...
+        pass  # TODO: implement this method
 
     async def presence_update_loop(self):
         # ... (this method remains the same, but updates self.setup.presence_entity) ...
