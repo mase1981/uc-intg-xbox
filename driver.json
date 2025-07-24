@@ -1,5 +1,5 @@
 {
-    "driver_id": "xbox",
+    "driver_id": "xbox-integration",
     "name": { "en": "Xbox Integration" },
     "icon": "uc:gamepad-modern",
     "description": { "en": "Provides remote control and now-playing status for an Xbox console." },
