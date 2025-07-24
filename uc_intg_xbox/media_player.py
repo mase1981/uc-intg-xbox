@@ -84,7 +84,7 @@ class XboxRemote(Remote):
                 Attributes.STATE: States.UNAVAILABLE,
                 "title": "Offline",
                 "artist": "Xbox",
-                "album_art_url": None,
+                "album_art_uri": None,
                 "media_type": "GAME"
             },
             simple_commands=SUPPORTED_COMMANDS,
