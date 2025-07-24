@@ -27,10 +27,6 @@ except RuntimeError:
 
 API = ucapi.IntegrationAPI(loop)
 
-@API.listens_to(ucapi.Events.CONNECT)
-async def on_connect() -> None:
-        await API.set_device_state(ucapi.DeviceStates.CONNECTED)
-
 class XboxIntegration:
     def __init__(self, api):
         self.api: ucapi.IntegrationAPI = api
