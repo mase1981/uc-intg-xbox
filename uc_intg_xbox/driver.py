@@ -42,8 +42,7 @@ class XboxIntegration:
         await self.api.init(driver_path, self.setup.handle_command)
         await self.config.load(self.api)
         _LOG.info("Driver is up and discoverable.")
-
-self.start_presence_updates()
+        self.start_presence_updates()
 
     def start_presence_updates(self):
         """Starts the background presence update loop."""
