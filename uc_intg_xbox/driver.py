@@ -24,7 +24,9 @@ except RuntimeError:
 
 API = ucapi.IntegrationAPI(loop)
 
-# The @API.listens_to decorator has been removed as it causes issues in the packaged environment.
+@API.listens_to(Events.CONNECT)
+async def on_connect() -> None:
+    await API.set_device_state(DeviceStates.CONNECTED)
 
 class XboxIntegration:
     def __init__(self, api):
