@@ -15,6 +15,7 @@ from ucapi import (
 from config import XboxConfig
 from media_player import XboxRemote
 from auth import XboxAuth
+from presence_entity import XboxPresenceMediaPlayer
 
 _LOG = logging.getLogger("XBOX_SETUP")
 
@@ -32,6 +33,9 @@ class XboxSetup:
         self.api = api
         self.config = config
         self.auth_session = None
+        self.auth_session: httpx.AsyncClient = None
+        self.remote_entity: XboxRemote = None
+        self.presence_entity: XboxPresenceMediaPlayer = None
 
     async def handle_command(self, request):
         if isinstance(request, DriverSetupRequest):

@@ -81,43 +81,10 @@ class XboxRemote(Remote):
             entity_name,
             features=[Features.ON_OFF, Features.VOLUME, Features.MUTE],
             attributes={
-                Attributes.STATE: States.UNAVAILABLE,
-                "title": "Offline",
-                "artist": "Xbox",
-                "album_art_uri": None,
-                "media_type": "GAME"
-            },
+                Attributes.STATE: States.UNAVAILABLE},
             simple_commands=SUPPORTED_COMMANDS,
             cmd_handler=self.handle_command,
         )
-        self.api = api
-        self.config = config
-        self.device = None
-        self.device_session = None
-        asyncio.create_task(self._init_device())
-
-    def update_presence(self, presence_data: dict):
-        """Updates the entity attributes based on new presence data."""
-        new_title = presence_data.get("title", "Home")
-        new_art_uri = presence_data.get("image")
-        new_state = "PLAYING" if presence_data.get("state", "").lower() == "online" else "OFF"
-
-        attributes_to_update = {}
-
-        if self.attributes.get("title") != new_title:
-            attributes_to_update["title"] = new_title
-        if self.attributes.get("album_art_uri") != new_art_uri:
-            attributes_to_update["album_art_uri"] = new_art_uri
-
-        if new_state == "OFF":
-            if self.attributes.get("state") != new_state:
-                attributes_to_update["state"] = new_state
-
-        if attributes_to_update:
-            self.attributes.update(attributes_to_update)
-            self.api.configured_entities.update_attributes(self.id, attributes_to_update)
-            _LOG.info(f"Presence updated: {attributes_to_update}")
-            
     async def _init_device(self):
         _LOG.info("🔧 Initializing XboxDevice in background...")
         try:
