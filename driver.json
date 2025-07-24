@@ -9,20 +9,7 @@
     "copyright": { "en": "Copyright (c) 2025, Meir Miyara" },
     "license": "MIT",
     "categories": [ "media_player" ],
-    "entities": [
-        {
-            "type": "remote",
-            "role": "media_player",
-            "name": { "en": "Xbox Remote" },
-            "description": { "en": "Remote controls for the Xbox console." }
-        },
-        {
-            "type": "media_player",
-            "role": "media_player",
-            "name": { "en": "Xbox Presence" },
-            "description": { "en": "Displays the currently playing game." }
-        }
-    ],
+    "entities": [],
     "setup_data_schema": {
         "title": { "en": "Xbox Configuration" },
         "settings": [
