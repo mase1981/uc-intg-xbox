@@ -19,13 +19,15 @@ from presence_entity import XboxPresenceMediaPlayer
 _LOG = logging.getLogger(__name__)
 UPDATE_INTERVAL_SECONDS = 60
 
-try:
-    loop = asyncio.get_running_loop()
-except RuntimeError:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
 
 API = ucapi.IntegrationAPI(loop)
+
+@API.listens_to(ucapi.Events.CONNECT)
+async def on_connect() -> None:
+    await API.set_device_state(ucapi.DeviceStates.CONNECTED)
 
 class XboxIntegration:
     def __init__(self, api):

@@ -3,7 +3,7 @@
     "name": { "en": "Xbox Integration" },
     "icon": "uc:gamepad-modern",
     "description": { "en": "Provides remote control and now-playing status for an Xbox console." },
-    "version": "1.1.6",
+    "version": "1.1.8",
     "developer": { "name": "Meir Miyara" },
     "min_core_api": "0.3.1",
     "copyright": { "en": "Copyright (c) 2025, Meir Miyara" },
