@@ -8,6 +8,8 @@ from xbox.webapi.api.client import XboxLiveClient
 from xbox.webapi.authentication.manager import AuthenticationManager
 from xbox.webapi.authentication.models import OAuth2TokenResponse
 from xbox.webapi.api.provider.smartglass.models import VolumeDirection
+from xbox.webapi.api.provider.profile.models import ProfileUser
+from xbox.webapi.scripts import CLIENT_ID, CLIENT_SECRET
 
 _LOG = logging.getLogger("XBOX_DEVICE")
 
@@ -53,8 +55,8 @@ class XboxDevice:
         try:
             auth_mgr = AuthenticationManager(
                 session,
-                "388ea51c-0b25-4029-aae2-17df4f49d23905",
-                None,
+                CLIENT_ID,
+                CLIENT_SECRET,
                 OAUTH2_DESKTOP_REDIRECT_URI,
             )
             auth_mgr.oauth = OAuth2TokenResponse.model_validate(config.tokens)

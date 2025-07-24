@@ -12,6 +12,8 @@ from xbox.webapi.scripts import CLIENT_ID, CLIENT_SECRET
 
 from config import XboxConfig
 from setup import XboxSetup
+from media_player import XboxRemote
+from presence_entity import XboxPresenceMediaPlayer
 
 _LOG = logging.getLogger(__name__)
 UPDATE_INTERVAL_SECONDS = 60
@@ -23,10 +25,6 @@ except RuntimeError:
     asyncio.set_event_loop(loop)
 
 API = ucapi.IntegrationAPI(loop)
-
-@API.listens_to(ucapi.Events.CONNECT)
-async def on_connect() -> None:
-    await API.set_device_state(ucapi.DeviceStates.CONNECTED)
 
 class XboxIntegration:
     def __init__(self, api):
@@ -43,7 +41,6 @@ class XboxIntegration:
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
         _LOG.info("Starting Xbox Integration Driver...")
-        # Use the robust pathing method
         driver_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "driver.json"))
         await self.api.init(driver_path, self.setup.handle_command)
         await self.config.load(self.api)
@@ -54,7 +51,7 @@ class XboxIntegration:
         if not self.config.tokens or not self.config.liveid:
             return
 
-        _LOG.info("Attempting to authenticate...")
+        _LOG.info("Attempting to authenticate from existing config...")
         try:
             ssl_context = ssl.create_default_context(cafile=certifi.where())
             self.http_session = httpx.AsyncClient(verify=ssl_context)
@@ -70,16 +67,22 @@ class XboxIntegration:
             _LOG.info("✅ Successfully authenticated with Xbox Live.")
             await self.api.set_device_state(ucapi.DeviceStates.CONNECTED)
 
-            # Create and register the remote entity
-            if not self.setup.entity:
-                self.setup.entity = self.setup.XboxRemote(self.api, self.config)
-                self.api.available_entities.add(self.setup.entity)
-                self.api.configured_entities.add(self.setup.entity)
+            profile = await self.client.profile.get_profile_by_xuid(self.client.xuid)
+            gamertag = profile.profile_users[0].settings.get_setting_by_id("ModernGamertag").value
+
+            # Create and register both entities on startup
+            if not self.setup.remote_entity:
+                self.setup.remote_entity = XboxRemote(self.api, self.config)
+                self.api.available_entities.add(self.setup.remote_entity)
+
+            if not self.setup.presence_entity:
+                self.setup.presence_entity = XboxPresenceMediaPlayer(self.api, self.config.liveid, gamertag)
+                self.api.available_entities.add(self.setup.presence_entity)
 
             self.start_presence_updates()
 
-        except Exception:
-            _LOG.exception("Failed to authenticate or create entities")
+        except Exception as e:
+            _LOG.exception("Failed to authenticate or create entities on startup", exc_info=e)
             if self.http_session: await self.http_session.aclose()
 
     def start_presence_updates(self):
@@ -92,7 +95,7 @@ class XboxIntegration:
         await asyncio.sleep(10)
         while True:
             try:
-                if self.setup.entity and self.client:
+                if self.setup.presence_entity and self.client:
                     _LOG.info("Fetching Xbox presence...")
                     presence = await self.client.presence.get_presence(self.client.xuid)
 
@@ -108,9 +111,9 @@ class XboxIntegration:
                         game_info["title"] = "Home" if presence.state.lower() == "online" else "Offline"
                         game_info["image"] = None
 
-                    self.setup.entity.update_presence(game_info)
+                    self.setup.presence_entity.update_presence(game_info)
                 else:
-                    _LOG.debug("Entity or client not ready, skipping presence check.")
+                    _LOG.debug("Presence entity or client not ready, skipping presence check.")
             except Exception as e:
                 _LOG.exception("❌ Error during presence update loop", exc_info=e)
 
@@ -127,9 +130,12 @@ if __name__ == "__main__":
         loop.run_until_complete(main())
         loop.run_forever()
     except KeyboardInterrupt:
-        _LOG.info("Driver stopped.")
+        _LOG.info("Driver stopped by user.")
     finally:
-        _LOG.info("Closing the event loop.")
-        if 'integration' in locals() and integration.http_session:
+        _LOG.info("Closing the event loop and shutting down API.")
+        if 'API' in globals() and API.is_running():
+            loop.run_until_complete(API.stop())
+
+        if 'integration' in locals() and integration.http_session and not integration.http_session.is_closed:
             loop.run_until_complete(integration.http_session.aclose())
         loop.close()

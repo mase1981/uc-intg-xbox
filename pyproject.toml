@@ -22,3 +22,6 @@ dependencies = [
 
 [project.urls]
 "Homepage" = "https://github.com/mase1981/uc-intg-xbox"
+
+[tool.setuptools]
+packages = ["uc_intg_xbox"]

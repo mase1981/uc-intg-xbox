@@ -14,8 +14,9 @@ from ucapi import (
 )
 from config import XboxConfig
 from media_player import XboxRemote
-from auth import XboxAuth
 from presence_entity import XboxPresenceMediaPlayer
+from auth import XboxAuth
+from xbox_device import XboxDevice
 
 _LOG = logging.getLogger("XBOX_SETUP")
 
@@ -32,10 +33,9 @@ class XboxSetup:
     def __init__(self, api, config: XboxConfig):
         self.api = api
         self.config = config
-        self.auth_session = None
-        self.auth_session: httpx.AsyncClient = None
-        self.remote_entity: XboxRemote = None
-        self.presence_entity: XboxPresenceMediaPlayer = None
+        self.auth_session: httpx.AsyncClient | None = None
+        self.remote_entity: XboxRemote | None = None
+        self.presence_entity: XboxPresenceMediaPlayer | None = None
 
     async def handle_command(self, request):
         if isinstance(request, DriverSetupRequest):
@@ -60,16 +60,8 @@ class XboxSetup:
         return RequestUserInput(
             {"en": "Xbox Authentication"},
             [
-                {
-                    "id": "auth_url",
-                    "label": {"en": "Login URL"},
-                    "field": {"text": {"value": auth_url, "read_only": True}},
-                },
-                {
-                    "id": "redirect_url",
-                    "label": {"en": "Paste the full redirect URL here"},
-                    "field": {"text": {"value": ""}},
-                },
+                {"id": "auth_url", "label": {"en": "Login URL"}, "field": {"text": {"value": auth_url, "read_only": True}}},
+                {"id": "redirect_url", "label": {"en": "Paste the full redirect URL here"}, "field": {"text": {"value": ""}}},
             ],
         )
 
@@ -79,21 +71,46 @@ class XboxSetup:
         try:
             tokens = await auth_handler.process_redirect_url(redirect_url)
         finally:
-            await self._cleanup_session()
+            # We keep the session open for the create_xbox_entities step
+            pass
+        
         if not tokens:
+            await self._cleanup_session()
             return SetupError(IntegrationSetupError.AUTHORIZATION_ERROR)
+        
         self.config.tokens = tokens
         await self.config.save(self.api)
+        
         try:
-            await self.create_xbox_entity()
+            await self.create_xbox_entities()
             return SetupComplete()
         except Exception as e:
             _LOG.exception(f"❌ Failed during entity creation", exc_info=e)
             return SetupError(IntegrationSetupError.OTHER)
+        finally:
+            await self._cleanup_session()
 
-    async def create_xbox_entity(self):
-        remote_entity = XboxRemote(self.api, self.config)
-        self.api.available_entities.add(remote_entity)
+    async def create_xbox_entities(self):
+        """Creates and registers both entities."""
+        # Create and register the remote entity
+        if not self.remote_entity:
+            self.remote_entity = XboxRemote(self.api, self.config)
+            self.api.available_entities.add(self.remote_entity)
+
+        # Create and register the presence entity
+        if not self.presence_entity:
+            client, _ = await XboxDevice.from_config(self.config, self.auth_session)
+            if client:
+                profile = await client.client.profile.get_profile_by_xuid(client.client.xuid)
+                
+                gamertag = "Xbox User"
+                for setting in profile.profile_users[0].settings:
+                    if setting.id == "ModernGamertag":
+                        gamertag = setting.value
+                        break
+                
+                self.presence_entity = XboxPresenceMediaPlayer(self.api, self.config.liveid, gamertag)
+                self.api.available_entities.add(self.presence_entity)
 
     async def _cleanup_session(self):
         if self.auth_session and not self.auth_session.is_closed:
