@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uc_intg_xbox"
-version = "1.0.22"
+version = "1.0.30"
 authors = [
   { name="Meir Miyara", email="meir.miyara@gmail.com" },
 ]
