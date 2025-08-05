@@ -89,7 +89,11 @@ class XboxSetup:
 
     async def create_xbox_entity(self):
         remote_entity = XboxRemote(self.api, self.config)
-        self.api.available_entities.add(remote_entity)
+        # Add entity to available_entities FIRST
+        self.api.available_entities.add(remote_entity) 
+        # THEN initialize the device in background
+        import asyncio
+        asyncio.create_task(remote_entity._init_device())
 
     async def _cleanup_session(self):
         if self.auth_session and not self.auth_session.is_closed:

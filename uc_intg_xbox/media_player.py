@@ -7,6 +7,7 @@ import certifi
 import re
 from ucapi.media_player import Attributes, States, Commands, Features
 from ucapi import Remote, StatusCodes
+from ucapi.remote import States as RemoteStates  # Add this import
 
 from xbox_device import XboxDevice
 from config import XboxConfig
@@ -80,7 +81,7 @@ class XboxRemote(Remote):
             entity_id,
             entity_name,
             features=[Features.ON_OFF, Features.VOLUME, Features.MUTE],
-            attributes={Attributes.STATE: States.UNAVAILABLE},
+            attributes={"state": RemoteStates.ON},  # Fixed: Use RemoteStates.ON and correct attribute key
             simple_commands=SUPPORTED_COMMANDS,
             cmd_handler=self.handle_command,
         )
@@ -88,7 +89,7 @@ class XboxRemote(Remote):
         self.config = config
         self.device = None
         self.device_session = None
-        asyncio.create_task(self._init_device())
+        # Don't create async task in constructor - will be called from setup
 
     async def _init_device(self):
         _LOG.info("🔧 Initializing XboxDevice in background...")
@@ -109,14 +110,18 @@ class XboxRemote(Remote):
                 self.config, self.device_session
             )
             if self.device:
-                initial_state = {Attributes.STATE: States.OFF}
-                self.api.configured_entities.update_attributes(self.id, initial_state)
-                self.attributes.update(initial_state)
+                # Fixed: Only update state attribute, never name
+                self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.ON})
                 self.config.tokens = refreshed_tokens
                 await self.config.save(self.api)
                 _LOG.info("✅ XboxDevice initialized and available.")
+            else:
+                # Device failed to initialize, set to OFF state
+                self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.OFF})
         except Exception:
             _LOG.exception("❌ Exception during XboxDevice initialization")
+            # Set to OFF state on exception
+            self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.OFF})
 
     async def handle_command(
         self, entity, cmd_id: str, params: dict = None
@@ -132,15 +137,13 @@ class XboxRemote(Remote):
 
             if actual_command == "on" or actual_command == ucapi.remote.Commands.ON:
                 await self.device.turn_on()
-                new_state = {Attributes.STATE: States.ON}
-                self.api.configured_entities.update_attributes(self.id, new_state)
-                self.attributes.update(new_state)
+                # Fixed: Only update state attribute
+                self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.ON})
                 return StatusCodes.OK
             elif actual_command == "off" or actual_command == ucapi.remote.Commands.OFF:
                 await self.device.turn_off()
-                new_state = {Attributes.STATE: States.OFF}
-                self.api.configured_entities.update_attributes(self.id, new_state)
-                self.attributes.update(new_state)
+                # Fixed: Only update state attribute
+                self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.OFF})
                 return StatusCodes.OK
 
             elif actual_command == Commands.VOLUME_UP:
