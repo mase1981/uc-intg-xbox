@@ -89,7 +89,7 @@ class XboxRemote(Remote):
         self.config = config
         self.device = None
         self.device_session = None
-        asyncio.create_task(self._init_device())
+        # Don't create async task in constructor - will be called from setup
 
     async def _init_device(self):
         _LOG.info("🔧 Initializing XboxDevice in background...")
