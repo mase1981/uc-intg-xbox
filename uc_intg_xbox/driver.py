@@ -20,12 +20,8 @@ API = ucapi.IntegrationAPI(loop)
 
 @API.listens_to(ucapi.Events.CONNECT)
 async def on_connect() -> None:
-    """When the UCR2 connects, send the device state and ensure entities are available."""
+    """When the UCR2 connects, send the device state."""
     await API.set_device_state(ucapi.DeviceStates.CONNECTED)
-    
-    # Check if we need to recreate entities after reboot
-    integration = XboxIntegration(API)
-    await integration.ensure_entities_available()
 
 
 class XboxIntegration:
@@ -43,19 +39,20 @@ class XboxIntegration:
         driver_path = "driver.json"
         await self.api.init(driver_path, self.setup.handle_command)
         await self.config.load(self.api)
+        
+        # Ensure entities are available immediately after startup
+        await self.ensure_entities_available()
+        
         _LOG.info("Driver is up and discoverable.")
 
     async def ensure_entities_available(self):
         """Ensure Xbox entities are available after startup/reboot"""
-        # Load config to check if we have a configured Xbox
-        await self.config.load(self.api)
-        
         if self.config.liveid and self.config.tokens:
             entity_id = f"xbox-{self.config.liveid}"
             
             # Check if entity already exists in available entities
             if not self.api.available_entities.contains(entity_id):
-                _LOG.info(f"🔄 Recreating Xbox entity {entity_id} after restart")
+                _LOG.info(f"🔄 Creating Xbox entity {entity_id} on startup")
                 try:
                     # Create and add the entity
                     remote_entity = XboxRemote(self.api, self.config)
@@ -64,9 +61,9 @@ class XboxIntegration:
                     # Initialize device in background
                     asyncio.create_task(remote_entity._init_device())
                     
-                    _LOG.info(f"✅ Xbox entity {entity_id} recreated and available")
+                    _LOG.info(f"✅ Xbox entity {entity_id} created and available")
                 except Exception as e:
-                    _LOG.exception(f"❌ Failed to recreate Xbox entity {entity_id}", exc_info=e)
+                    _LOG.exception(f"❌ Failed to create Xbox entity {entity_id}", exc_info=e)
 
 
 async def main():
