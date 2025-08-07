@@ -13,7 +13,6 @@ _LOG = logging.getLogger("XBOX_DEVICE")
 
 OAUTH2_DESKTOP_REDIRECT_URI = "https://login.live.com/oauth20_desktop.srf"
 
-
 # Your working SystemInput class
 class SystemInput(str, Enum):
     A = "A"
@@ -23,7 +22,6 @@ class SystemInput(str, Enum):
     Menu = "Menu"
     Nexus = "Nexus"
     View = "View"
-
 
 # Your working ControllerButtons class with media commands
 class ControllerButtons(str, Enum):
@@ -41,7 +39,6 @@ class ControllerButtons(str, Enum):
     NextTrack = "NextTrack"
     PrevTrack = "PrevTrack"
 
-
 class XboxDevice:
     def __init__(self, client: XboxLiveClient, live_id: str):
         self.client = client
@@ -49,6 +46,7 @@ class XboxDevice:
 
     @classmethod
     async def from_config(cls, config, session: httpx.AsyncClient):
+        """Create Xbox device with proactive token refresh (matching Xbox Live logic)."""
         _LOG.info("Authenticating Xbox client...")
         try:
             auth_mgr = AuthenticationManager(
@@ -57,10 +55,18 @@ class XboxDevice:
                 None,
                 OAUTH2_DESKTOP_REDIRECT_URI,
             )
+            # Load existing tokens
             auth_mgr.oauth = OAuth2TokenResponse.model_validate(config.tokens)
+            
+            # ALWAYS refresh tokens proactively (like Xbox Live integration)
             await auth_mgr.refresh_tokens()
+            _LOG.info("✅ Successfully refreshed Xbox authentication tokens")
+            
             client = XboxLiveClient(auth_mgr)
+            
+            # Return both client and fresh tokens
             return cls(client, config.liveid), auth_mgr.oauth.model_dump()
+            
         except Exception as e:
             _LOG.exception("❌ Failed to authenticate Xbox client", exc_info=e)
             return None, None
@@ -72,7 +78,6 @@ class XboxDevice:
             _LOG.info("✅ Power on (wake_up) command sent successfully.")
         except Exception as e:
             _LOG.exception(f"❌ Failed to send power on command", exc_info=e)
-            # Re-raise the exception so the command handler knows it failed
             raise
 
     async def turn_off(self):
@@ -82,27 +87,25 @@ class XboxDevice:
             _LOG.info("✅ Power off command sent.")
         except Exception as e:
             _LOG.exception(f"❌ Failed to send power off command", exc_info=e)
-            # Re-raise the exception so the command handler knows it failed
             raise
 
-    # Add the volume methods
     async def change_volume(self, direction: str):
         _LOG.info(f"🔊 Sending Volume {direction} to {self.live_id}")
         try:
             direction_enum = VolumeDirection(direction)
             await self.client.smartglass.change_volume(self.live_id, direction_enum)
+            _LOG.info(f"✅ Volume {direction} command sent successfully.")
         except Exception as e:
             _LOG.exception(f"❌ Failed to change volume", exc_info=e)
-            # Re-raise the exception so the command handler knows it failed
             raise
 
     async def mute(self):
         _LOG.info(f"🔇 Sending Mute to {self.live_id}")
         try:
             await self.client.smartglass.mute(self.live_id)
+            _LOG.info("✅ Mute command sent successfully.")
         except Exception as e:
             _LOG.exception(f"❌ Failed to mute", exc_info=e)
-            # Re-raise the exception so the command handler knows it failed
             raise
 
     async def press_button(self, button: str):
@@ -125,5 +128,4 @@ class XboxDevice:
                 raise ValueError(f"Unknown button command: {button}")
         except Exception as e:
             _LOG.exception(f"❌ Failed to press button '{button}'", exc_info=e)
-            # Re-raise the exception so the command handler knows it failed
             raise
