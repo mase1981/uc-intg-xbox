@@ -17,12 +17,38 @@ except RuntimeError:
 
 API = ucapi.IntegrationAPI(loop)
 
+# Global variables for token refresh management
+XBOX_REMOTE_ENTITY: XboxRemote | None = None
+TOKEN_REFRESH_TASK: asyncio.Task | None = None
 
 @API.listens_to(ucapi.Events.CONNECT)
 async def on_connect() -> None:
-    """When the UCR2 connects, send the device state."""
+    """When the UCR2 connects, send the device state and ensure token refresh."""
     await API.set_device_state(ucapi.DeviceStates.CONNECTED)
+    # Start token refresh if we have an entity and aren't already refreshing
+    if XBOX_REMOTE_ENTITY and (not TOKEN_REFRESH_TASK or TOKEN_REFRESH_TASK.done()):
+        start_token_refresh_loop()
 
+def start_token_refresh_loop():
+    """Start the token refresh loop to keep authentication alive."""
+    global TOKEN_REFRESH_TASK
+    if TOKEN_REFRESH_TASK and not TOKEN_REFRESH_TASK.done():
+        _LOG.info("Token refresh loop already running.")
+        return
+    _LOG.info("Starting token refresh loop...")
+    TOKEN_REFRESH_TASK = loop.create_task(token_refresh_loop())
+
+async def token_refresh_loop():
+    """Periodically refresh Xbox tokens to prevent expiry (every 12 hours)."""
+    while True:
+        try:
+            await asyncio.sleep(12 * 60 * 60)  # Wait 12 hours
+            if XBOX_REMOTE_ENTITY:
+                _LOG.info("🔄 Performing periodic token refresh...")
+                await XBOX_REMOTE_ENTITY.refresh_authentication()
+        except Exception as e:
+            _LOG.exception("❌ Error during periodic token refresh", exc_info=e)
+            await asyncio.sleep(60)  # Wait 1 minute before retrying
 
 class XboxIntegration:
     def __init__(self, api):
@@ -46,7 +72,9 @@ class XboxIntegration:
         _LOG.info("Driver is up and discoverable.")
 
     async def ensure_entities_available(self):
-        """Ensure Xbox entities are available after startup/reboot"""
+        """Ensure Xbox entities are available after startup/reboot with fresh tokens."""
+        global XBOX_REMOTE_ENTITY
+        
         if self.config.liveid and self.config.tokens:
             entity_id = f"xbox-{self.config.liveid}"
             
@@ -57,8 +85,9 @@ class XboxIntegration:
                     # Create and add the entity
                     remote_entity = XboxRemote(self.api, self.config)
                     self.api.available_entities.add(remote_entity)
+                    XBOX_REMOTE_ENTITY = remote_entity  # Store global reference
                     
-                    # Initialize device in background
+                    # Initialize device with proactive token refresh (like Xbox Live)
                     asyncio.create_task(remote_entity._init_device())
                     
                     _LOG.info(f"✅ Xbox entity {entity_id} created and available")
