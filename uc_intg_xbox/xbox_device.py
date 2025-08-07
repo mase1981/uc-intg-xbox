@@ -72,6 +72,8 @@ class XboxDevice:
             _LOG.info("✅ Power on (wake_up) command sent successfully.")
         except Exception as e:
             _LOG.exception(f"❌ Failed to send power on command", exc_info=e)
+            # Re-raise the exception so the command handler knows it failed
+            raise
 
     async def turn_off(self):
         _LOG.info(f"🟢 Sending power off to Xbox Live ID: {self.live_id}")
@@ -80,16 +82,28 @@ class XboxDevice:
             _LOG.info("✅ Power off command sent.")
         except Exception as e:
             _LOG.exception(f"❌ Failed to send power off command", exc_info=e)
+            # Re-raise the exception so the command handler knows it failed
+            raise
 
     # Add the volume methods
     async def change_volume(self, direction: str):
         _LOG.info(f"🔊 Sending Volume {direction} to {self.live_id}")
-        direction_enum = VolumeDirection(direction)
-        await self.client.smartglass.change_volume(self.live_id, direction_enum)
+        try:
+            direction_enum = VolumeDirection(direction)
+            await self.client.smartglass.change_volume(self.live_id, direction_enum)
+        except Exception as e:
+            _LOG.exception(f"❌ Failed to change volume", exc_info=e)
+            # Re-raise the exception so the command handler knows it failed
+            raise
 
     async def mute(self):
         _LOG.info(f"🔇 Sending Mute to {self.live_id}")
-        await self.client.smartglass.mute(self.live_id)
+        try:
+            await self.client.smartglass.mute(self.live_id)
+        except Exception as e:
+            _LOG.exception(f"❌ Failed to mute", exc_info=e)
+            # Re-raise the exception so the command handler knows it failed
+            raise
 
     async def press_button(self, button: str):
         _LOG.info(f"🔘 Sending button press: '{button}' to {self.live_id}")
@@ -108,5 +122,8 @@ class XboxDevice:
                 _LOG.info(f"✅ Button '{button}' pressed successfully.")
             else:
                 _LOG.error(f"Unknown button command: {button}")
+                raise ValueError(f"Unknown button command: {button}")
         except Exception as e:
             _LOG.exception(f"❌ Failed to press button '{button}'", exc_info=e)
+            # Re-raise the exception so the command handler knows it failed
+            raise
