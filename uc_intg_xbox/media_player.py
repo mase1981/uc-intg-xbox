@@ -141,12 +141,12 @@ class XboxRemote(Remote):
 
             if actual_command == "on" or actual_command == ucapi.remote.Commands.ON:
                 await self.device.turn_on()
-                # Fixed: Only update state attribute
+                # Only update state AFTER successful command execution
                 self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.ON})
                 return StatusCodes.OK
             elif actual_command == "off" or actual_command == ucapi.remote.Commands.OFF:
                 await self.device.turn_off()
-                # Fixed: Only update state attribute
+                # Only update state AFTER successful command execution
                 self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.OFF})
                 return StatusCodes.OK
 
@@ -168,4 +168,10 @@ class XboxRemote(Remote):
             return StatusCodes.BAD_REQUEST
         except Exception as e:
             _LOG.exception(f"❌ Failed to execute command '{cmd_id}': {e}")
+            # Check if it's an authentication error
+            if "400 Bad Request" in str(e) or "oauth" in str(e).lower():
+                _LOG.error("🔑 Xbox authentication has expired. Please reconfigure the integration.")
+                # Mark device as unavailable due to auth failure
+                self.device = None
+                self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.OFF})
             return StatusCodes.BAD_REQUEST
