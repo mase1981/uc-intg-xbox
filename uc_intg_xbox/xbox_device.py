@@ -8,12 +8,12 @@ from xbox.webapi.api.client import XboxLiveClient
 from xbox.webapi.authentication.manager import AuthenticationManager
 from xbox.webapi.authentication.models import OAuth2TokenResponse
 from xbox.webapi.api.provider.smartglass.models import VolumeDirection
+from xbox.webapi.scripts import CLIENT_ID, CLIENT_SECRET
 
 _LOG = logging.getLogger("XBOX_DEVICE")
 
 OAUTH2_DESKTOP_REDIRECT_URI = "https://login.live.com/oauth20_desktop.srf"
 
-# Your working SystemInput class
 class SystemInput(str, Enum):
     A = "A"
     B = "B"
@@ -23,7 +23,6 @@ class SystemInput(str, Enum):
     Nexus = "Nexus"
     View = "View"
 
-# Your working ControllerButtons class with media commands
 class ControllerButtons(str, Enum):
     A = "A"
     B = "B"
@@ -51,20 +50,17 @@ class XboxDevice:
         try:
             auth_mgr = AuthenticationManager(
                 session,
-                "388ea51c-0b25-4029-aae2-17df4f49d23905",
-                None,
+                CLIENT_ID,
+                CLIENT_SECRET,
                 OAUTH2_DESKTOP_REDIRECT_URI,
             )
-            # Load existing tokens
             auth_mgr.oauth = OAuth2TokenResponse.model_validate(config.tokens)
             
-            # ALWAYS refresh tokens proactively (like Xbox Live integration)
             await auth_mgr.refresh_tokens()
             _LOG.info("✅ Successfully refreshed Xbox authentication tokens")
             
             client = XboxLiveClient(auth_mgr)
             
-            # Return both client and fresh tokens
             return cls(client, config.liveid), auth_mgr.oauth.model_dump()
             
         except Exception as e:
