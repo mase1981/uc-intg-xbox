@@ -1,18 +1,30 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=65.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "uc_intg_xbox"
-version = "1.0.29"
-authors = [
-  { name="Meir Miyara", email="meir.miyara@gmail.com" },
-]
-description = "An Unfolded Circle integration for Xbox"
+name = "uc-intg-xbox"
+dynamic = ["version"]
+description = "Unfolded Circle Integration for Xbox One, Xbox Series S/X"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
+license = { text = "MPL-2.0" }
+authors = [
+    { name = "Meir Miyara", email = "meir.miyara@gmail.com" }
+]
+keywords = ["unfoldedcircle", "integration", "xbox", "xbox-one", "xbox-series"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL-2.0)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Home Automation",
+]
+
 dependencies = [
-    "ucapi == 0.3.1",
+    "ucapi>=0.3.1",
     "xbox-webapi @ git+https://github.com/OpenXbox/xbox-webapi-python.git",
     "pydantic>=2.0",
     "certifi",
@@ -20,5 +32,40 @@ dependencies = [
     "httpx"
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.7.0",
+    "isort>=5.12.0",
+    "flake8>=6.1.0",
+    "pylint>=2.17.5",
+]
+
 [project.urls]
-"Homepage" = "https://github.com/mase1981/uc-intg-xbox"
+Homepage = "https://github.com/mase1981/uc-intg-xbox"
+Documentation = "https://github.com/mase1981/uc-intg-xbox/blob/main/README.md"
+Repository = "https://github.com/mase1981/uc-intg-xbox"
+Issues = "https://github.com/mase1981/uc-intg-xbox/issues"
+
+[tool.setuptools]
+packages = ["uc_intg_xbox"]
+
+[tool.setuptools.dynamic]
+version = {attr = "uc_intg_xbox.__version__"}
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.pylint.messages_control]
+max-line-length = 100
+disable = [
+    "C0103",  # invalid-name
+    "C0114",  # missing-module-docstring
+    "R0913",  # too-many-arguments
+]
