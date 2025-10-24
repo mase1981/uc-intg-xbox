@@ -9,8 +9,8 @@ from ucapi.media_player import Attributes, States, Commands, Features
 from ucapi import Remote, StatusCodes
 from ucapi.remote import States as RemoteStates
 
-from xbox_device import XboxDevice
-from config import XboxConfig
+from .xbox_device import XboxDevice
+from .config import XboxConfig
 
 _LOG = logging.getLogger("XBOX_ENTITY")
 
@@ -92,7 +92,7 @@ class XboxRemote(Remote):
 
     async def _init_device(self):
         """Initialize Xbox device with proactive token refresh like Xbox Live."""
-        _LOG.info("🔧 Initializing XboxDevice in background...")
+        _LOG.info("ðŸ”§ Initializing XboxDevice in background...")
         try:
             ssl_context = ssl.create_default_context(cafile=certifi.where())
 
@@ -111,14 +111,14 @@ class XboxRemote(Remote):
             success = await self.refresh_authentication()
             
             if success:
-                _LOG.info("✅ XboxDevice initialized and available.")
+                _LOG.info("âœ… XboxDevice initialized and available.")
                 self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.ON})
             else:
-                _LOG.warning("⚠️ Xbox authentication failed - device unavailable")
+                _LOG.warning("Xbox authentication failed - device unavailable")
                 self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.OFF})
                 
         except Exception as e:
-            _LOG.exception("❌ Exception during XboxDevice initialization")
+            _LOG.exception("Exception during XboxDevice initialization")
             self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.OFF})
 
     async def refresh_authentication(self):
@@ -128,7 +128,7 @@ class XboxRemote(Remote):
                 _LOG.error("No tokens available for refresh")
                 return False
                 
-            _LOG.info("🔄 Refreshing Xbox authentication tokens...")
+            _LOG.info("ðŸ”„ Refreshing Xbox authentication tokens...")
             self.device, refreshed_tokens = await XboxDevice.from_config(
                 self.config, self.device_session
             )
@@ -137,15 +137,15 @@ class XboxRemote(Remote):
                 # Save refreshed tokens immediately (like Xbox Live)
                 self.config.tokens = refreshed_tokens
                 await self.config.save(self.api)
-                _LOG.info("✅ Xbox tokens refreshed successfully")
+                _LOG.info("âœ… Xbox tokens refreshed successfully")
                 return True
             else:
-                _LOG.error("❌ Failed to refresh Xbox tokens")
+                _LOG.error("Failed to refresh Xbox tokens")
                 self.device = None
                 return False
                 
         except Exception as e:
-            _LOG.exception("❌ Error refreshing Xbox authentication", exc_info=e)
+            _LOG.exception("Error refreshing Xbox authentication", exc_info=e)
             self.device = None
             return False
 
@@ -154,12 +154,12 @@ class XboxRemote(Remote):
     ) -> StatusCodes:
         # Check if device is available
         if not self.device:
-            _LOG.warning(f"❌ Xbox device not available - command '{cmd_id}' rejected. Attempting token refresh...")
+            _LOG.warning(f"Xbox device not available - command '{cmd_id}' rejected. Attempting token refresh...")
             # Try to refresh authentication before failing
             if await self.refresh_authentication():
-                _LOG.info("✅ Authentication refreshed, retrying command")
+                _LOG.info("âœ… Authentication refreshed, retrying command")
             else:
-                _LOG.error("❌ Token refresh failed - device needs re-authentication.")
+                _LOG.error("Token refresh failed - device needs re-authentication.")
                 return StatusCodes.BAD_REQUEST
         
         try:
@@ -196,16 +196,16 @@ class XboxRemote(Remote):
             return StatusCodes.BAD_REQUEST
             
         except Exception as e:
-            _LOG.exception(f"❌ Failed to execute command '{cmd_id}': {e}")
+            _LOG.exception(f"Failed to execute command '{cmd_id}': {e}")
             # Check if it's an authentication error
             if "400 Bad Request" in str(e) or "oauth" in str(e).lower():
-                _LOG.error("🔑 Xbox authentication has expired during command execution.")
+                _LOG.error("ðŸ”‘ Xbox authentication has expired during command execution.")
                 # Try to refresh authentication
                 if await self.refresh_authentication():
-                    _LOG.info("✅ Authentication refreshed after error")
+                    _LOG.info("âœ… Authentication refreshed after error")
                     self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.ON})
                 else:
-                    _LOG.error("❌ Token refresh failed - marking device unavailable")
+                    _LOG.error("Token refresh failed - marking device unavailable")
                     self.device = None
                     self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.OFF})
             return StatusCodes.BAD_REQUEST
