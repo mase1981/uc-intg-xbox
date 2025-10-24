@@ -53,7 +53,7 @@ jobs:
             bash -c \
             "cd /workspace && \
               python -m pip install -r requirements.txt && \
-              pyinstaller --clean --onedir --name intg-${{ env.DRIVER_ID }} --collect-all zeroconf uc_intg_xbox/driver.py"
+              pyinstaller --clean --onedir --name intg-${{ env.DRIVER_ID }} --collect-all zeroconf uc_intg_horizon/driver.py"
 
       - name: Prepare artifacts
         shell: bash
@@ -103,7 +103,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/uc-intg-xbox
+          images: ghcr.io/${{ github.repository_owner }}/uc-intg-horizon
           tags: |
             type=ref,event=tag
             type=raw,value=latest
