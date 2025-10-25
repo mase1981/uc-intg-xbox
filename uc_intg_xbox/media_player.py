@@ -9,8 +9,8 @@ from ucapi.media_player import Attributes, States, Commands, Features
 from ucapi import Remote, StatusCodes
 from ucapi.remote import States as RemoteStates
 
-from .xbox_device import XboxDevice
-from .config import XboxConfig
+from xbox_device import XboxDevice
+from config import XboxConfig
 
 _LOG = logging.getLogger("XBOX_ENTITY")
 
