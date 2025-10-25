@@ -3,9 +3,9 @@ import logging
 import os
 import ucapi
 
-from config import XboxConfig
-from setup import XboxSetup
-from media_player import XboxRemote
+from uc_intg_xbox.config import XboxConfig
+from uc_intg_xbox.setup import XboxSetup
+from uc_intg_xbox.media_player import XboxRemote
 
 _LOG = logging.getLogger(__name__)
 
