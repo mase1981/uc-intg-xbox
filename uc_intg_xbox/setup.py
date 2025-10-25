@@ -12,9 +12,9 @@ from ucapi import (
     IntegrationSetupError,
     RequestUserInput,
 )
-from config import XboxConfig
-from media_player import XboxRemote
-from auth import XboxAuth
+from uc_intg_xbox.config import XboxConfig
+from uc_intg_xbox.media_player import XboxRemote
+from uc_intg_xbox.auth import XboxAuth
 
 _LOG = logging.getLogger("XBOX_SETUP")
 
