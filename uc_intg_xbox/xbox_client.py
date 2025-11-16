@@ -73,10 +73,16 @@ class XboxClient:
             return None, None
 
     async def turn_on(self):
-        _LOG.info(f"Sending power on (wake_up) to Xbox Live ID: {self.live_id}")
+        _LOG.info(f"Sending power on to Xbox Live ID: {self.live_id}")
         try:
             await self.client.smartglass.wake_up(self.live_id)
-            _LOG.info("Power on command sent successfully.")
+            _LOG.info("Power on command sent successfully")
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                _LOG.error("Xbox API returned 404 - Console may be in Energy Saving mode or not reachable. Ensure console is in Sleep mode.")
+                raise ValueError("Console not reachable. Verify Sleep mode is enabled in console settings.")
+            _LOG.exception("HTTP error sending power on command", exc_info=e)
+            raise
         except Exception as e:
             _LOG.exception("Failed to send power on command", exc_info=e)
             raise
@@ -85,7 +91,7 @@ class XboxClient:
         _LOG.info(f"Sending power off to Xbox Live ID: {self.live_id}")
         try:
             await self.client.smartglass.turn_off(self.live_id)
-            _LOG.info("Power off command sent.")
+            _LOG.info("Power off command sent")
         except Exception as e:
             _LOG.exception("Failed to send power off command", exc_info=e)
             raise
@@ -95,7 +101,7 @@ class XboxClient:
         try:
             direction_enum = VolumeDirection(direction)
             await self.client.smartglass.change_volume(self.live_id, direction_enum)
-            _LOG.info(f"Volume {direction} command sent successfully.")
+            _LOG.info(f"Volume {direction} command sent successfully")
         except Exception as e:
             _LOG.exception("Failed to change volume", exc_info=e)
             raise
@@ -104,7 +110,7 @@ class XboxClient:
         _LOG.info(f"Sending Mute to {self.live_id}")
         try:
             await self.client.smartglass.mute(self.live_id)
-            _LOG.info("Mute command sent successfully.")
+            _LOG.info("Mute command sent successfully")
         except Exception as e:
             _LOG.exception("Failed to mute", exc_info=e)
             raise
@@ -113,7 +119,7 @@ class XboxClient:
         _LOG.info(f"Sending Unmute to {self.live_id}")
         try:
             await self.client.smartglass.unmute(self.live_id)
-            _LOG.info("Unmute command sent successfully.")
+            _LOG.info("Unmute command sent successfully")
         except Exception as e:
             _LOG.exception("Failed to unmute", exc_info=e)
             raise
@@ -123,7 +129,7 @@ class XboxClient:
         try:
             button_enum = InputKeyType(button)
             await self.client.smartglass.press_button(self.live_id, button_enum)
-            _LOG.info(f"Button '{button}' pressed successfully.")
+            _LOG.info(f"Button '{button}' pressed successfully")
         except ValueError:
             _LOG.error(f"Unknown button command: {button}")
             raise ValueError(f"Unknown button command: {button}")
@@ -135,7 +141,7 @@ class XboxClient:
         _LOG.info(f"Sending text input: '{text}' to {self.live_id}")
         try:
             await self.client.smartglass.insert_text(self.live_id, text)
-            _LOG.info(f"Text '{text}' sent successfully.")
+            _LOG.info(f"Text '{text}' sent successfully")
         except Exception as e:
             _LOG.exception(f"Failed to send text '{text}'", exc_info=e)
             raise
@@ -147,7 +153,7 @@ class XboxClient:
                 await self.client.smartglass.go_home(self.live_id)
             else:
                 await self.client.smartglass.launch_app(self.live_id, product_id)
-            _LOG.info(f"App '{product_id}' launched successfully.")
+            _LOG.info(f"App '{product_id}' launched successfully")
         except Exception as e:
             _LOG.exception(f"Failed to launch app '{product_id}'", exc_info=e)
             raise
