@@ -111,11 +111,11 @@ class XboxRemote(Remote):
                 return StatusCodes.OK
 
             elif actual_command == "volume_up":
-                await self.xbox_client.volume("Up")
+                await self.xbox_client.change_volume("Up")
                 return StatusCodes.OK
                 
             elif actual_command == "volume_down":
-                await self.xbox_client.volume("Down")
+                await self.xbox_client.change_volume("Down")
                 return StatusCodes.OK
                 
             elif actual_command == "mute_toggle":

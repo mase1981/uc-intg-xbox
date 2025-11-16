@@ -9,14 +9,14 @@ import logging
 import httpx
 import ssl
 import certifi
-from pythonxbox.api.client import XboxLiveClient
-from pythonxbox.authentication.manager import AuthenticationManager
-from pythonxbox.authentication.models import OAuth2TokenResponse
-from pythonxbox.api.provider.smartglass.models import (
+from xbox.webapi.api.client import XboxLiveClient
+from xbox.webapi.authentication.manager import AuthenticationManager
+from xbox.webapi.authentication.models import OAuth2TokenResponse
+from xbox.webapi.api.provider.smartglass.models import (
     InputKeyType,
     VolumeDirection,
 )
-from pythonxbox.scripts import CLIENT_ID, CLIENT_SECRET
+from xbox.webapi.scripts import CLIENT_ID, CLIENT_SECRET
 
 _LOG = logging.getLogger("XBOX_CLIENT")
 OAUTH2_DESKTOP_REDIRECT_URI = "https://login.live.com/oauth20_desktop.srf"
@@ -38,7 +38,7 @@ class XboxClient:
                 instance.session = existing_session
             else:
                 ssl_context = ssl.create_default_context(cafile=certifi.where())
-                instance.session = httpx.AsyncClient(verify=ssl_context, timeout=30.0)
+                instance.session = httpx.AsyncClient(verify=ssl_context)
 
             auth_mgr = AuthenticationManager(
                 instance.session,
@@ -90,11 +90,11 @@ class XboxClient:
             _LOG.exception("Failed to send power off command", exc_info=e)
             raise
 
-    async def volume(self, direction: str):
+    async def change_volume(self, direction: str):
         _LOG.info(f"Sending Volume {direction} to {self.live_id}")
         try:
             direction_enum = VolumeDirection(direction)
-            await self.client.smartglass.volume(self.live_id, direction_enum)
+            await self.client.smartglass.change_volume(self.live_id, direction_enum)
             _LOG.info(f"Volume {direction} command sent successfully.")
         except Exception as e:
             _LOG.exception("Failed to change volume", exc_info=e)
