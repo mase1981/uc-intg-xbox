@@ -6,13 +6,10 @@ Xbox media player entity module for Unfolded Circle integration.
 """
 
 import logging
-from ucapi.media_player import MediaPlayer
+from ucapi import StatusCodes
+from ucapi.media_player import MediaPlayer, DeviceClasses
 
 _LOG = logging.getLogger("XBOX_MEDIA_PLAYER")
-
-async def empty_command_handler(entity, command, params=None):
-    _LOG.info(f"Command '{command}' received. No action taken (read-only entity).")
-    return True
 
 class XboxMediaPlayer(MediaPlayer):
     def __init__(self, api, xbox_client, entity_id: str = ""):
@@ -23,18 +20,23 @@ class XboxMediaPlayer(MediaPlayer):
         super().__init__(
             entity_id,
             entity_name,
-            features=["ON_OFF", "MEDIA_TITLE", "MEDIA_IMAGE_URL", "MEDIA_TYPE"],
+            features=[],
             attributes={
                 "state": "OFF",
                 "media_title": "Offline",
                 "media_image_url": "",
                 "media_type": "GAME",
             },
-            cmd_handler=empty_command_handler,
+            device_class=DeviceClasses.RECEIVER,
+            cmd_handler=self.handle_command,
         )
         self.api = api
         self.xbox_client = xbox_client
         _LOG.info(f"XboxMediaPlayer entity initialized for {entity_name}")
+
+    async def handle_command(self, entity, cmd_id: str, params: dict | None = None) -> StatusCodes:
+        _LOG.debug(f"Command '{cmd_id}' received. Ignoring (read-only entity).")
+        return StatusCodes.OK
 
     async def update_presence(self, presence_data: dict):
         attributes_to_update = {}
