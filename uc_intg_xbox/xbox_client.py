@@ -137,51 +137,58 @@ class XboxClient:
             _LOG.exception(f"Failed to press button '{button}'", exc_info=e)
             raise
 
-    async def insert_text(self, text: str):
-        _LOG.info(f"Sending text input: '{text}' to {self.live_id}")
+    async def get_presence_and_title(self):
         try:
-            await self.client.smartglass.insert_text(self.live_id, text)
-            _LOG.info(f"Text '{text}' sent successfully")
+            batch = await self.client.people.get_friends_own_batch([self.xuid])
+            people = getattr(batch, "people", None) or []
+            
+            profile = next((p for p in people if getattr(p, "xuid", None) == self.xuid), None)
+            
+            if not profile:
+                _LOG.warning(f"Could not find own profile in batch")
+                return None
+            
+            presence_state = getattr(profile, "presence_state", "Offline")
+            
+            if presence_state == "Offline":
+                return {
+                    "state": "OFF",
+                    "title": "Offline",
+                    "image": ""
+                }
+            
+            presence_text = getattr(profile, "presence_text", None)
+            presence_details = getattr(profile, "presence_details", None) or []
+            
+            for detail in presence_details:
+                detail_state = getattr(detail, "state", None)
+                is_primary = getattr(detail, "is_primary", False)
+                is_game = getattr(detail, "is_game", False)
+                title_id = getattr(detail, "title_id", None)
+                
+                if detail_state == "Active" and title_id and is_game and is_primary:
+                    try:
+                        title_response = await self.client.titlehub.get_title_info(title_id)
+                        titles = getattr(title_response, "titles", None) or []
+                        
+                        if titles:
+                            title_data = titles[0]
+                            return {
+                                "state": "PLAYING",
+                                "title": title_data.name,
+                                "image": getattr(title_data, "display_image", "")
+                            }
+                    except Exception as e:
+                        _LOG.error(f"Failed to fetch title info for {title_id}: {e}")
+            
+            return {
+                "state": "ON",
+                "title": presence_text or "Online",
+                "image": ""
+            }
+            
         except Exception as e:
-            _LOG.exception(f"Failed to send text '{text}'", exc_info=e)
-            raise
-
-    async def launch_app(self, product_id: str):
-        _LOG.info(f"Launching app '{product_id}' on {self.live_id}")
-        try:
-            if product_id == "Home":
-                await self.client.smartglass.go_home(self.live_id)
-            else:
-                await self.client.smartglass.launch_app(self.live_id, product_id)
-            _LOG.info(f"App '{product_id}' launched successfully")
-        except Exception as e:
-            _LOG.exception(f"Failed to launch app '{product_id}'", exc_info=e)
-            raise
-
-    async def get_console_status(self):
-        try:
-            status = await self.client.smartglass.get_console_status(self.live_id)
-            return status
-        except Exception as e:
-            _LOG.exception("Failed to get console status", exc_info=e)
-            return None
-
-    async def get_presence(self):
-        try:
-            resp = await self.client.people.get_friends_own_batch([self.xuid])
-            if resp.people:
-                return resp.people[0]
-            return None
-        except Exception as e:
-            _LOG.exception("Failed to get presence", exc_info=e)
-            return None
-
-    async def get_installed_apps(self):
-        try:
-            apps = await self.client.smartglass.get_installed_apps(self.live_id)
-            return apps
-        except Exception as e:
-            _LOG.exception("Failed to get installed apps", exc_info=e)
+            _LOG.exception("Failed to get presence and title", exc_info=e)
             return None
 
     async def close(self):
