@@ -30,6 +30,7 @@ _config: XboxConfig | None = None
 _xbox_client: XboxClient | None = None
 _remote_entity: XboxRemote | None = None
 _media_player_entity: XboxMediaPlayer | None = None
+_setup_manager: XboxSetup | None = None
 _entities_ready: bool = False
 _initialization_lock: asyncio.Lock = asyncio.Lock()
 _token_refresh_task: asyncio.Task | None = None
@@ -222,13 +223,15 @@ async def presence_update_loop():
         await asyncio.sleep(UPDATE_INTERVAL_SECONDS)
 
 async def setup_handler(msg: ucapi.SetupAction) -> ucapi.SetupAction:
-    global _config, _entities_ready
+    global _config, _entities_ready, _setup_manager
     
     if not _config:
         _config = XboxConfig()
     
-    setup_manager = XboxSetup(api, _config)
-    action = await setup_manager.handle_command(msg)
+    if not _setup_manager:
+        _setup_manager = XboxSetup(api, _config)
+    
+    action = await _setup_manager.handle_command(msg)
     
     if isinstance(action, ucapi.SetupComplete):
         _LOG.info("Setup confirmed. Initializing integration components...")
