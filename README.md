@@ -1,461 +1,586 @@
-# Xbox Integration for Unfolded Circle Remote
+# Xbox Integration for Unfolded Circle Remote 2/3
 
-![xbox](https://img.shields.io/badge/xbox-gaming-green)
+Control your Xbox One, Xbox Series S, or Xbox Series X console with the Unfolded Circle Remote 2 or Remote 3 with comprehensive dashboard navigation, power management, **currently playing game display**, and media playback directly from your remote.
+
+![Xbox](https://img.shields.io/badge/xbox-gaming-green)
+[![GitHub Release](https://img.shields.io/github/v/release/mase1981/uc-intg-xbox?style=flat-square)](https://github.com/mase1981/uc-intg-xbox/releases)
+![License](https://img.shields.io/badge/license-MPL--2.0-blue?style=flat-square)
+[![GitHub issues](https://img.shields.io/github/issues/mase1981/uc-intg-xbox?style=flat-square)](https://github.com/mase1981/uc-intg-xbox/issues)
+[![Community Forum](https://img.shields.io/badge/community-forum-blue?style=flat-square)](https://community.unfoldedcircle.com/)
 [![Discord](https://badgen.net/discord/online-members/zGVYf58)](https://discord.gg/zGVYf58)
-![GitHub Release](https://img.shields.io/github/v/release/mase1981/uc-intg-xbox)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/mase1981/uc-intg-xbox/total)
-![License](https://img.shields.io/badge/license-MPL--2.0-blue)
-[![Buy Me A Coffee](https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg)](https://buymeacoffee.com/meirmiyara)
-[![PayPal](https://img.shields.io/badge/PayPal-donate-blue.svg)](https://paypal.me/mmiyara)
-[![Github Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-30363D?&logo=GitHub-Sponsors&logoColor=EA4AAA)](https://github.com/sponsors/mase1981/button)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/mase1981/uc-intg-xbox/total?style=flat-square)
+[![Buy Me A Coffee](https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=flat-square)](https://buymeacoffee.com/meirmiyara)
+[![PayPal](https://img.shields.io/badge/PayPal-donate-blue.svg?style=flat-square)](https://paypal.me/mmiyara)
+[![Github Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-30363D?&logo=GitHub-Sponsors&logoColor=EA4AAA&style=flat-square)](https://github.com/sponsors/mase1981)
 
 
-> **Control your Xbox One, Xbox Series S, or Xbox Series X console with the Unfolded Circle Remote 2/3**
+## Features
 
-Full remote control integration for Xbox consoles providing dashboard navigation, power management, and media playback directly from your Unfolded Circle Remote Two and Remote 3.
+This integration provides comprehensive control of your Xbox console through the Xbox Live Web API, including full remote control functionality, live gaming status display with game artwork, and seamless integration with your Unfolded Circle Remote.
 
 ---
+## 💰 Support Development
 
-## 🎮 Supported Consoles
+If you find this integration useful, consider supporting development:
 
-This integration works with:
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-pink?style=for-the-badge&logo=github)](https://github.com/sponsors/mase1981)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/meirmiyara)
+[![PayPal](https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/mmiyara)
 
-- 🎮 **Xbox One** (Original, S, X)
-- 🎮 **Xbox Series S**
-- 🎮 **Xbox Series X**
-
+Your support helps maintain this integration. Thank you! ❤️
 ---
 
-## ✨ Features
+### 🎮 **Remote Control**
 
-### Remote Control
-- ✅ **Power Control** - Turn console on/off (requires Instant-On/Sleep mode)
-- ✅ **Dashboard Navigation** - Full D-Pad control with system buttons
-- ✅ **Menu Controls** - Home, Menu, View, Back navigation
-- ✅ **Button Mapping** - A, B, X, Y buttons for selections
-- ✅ **Media Playback** - Play, Pause, Stop, skip tracks
-- ✅ **Volume Control** - Control TV volume via HDMI-CEC
-- ✅ **OAuth2 Authentication** - Secure Microsoft account login
-- ✅ **Automatic Discovery** - Integration discoverable on network
+#### **Dashboard Navigation**
+- **D-Pad Control** - Full Up/Down/Left/Right navigation
+- **A Button (OK)** - Select/Confirm (mapped to remote OK button)
+- **B Button** - Back/Cancel
+- **Home Button** - Return to Xbox dashboard
+- **Menu Button** - Open context menu
+- **View Button** - Options/View button
 
----
+#### **Button Controls**
+- **X Button** - Blue action button
+- **Y Button** - Yellow action button
+- **Channel Up/Down** - Y/X button shortcuts
+- **Color Buttons** - Red (B), Green (A), Blue (X), Yellow (Y)
 
-## 📋 Requirements
+#### **Media Playback**
+- **Play** - Resume playback
+- **Pause** - Pause playback
+- **Stop** - Stop playback
+- **Next Track** - Skip forward
+- **Previous Track** - Skip backward
 
-- **Unfolded Circle Remote Two** or **Remote 3** (firmware 1.6.0+)
-- **Xbox Console** (One, Series S, or Series X)
-- **Microsoft Account** with Xbox Live access
-- **Xbox Live Device ID** (found in console settings)
-- **Network Connectivity** between Remote and Xbox
-- **Console Power Mode**: Set to **Sleep** (formerly "Instant-On") for power on functionality
+#### **Volume Control** (via HDMI-CEC)
+- **Volume Up/Down** - Adjust TV volume through Xbox
+- **Mute Toggle** - Mute/unmute TV audio
+- **HDMI-CEC Required** - Volume commands sent to TV via HDMI
 
-### Console Configuration Required
+### 📺 **Live Gaming Status Display**
 
-1. Enable **Remote Features** on your Xbox:
-   - Go to `Settings > Devices & connections > Remote features`
-   - Check "Enable remote features"
-2. Set Power Mode to **Sleep**:
-   - Go to `Settings > General > Power options`
-   - Select "Sleep" power mode
-3. Find your **Xbox Live Device ID**:
-   - Located at `Settings > Devices & connections > Remote features`
-   - Copy the long alphanumeric ID
+#### **Media Player Entity**
+Real-time display of Xbox gaming activity:
+- **Currently Playing** - Shows active game title when playing
+- **Game Artwork** - Displays official game cover art from Xbox Live
+- **Online Status** - Shows "Online" when on dashboard
+- **Offline Status** - Shows "Offline" when console is off
+- **Player State** - Distinguishes between OFF, ON (dashboard), and PLAYING (in-game)
 
----
+#### **Dynamic Metadata**
+- **Game Title** - Current game being played
+- **Xbox Gamertag** - Your Xbox Live gamertag display
+- **Presence State** - Real-time activity status
+- **Media Type** - Tagged as "GAME" for proper display
 
-## 🚀 Installation
+### 🔌 **Power Management**
 
-### Method 1: Remote Web Configurator (Recommended)
+#### **Power Control**
+- **Power On** - Wake console from Sleep mode (requires Sleep power mode)
+- **Power Off** - Turn console off
+- **Power Toggle** - Toggle power state
+- **Remote Startup** - Start console remotely when in Sleep mode
 
-1. Download the latest `uc-intg-xbox-X.X.X.tar.gz` from [Releases](https://github.com/mase1981/uc-intg-xbox/releases)
-2. Open your Unfolded Circle **Web Configurator** (http://remote-ip/)
-3. Navigate to **Integrations** → **Add Integration**
-4. Click **Upload Driver**
-5. Select the downloaded `.tar.gz` file
-6. Follow the on-screen setup wizard
+#### **Sleep Mode Requirement**
+- **Sleep Mode Required** - Console must be in Sleep mode for remote power on
+- **Energy Saving Mode** - Power on will not work in Energy Saving mode
+- **Remote Features** - Must be enabled in Xbox settings
 
-### Method 2: Docker Run (One-Line Command)
-```bash
-docker run -d --name uc-intg-xbox --restart unless-stopped --network host -v $(pwd)/data:/data -e UC_CONFIG_HOME=/data -e UC_INTEGRATION_INTERFACE=0.0.0.0 -e UC_INTEGRATION_HTTP_PORT=9094 -e UC_DISABLE_MDNS_PUBLISH=false ghcr.io/mase1981/uc-intg-xbox:latest
-```
+### 🌐 **Xbox Live Integration**
 
-### Method 3: Docker Compose
+#### **OAuth2 Authentication**
+- **Secure Login** - Microsoft account authentication via OAuth2
+- **Token Management** - Automatic token refresh (12-hour intervals)
+- **Session Persistence** - Maintains connection across reboots
+- **Privacy Focused** - Credentials stored securely, never exposed
 
-Create a `docker-compose.yml` file:
+#### **Xbox Live API**
+- **Cloud-Based Control** - Commands sent via Xbox Live servers
+- **Presence Detection** - Real-time game tracking via Xbox Live
+- **Title Information** - Game metadata fetched from Xbox catalog
+- **Cross-Platform** - Works with Xbox One, Series S, and Series X
+
+### 🎯 **Supported Consoles**
+
+- **Xbox One** (Original, S, X)
+- **Xbox Series S**
+- **Xbox Series X**
+
+### **Xbox Requirements**
+
+- **Microsoft Account** - With Xbox Live access
+- **Xbox Live Device ID** - Found in console settings
+- **Remote Features** - Must be enabled on console
+- **Sleep Power Mode** - Required for remote power on functionality
+- **Network Connectivity** - Console must be connected to internet
+
+### **Console Configuration Required**
+
+#### Enable Remote Features:
+1. Navigate to **Settings** → **Devices & connections** → **Remote features**
+2. Check **"Enable remote features"**
+3. Note your **Xbox Live Device ID** (long alphanumeric string)
+
+#### Configure Sleep Mode:
+1. Navigate to **Settings** → **General** → **Power options**
+2. Select **"Sleep"** power mode (not Energy Saving)
+3. This allows remote power on functionality
+
+### **Network Requirements**
+
+- **Internet Access** - Required for Xbox Live API communication
+- **HTTPS** - Integration uses secure HTTPS to Xbox Live servers
+- **Firewall** - Ensure outbound HTTPS traffic is permitted
+- **Local Network** - Remote and Xbox should be on same network for best performance
+
+## Installation
+
+### Option 1: Remote Web Interface (Recommended)
+1. Navigate to the [**Releases**](https://github.com/mase1981/uc-intg-xbox/releases) page
+2. Download the latest `uc-intg-xbox-<version>.tar.gz` file
+3. Open your remote's web interface (`http://your-remote-ip`)
+4. Go to **Settings** → **Integrations** → **Add Integration**
+5. Click **Upload** and select the downloaded `.tar.gz` file
+
+### Option 2: Docker (Advanced Users)
+
+The integration is available as a pre-built Docker image from GitHub Container Registry:
+
+**Image**: `ghcr.io/mase1981/uc-intg-xbox:latest`
+
+**Docker Compose:**
 ```yaml
-version: '3.8'
-
 services:
-  xbox-integration:
+  uc-intg-xbox:
     image: ghcr.io/mase1981/uc-intg-xbox:latest
     container_name: uc-intg-xbox
-    restart: unless-stopped
     network_mode: host
     volumes:
-      - ./data:/data
+      - </local/path>:/data
     environment:
       - UC_CONFIG_HOME=/data
-      - UC_INTEGRATION_INTERFACE=0.0.0.0
       - UC_INTEGRATION_HTTP_PORT=9094
-      - UC_DISABLE_MDNS_PUBLISH=false
+    restart: unless-stopped
 ```
 
-Then run:
+**Docker Run:**
 ```bash
-docker-compose up -d
+docker run -d --name=uc-intg-xbox --network host -v </local/path>:/data -e UC_CONFIG_HOME=/data -e UC_INTEGRATION_HTTP_PORT=9094 --restart unless-stopped ghcr.io/mase1981/uc-intg-xbox:latest
 ```
 
-> **Note**: If mDNS discovery doesn't work with Docker, click **Advanced** when adding the integration and manually enter the container IP: `ws://CONTAINER_IP:9094/`
+## Configuration
 
-### Method 4: Python (Development)
-```bash
-# Clone repository
-git clone https://github.com/mase1981/uc-intg-xbox.git
-cd uc-intg-xbox
+### Step 1: Prepare Your Xbox Console
 
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+**IMPORTANT**: Xbox console must be configured before adding the integration.
 
-# Install dependencies
-pip install -r requirements.txt
+#### Enable Remote Features:
+1. On Xbox console: **Settings** → **Devices & connections** → **Remote features**
+2. Enable **"Enable remote features"**
+3. Copy your **Xbox Live Device ID** (you'll need this during setup)
 
-# Run integration
-python -m uc_intg_xbox.driver
-```
+#### Configure Power Mode:
+1. On Xbox console: **Settings** → **General** → **Power options**
+2. Select **"Sleep"** power mode
+3. Ensure console is connected to network
 
----
+### Step 2: Setup Integration
 
-## ⚙️ Configuration
+1. After installation, go to **Settings** → **Integrations**
+2. The Xbox integration should appear in **Available Integrations**
+3. Click **"Configure"** and follow the setup wizard:
 
-### Step 1: Obtain Your Xbox Live Device ID
+   **Page 1 - Xbox Live Device ID:**
+   - **Xbox Live Device ID**: Paste the ID from Xbox console settings
+   - Click **Next**
 
-1. On your Xbox console, navigate to:
-   - `Settings > Devices & connections > Remote features`
-2. Find **Xbox Live Device ID** (a long alphanumeric string)
-3. Write it down or take a photo - you'll need it for setup
+   **Page 2 - Microsoft Authentication:**
+   - **Login URL**: A Microsoft login URL will be displayed
+   - Click the URL to open in browser
+   - **Sign in** with your Microsoft account (the one linked to your Xbox)
+   - After successful login, you'll be redirected to a blank page
+   - **Copy the entire URL** from your browser address bar
+   - **Paste the redirect URL** back into the integration
+   - Click **Complete Setup**
 
-### Step 2: Setup in Remote Configurator
+4. Integration will create **TWO entities**:
+   - **Remote Control**: `remote.xbox_remote_[device_id]` - Full button control
+   - **Media Player**: `media_player.xbox_[device_id]` - Gaming status display
 
-1. In the UC Remote web configurator, go to **Integrations**
-2. Find **Xbox Integration** and click **Configure**
-3. Enter your **Xbox Live Device ID** from Step 1
-4. Click **Next**
-5. A **Login URL** will be displayed - copy it completely
-6. Open the URL in a web browser and log in with your Microsoft account
-7. After successful login, you'll be redirected to a blank page
-8. **Copy the entire URL** from your browser's address bar
-9. Paste the URL back into the integration setup field
-10. Complete the setup
 
-### Step 3: Add Remote Entity (If Needed)
+## Using the Integration
 
-If the Xbox Remote entity doesn't appear automatically:
-1. Go to the **Xbox Integration** settings page
-2. Find **Configured Entities**
-3. Tap **Add** next to "Xbox Remote"
-4. The entity will now be available for use
+### Remote Control Entity
 
----
+The remote control entity provides complete Xbox dashboard navigation:
 
-## 🎮 Usage
+**Standard Controls:**
+- **Power On/Off** - Control console power state
+- **D-Pad Navigation** - Navigate Xbox dashboard
+- **OK Button** - Mapped to A button (confirm/select)
+- **Back Button** - Mapped to B button (cancel/back)
+- **Home** - Return to Xbox home screen
+- **Menu** - Context menu button
+- **View** - Options/view button
 
-### Entity Created
+**Media Controls:**
+- **Play/Pause** - Control media playback
+- **Stop** - Stop playback
+- **Next/Previous** - Track navigation
+- **Volume Up/Down** - TV volume via HDMI-CEC
+- **Mute** - Mute TV via HDMI-CEC
 
-**Xbox Remote Entity**
-- **Entity ID**: `xbox-{device_id}`
-- **Name**: `Xbox ({device_id})`
-- **Type**: Remote
+**Button Mapping:**
+- **DPAD_CENTER** → A Button (OK/Select)
+- **BACK** → B Button (Cancel/Back)
+- **HOME** → Xbox Home Button
+- **MENU** → Menu Button
+- **CONTEXT_MENU** → View Button
+- **CHANNEL_UP** → Y Button
+- **CHANNEL_DOWN** → X Button
+- **Color Buttons** → Red (B), Green (A), Blue (X), Yellow (Y)
 
-**Features:**
-- Power on/off
-- Full D-Pad navigation (Up, Down, Left, Right)
-- System buttons (Home, Menu, View, Back)
-- Action buttons (A, B, X, Y)
-- Media playback (Play, Pause, Stop, Next, Previous)
-- Volume control via HDMI-CEC
-- Color buttons (Red/B, Green/A, Blue/X, Yellow/Y)
+### Media Player Entity
 
-### Adding to Activities
+The media player entity displays live Xbox gaming activity:
 
-1. Create or edit an **Activity**
-2. Add the **Xbox Remote** entity
-3. Map power on/off commands
-4. Configure button shortcuts as needed
-5. Save the activity
+**Status Display:**
+- **OFF** - Console is powered off or unreachable
+- **ON** - Console is online, on dashboard/home screen
+- **PLAYING** - Actively playing a game
 
-### Dashboard Navigation
+**Information Shown:**
+- **Media Title**: Current game title (when playing) or status
+- **Gamertag**: Your Xbox Live gamertag
+- **Game Artwork**: Official game cover art from Xbox Live
+- **Activity State**: Real-time presence information
 
-The integration provides complete Xbox dashboard navigation:
-- **D-Pad**: Navigate menus and UI
-- **A Button**: Select/Confirm
-- **B Button**: Back/Cancel
-- **Home**: Return to dashboard
-- **Menu**: Context menu
-- **View**: Options/View button
+**Automatic Updates:**
+- Status refreshes every 60 seconds
+- Game changes detected automatically
+- Presence updates in real-time
+- No manual refresh needed
 
----
-
-## 🎛️ Button Mapping
-
-Complete mapping of Xbox remote commands:
-
-| Remote Command | Xbox Function | Description |
-|---------------|---------------|-------------|
-| **ON** | Power On | Turn console on (requires Sleep mode) |
-| **OFF** | Power Off | Turn console off |
-| **↑ UP** | D-Pad Up | Navigate up in menus |
-| **↓ DOWN** | D-Pad Down | Navigate down in menus |
-| **← LEFT** | D-Pad Left | Navigate left in menus |
-| **→ RIGHT** | D-Pad Right | Navigate right in menus |
-| **SELECT** | A Button | Confirm/Select |
-| **BACK** | B Button | Back/Cancel |
-| **HOME** | Xbox Button | Return to dashboard |
-| **MENU** | Menu Button | Open context menu |
-| **VIEW** | View Button | Options/View |
-| **A_BUTTON** | A Button | Green button / Select |
-| **B_BUTTON** | B Button | Red button / Back |
-| **X_BUTTON** | X Button | Blue button |
-| **Y_BUTTON** | Y Button | Yellow button |
-| **PLAY** | Play | Resume playback |
-| **PAUSE** | Pause | Pause playback |
-| **STOP** | Stop | Stop playback |
-| **NEXT_TRACK** | Next | Next track/chapter |
-| **PREVIOUS_TRACK** | Previous | Previous track/chapter |
-| **VOLUME_UP** | Volume Up | Increase TV volume (via CEC) |
-| **VOLUME_DOWN** | Volume Down | Decrease TV volume (via CEC) |
-| **MUTE_TOGGLE** | Mute | Mute/unmute TV (via CEC) |
-| **RED** | B Button | Red function key |
-| **GREEN** | A Button | Green function key |
-| **BLUE** | X Button | Blue function key |
-| **YELLOW** | Y Button | Yellow function key |
-
----
-
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Power On Not Working
 
-**Problem**: Cannot turn on Xbox console
+**Symptoms:** Cannot turn on Xbox console remotely
 
 **Solutions:**
-1. ✅ Verify console is in **Sleep** power mode (not Energy Saving)
-   - Go to `Settings > General > Power options`
-   - Select "Sleep" mode
-2. ✅ Ensure Remote Features are enabled on Xbox
-3. ✅ Console must be on the same network as the Remote
-4. ✅ Give the console 30-60 seconds after entering sleep to become fully available
+1. ✅ Verify console is in **Sleep** power mode (Settings → Power options)
+2. ✅ Check that **Remote Features** are enabled on Xbox
+3. ✅ Ensure console is on same network as Remote
+4. ✅ Wait 30-60 seconds after console enters sleep before trying power on
+5. ✅ Console may need to be turned on once manually after changing power mode
+
+**Common Causes:**
+- Console in "Energy Saving" mode instead of "Sleep"
+- Remote features not enabled
+- Console not connected to network
+- First-time setup incomplete
 
 ### Authentication Failed
 
-**Problem**: Setup fails during OAuth login
+**Symptoms:** Setup fails during Microsoft login
 
 **Solutions:**
-1. ✅ Ensure you're using the correct Microsoft account (the one linked to your Xbox)
+1. ✅ Ensure you're using correct Microsoft account (linked to Xbox)
 2. ✅ Copy the **entire** redirect URL including all parameters
-3. ✅ Don't modify the URL - paste it exactly as shown in browser
-4. ✅ Try logging out of Microsoft account and logging in again
-5. ✅ Check that you have proper Xbox Live access on your account
+3. ✅ Don't modify the URL - paste exactly as shown in browser
+4. ✅ Clear browser cache and try again
+5. ✅ Try incognito/private browsing mode
+
+**Common Causes:**
+- Wrong Microsoft account used
+- Partial URL copied (missing parameters)
+- Browser auto-completing/modifying URL
+- Account doesn't have Xbox Live access
 
 ### Commands Not Responding
 
-**Problem**: Buttons don't control the console
+**Symptoms:** Remote buttons don't control console
 
 **Solutions:**
-1. ✅ Verify Xbox is powered on
-2. ✅ Check that console is on the network (test with Xbox app)
-3. ✅ Restart the integration from web configurator
+1. ✅ Verify console is powered on and connected
+2. ✅ Test Xbox app on phone to confirm console is reachable
+3. ✅ Restart integration from Remote web configurator
 4. ✅ Check integration logs for authentication errors
-5. ✅ Re-authenticate if tokens have expired (typically every 90 days)
+5. ✅ Re-authenticate if tokens expired (typically 90 days)
+
+**Common Causes:**
+- Console powered off or in Energy Saving mode
+- Network connectivity issues
+- Authentication tokens expired
+- Xbox Live service issues
+
+### Game Not Showing in Media Player
+
+**Symptoms:** Media player shows "Home" but not current game
+
+**Solutions:**
+1. ✅ Wait up to 60 seconds for presence update
+2. ✅ Verify game is actually running (not suspended)
+3. ✅ Check that Xbox Live privacy settings allow presence sharing
+4. ✅ Some games may not report detailed presence information
+
+**Common Causes:**
+- Game suspended in background
+- Privacy settings restricting presence
+- Update polling interval hasn't elapsed
+- Game doesn't report to Xbox Live
 
 ### Volume Control Not Working
 
-**Problem**: Volume up/down/mute buttons have no effect
+**Symptoms:** Volume buttons have no effect
 
-**Explanation**: 
-Xbox controls TV volume via **HDMI-CEC** only. The commands are sent to your TV through the HDMI cable, not directly to the Xbox.
+**Explanation:**
+Xbox controls TV volume via **HDMI-CEC** only. Commands are sent to TV through HDMI cable.
 
 **Solutions:**
 1. ✅ Enable HDMI-CEC on your TV:
    - Samsung: "Anynet+"
-   - LG: "Simplink"
+   - LG: "Simplink"  
    - Sony: "Bravia Sync"
    - Panasonic: "VIERA Link"
    - Philips: "EasyLink"
 2. ✅ Verify HDMI cable connects Xbox to TV
-3. ✅ Check TV settings for CEC/external device control
-4. ✅ Some TVs require enabling CEC per HDMI input
+3. ✅ Check TV settings for CEC/device control
+4. ✅ Enable CEC per HDMI input on some TVs
 
-### Entities Unavailable After Reboot
+**Common Causes:**
+- HDMI-CEC disabled on TV
+- Xbox connected through AV receiver/soundbar
+- TV doesn't support CEC
+- Wrong HDMI input selected
 
-**Problem**: After restarting UC Remote, entity shows as "unavailable"
+### Integration Logs
 
-**Solutions:**
-1. ✅ Integration includes reboot survival - wait 30-60 seconds for reconnection
-2. ✅ Tokens are refreshed automatically on startup
-3. ✅ Check that Xbox is powered on and connected
-4. ✅ Review integration logs for connection errors
+**Access Logs:**
+- **Remote Interface**: Settings → Integrations → Xbox Integration → View Logs
+- **Docker**: `docker logs uc-intg-xbox`
 
-### mDNS Discovery Not Working
+**Look For:**
+- Authentication failures
+- Token refresh errors  
+- API communication issues
+- Button command errors
 
-**Problem**: Integration doesn't appear in available integrations
+## Known Limitations
 
-**Solutions:**
-1. ✅ If using Docker, click **Advanced** when adding integration
-2. ✅ Enter container IP manually: `ws://CONTAINER_IP:9094/`
-3. ✅ Verify network_mode is set to `host` in docker-compose
-4. ✅ Check firewall settings aren't blocking port 9094
+### Xbox Live API Restrictions
 
----
+- **No Media App Control** - Cannot control Netflix, YouTube, etc. (API security/DRM limitation)
+- **Dashboard Only** - Full control works on dashboard, limited in third-party apps
+- **Cloud-Based** - Commands sent via Xbox Live servers (requires internet)
+- **Response Delays** - Some commands may have slight delay due to cloud routing
 
-## ⚠️ Known Limitations
+### Power Management
 
-| Limitation | Explanation | Workaround |
-|-----------|-------------|------------|
-| **No Media App Control** | Integration cannot control third-party media apps (Netflix, YouTube, etc.) | This is a limitation of the public Xbox Web API for security/DRM reasons |
-| **Dashboard Only** | Full control works on Xbox dashboard but limited in apps | Use physical controller for app-specific functions |
-| **Sleep Mode Required** | Power On only works in Sleep mode, not Energy Saving | Change power mode in Xbox settings |
-| **Volume via CEC Only** | Volume commands use HDMI-CEC to control TV | Enable CEC on your TV settings |
-| **Internet Dependency** | Commands are sent via Xbox Live API (cloud) | Some responses may have delays if internet is slow |
-| **Token Expiration** | OAuth tokens expire periodically (~90 days) | Re-authenticate when tokens expire |
+- **Sleep Mode Required** - Power on only works with Sleep mode, not Energy Saving
+- **Manual First Start** - May need manual power on after initial setup
+- **Network Requirement** - Console must maintain network connection in sleep
 
----
+### Volume Control
 
-## 🏗️ Architecture
+- **HDMI-CEC Only** - Volume commands use TV's HDMI-CEC, not Xbox directly
+- **TV Compatibility** - Requires CEC-compatible TV
+- **Receiver Routing** - May not work if Xbox connected through AV receiver
 
-### Integration Components
+### Authentication
+
+- **Token Expiration** - OAuth tokens expire periodically (~90 days)
+- **Re-authentication** - Will require re-setup when tokens expire
+- **Internet Required** - Authentication requires active internet connection
+
+## Advanced Configuration
+
+### Custom Polling Intervals
+
+Edit `config.json` in integration data directory:
+```json
+{
+  "liveid": "YOUR_XBOX_LIVE_DEVICE_ID",
+  "tokens": { ... },
+  "polling_interval": 60
+}
+```
+
+- **polling_interval**: Game presence update frequency in seconds (default: 60)
+
+**Note:** Lower polling intervals increase API requests and may impact Xbox Live rate limits.
+
+### Multiple Xbox Consoles
+
+Currently, the integration supports **one Xbox console per installation**.
+
+For multiple consoles, install separate integration instances:
+1. Each instance connects to different console
+2. Each instance requires separate authentication
+3. Use Docker with different config paths for each instance
+4. Each needs unique Xbox Live Device ID
+
+## For Developers
+
+### Local Development
+
+1. **Clone and setup:**
+```bash
+   git clone https://github.com/mase1981/uc-intg-xbox.git
+   cd uc-intg-xbox
+   python -m venv venv
+   source venv/bin/activate  # Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+```
+
+2. **Configuration:**
+```bash
+   export UC_CONFIG_HOME=./config
+```
+
+3. **Run development:**
+```bash
+   python uc_intg_xbox/driver.py
+```
+
+4. **VS Code debugging:**
+   - Open project in VS Code
+   - Use F5 to start debugging session
+   - Configure with real Xbox Live credentials
+
+### Project Structure
 ```
 uc-intg-xbox/
-├── uc_intg_xbox/
-│   ├── __init__.py           # Package initialization with version
-│   ├── auth.py               # Xbox OAuth2 authentication handler
-│   ├── config.py             # Configuration management with persistence
-│   ├── driver.py             # Main integration driver with token refresh
-│   ├── media_player.py       # Remote Control entity implementation
-│   ├── setup.py              # Setup flow handler (renamed from setup_manager)
-│   └── xbox_device.py        # Xbox Web API client wrapper
-├── driver.json               # Integration metadata
-├── pyproject.toml            # Python project configuration
-├── requirements.txt          # Runtime dependencies
-├── Dockerfile                # Docker image definition
-├── docker-compose.yml        # Docker Compose configuration
-├── LICENSE                   # MPL-2.0 license
-└── README.md                # This file
+├── uc_intg_xbox/              # Main package
+│   ├── __init__.py            # Package info  
+│   ├── auth.py                # Xbox OAuth2 authentication
+│   ├── config.py              # Configuration management
+│   ├── driver.py              # Main integration driver
+│   ├── xbox_client.py         # Xbox Web API client
+│   ├── remote_entity.py       # Remote control entity
+│   ├── media_player_entity.py # Media player entity
+│   └── setup.py               # Setup wizard
+├── .github/workflows/         # GitHub Actions CI/CD
+│   └── build.yml              # Automated build pipeline
+├── docker-compose.yml         # Docker deployment
+├── Dockerfile                 # Container build instructions
+├── driver.json                # Integration metadata
+├── requirements.txt           # Dependencies
+├── pyproject.toml             # Python project config
+└── README.md                  # This file
 ```
 
-### Dependencies
+### Key Implementation Details
 
-- **ucapi** (>=0.3.1) - Unfolded Circle Integration API
-- **xbox-webapi-python** - Xbox Live Web API client
-- **pydantic** (>=2.0) - Data validation
-- **httpx** - Async HTTP client
-- **certifi** - SSL certificate verification
-- **requests** - HTTP library
+#### **Xbox Live Web API Communication**
+- Uses `xbox-webapi-python` library for Xbox Live API
+- OAuth2 authentication via Microsoft identity platform
+- Commands sent to `https://xccs.xboxlive.com/commands`
+- Presence data from `https://peoplehub.xboxlive.com`
+- Game metadata from `https://titlehub.xboxlive.com`
 
----
+#### **Authentication Flow**
+```python
+# OAuth2 with authorization code flow
+1. Generate authorization URL
+2. User authenticates with Microsoft
+3. Receive authorization code from redirect
+4. Exchange code for access/refresh tokens
+5. Store tokens for future use
+6. Auto-refresh every 12 hours
+```
 
-## 👨‍💻 Development
+#### **Entity Architecture**
+- **Remote Entity**: Full button control via `InputKeyType` enums
+- **Media Player Entity**: Read-only presence display
+- Independent command handlers per entity
+- Remote uses Xbox SmartGlass API endpoints
+- Media player polls Xbox Live presence API
 
-### Building From Source
-```bash
-# Clone repository
-git clone https://github.com/mase1981/uc-intg-xbox.git
-cd uc-intg-xbox
+#### **Presence Detection**
+```python
+# Presence update flow
+1. Call get_friends_own_batch([xuid])
+2. Extract presence_details from response
+3. Check for Active game with is_primary=True
+4. Fetch title_info for game metadata
+5. Update media player attributes
+6. Repeat every 60 seconds
+```
 
-# Install in development mode
-pip install -e ".[dev]"
+#### **Reboot Survival Pattern**
+```python
+# Pre-initialize entities if config exists
+if config.is_configured():
+    asyncio.create_task(_initialize_entities())
 
-# Run tests (when available)
-pytest
+# Reload config on reconnect
+async def on_connect():
+    config.reload_from_disk()
+    if not entities_ready:
+        await _initialize_entities()
+```
 
-# Build distribution package
-python -m build
+### Xbox Web API Reference
 
-# Output: dist/uc-intg-xbox-X.X.X.tar.gz
+Essential API endpoints used by this integration:
+
+**SmartGlass Commands:**
+```python
+# Power control
+client.smartglass.wake_up(live_id)
+client.smartglass.turn_off(live_id)
+
+# Button presses
+client.smartglass.press_button(live_id, InputKeyType.A)
+client.smartglass.press_button(live_id, InputKeyType.Home)
+
+# Volume control (HDMI-CEC)
+client.smartglass.change_volume(live_id, VolumeDirection.Up)
+client.smartglass.mute(live_id)
+
+# Console status
+client.smartglass.get_console_status(live_id)
+```
+
+**Presence API:**
+```python
+# Get user presence
+client.people.get_friends_own_batch([xuid])
+
+# Get game title info
+client.titlehub.get_title_info(title_id)
 ```
 
 ### Contributing
 
-Contributions are welcome! Please follow these guidelines:
-
-1. 🍴 Fork the repository
-2. 🌿 Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. 💾 Commit your changes (`git commit -m 'Add amazing feature'`)
-4. 📤 Push to the branch (`git push origin feature/amazing-feature`)
-5. 🎉 Open a Pull Request
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and test with real Xbox console
+4. Commit changes: `git commit -m 'Add amazing feature'`
+5. Push to branch: `git push origin feature/amazing-feature`
+6. Open a Pull Request
 
 ### Code Style
 
-- Follow PEP 8 guidelines
-- Use type hints where applicable
-- Add docstrings to all functions and classes
-- Keep line length to 100 characters
-- Use absolute imports for clarity
+- Follow PEP 8 Python conventions
+- Use type hints for all functions
+- Async/await for all I/O operations
+- Comprehensive docstrings
+- Descriptive variable names
 
----
+## Credits
 
-## 🙏 Credits & Acknowledgments
+- **Developer**: Meir Miyara
+- **xbox-webapi-python**: [OpenXbox/xbox-webapi-python](https://github.com/OpenXbox/xbox-webapi-python)
+- **Unfolded Circle**: Remote 2/3 integration framework (ucapi)
+- **Reference Integrations**: PSN and JVC integrations by Jack Powell
+- **Community**: Testing and feedback from UC community
 
-### Integration Development
-- **Author**: [Meir Miyara](https://github.com/mase1981)
+## License
 
-### Libraries & References
-- **xbox-webapi-python**: [OpenXbox/xbox-webapi-python](https://github.com/OpenXbox/xbox-webapi-python) - Python library for Xbox Live API
-- **Unfolded Circle**: [Integration Python Library](https://github.com/unfoldedcircle/integration-python-library)
-
-### Special Thanks
-- **Jack Powell** ([@JackJPowell](https://github.com/JackJPowell)) - PSN and JVC integrations as reference
-- **Mike Hobin** ([@mikehobin](https://github.com/mikehobin)) - Docker configuration assistance
-- **Unfolded Circle Community** - Testing and feedback
-
----
-
-## 💖 Support the Project
-
-If you find this integration useful, please consider:
-
-- ⭐ **Star this repository** on GitHub
-- 🐛 **Report issues** to help improve the integration
-- 💡 **Share feedback** in discussions
-- 📖 **Contribute** documentation or code improvements
-
-### Sponsor
-
-If you'd like to support continued development:
-
-[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-pink?logo=github)](https://github.com/sponsors/mase1981)
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support-yellow?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/meirmiyara)
-[![PayPal](https://img.shields.io/badge/PayPal-Donate-blue?logo=paypal)](https://paypal.me/mmiyara)
-
----
-
-## 📞 Support & Community
-
-### Getting Help
-
-- 📋 **Issues**: [GitHub Issues](https://github.com/mase1981/uc-intg-xbox/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/mase1981/uc-intg-xbox/discussions)
-- 🎮 **Discord**: [Unfolded Circle Community](https://discord.gg/zGVYf58)
-- 🌐 **UC Community**: [Unfolded Circle Forum](https://unfoldedcircle.com/community)
-
-### Reporting Issues
-
-When reporting issues, please include:
-
-1. Integration version
-2. Xbox console model
-3. UC Remote firmware version
-4. Detailed description of the problem
-5. Steps to reproduce
-6. Relevant log excerpts
-
----
-
-## 📜 License
-
-This project is licensed under the **Mozilla Public License 2.0** (MPL-2.0).
-
-See the [LICENSE](LICENSE) file for full details.
+This project is licensed under the Mozilla Public License 2.0 (MPL-2.0) - see LICENSE file for details.
 ```
 Copyright (c) 2025 Meir Miyara
 
@@ -464,12 +589,18 @@ License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ```
 
+## Support & Community
+
+- **GitHub Issues**: [Report bugs and request features](https://github.com/mase1981/uc-intg-xbox/issues)
+- **GitHub Discussions**: [General discussion and support](https://github.com/mase1981/uc-intg-xbox/discussions)
+- **UC Community Forum**: [Unfolded Circle community](https://community.unfoldedcircle.com/)
+- **Discord**: [Unfolded Circle Discord](https://discord.gg/zGVYf58)
+- **Developer**: [Meir Miyara](https://github.com/mase1981)
+
 ---
 
-<div align="center">
+**Made with ❤️ for the Unfolded Circle and Xbox Gaming Communities** 
 
-**Enjoy controlling your Xbox console with your Unfolded Circle Remote!** 🎉
+**Enjoy controlling your Xbox with your Unfolded Circle Remote!** 🎮
 
-Made with ❤️ by [Meir Miyara](https://github.com/mase1981)
-
-</div>
+**Thank You**: Meir Miyara
