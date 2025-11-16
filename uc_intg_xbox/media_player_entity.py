@@ -6,9 +6,13 @@ Xbox media player entity module for Unfolded Circle integration.
 """
 
 import logging
-from ucapi.media_player import MediaPlayer, Attributes, Features, States
+from ucapi.media_player import MediaPlayer
 
 _LOG = logging.getLogger("XBOX_MEDIA_PLAYER")
+
+async def empty_command_handler(entity, command, params=None):
+    _LOG.info(f"Command '{command}' received. No action taken (read-only entity).")
+    return True
 
 class XboxMediaPlayer(MediaPlayer):
     def __init__(self, api, xbox_client, entity_id: str = ""):
@@ -19,18 +23,14 @@ class XboxMediaPlayer(MediaPlayer):
         super().__init__(
             entity_id,
             entity_name,
-            features=[
-                Features.ON_OFF,
-                Features.MEDIA_TITLE,
-                Features.MEDIA_IMAGE_URL,
-                Features.MEDIA_TYPE,
-            ],
+            features=["ON_OFF", "MEDIA_TITLE", "MEDIA_IMAGE_URL", "MEDIA_TYPE"],
             attributes={
-                Attributes.STATE: States.OFF,
-                Attributes.MEDIA_TITLE: "Offline",
-                Attributes.MEDIA_IMAGE_URL: "",
-                Attributes.MEDIA_TYPE: "GAME",
+                "state": "OFF",
+                "media_title": "Offline",
+                "media_image_url": "",
+                "media_type": "GAME",
             },
+            cmd_handler=empty_command_handler,
         )
         self.api = api
         self.xbox_client = xbox_client
@@ -40,16 +40,16 @@ class XboxMediaPlayer(MediaPlayer):
         attributes_to_update = {}
         
         new_state = presence_data.get("state")
-        if self.attributes.get(Attributes.STATE) != new_state:
-            attributes_to_update[Attributes.STATE] = new_state
+        if self.attributes.get("state") != new_state:
+            attributes_to_update["state"] = new_state
         
         new_title = presence_data.get("title", "Unknown")
-        if self.attributes.get(Attributes.MEDIA_TITLE) != new_title:
-            attributes_to_update[Attributes.MEDIA_TITLE] = new_title
+        if self.attributes.get("media_title") != new_title:
+            attributes_to_update["media_title"] = new_title
 
         new_image = presence_data.get("image", "")
-        if self.attributes.get(Attributes.MEDIA_IMAGE_URL) != new_image:
-            attributes_to_update[Attributes.MEDIA_IMAGE_URL] = new_image
+        if self.attributes.get("media_image_url") != new_image:
+            attributes_to_update["media_image_url"] = new_image
 
         if attributes_to_update:
             self.api.configured_entities.update_attributes(self.id, attributes_to_update)
