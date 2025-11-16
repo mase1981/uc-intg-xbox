@@ -12,7 +12,6 @@ from pathlib import Path
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
-# Load version from driver.json (same pattern as other integrations)
 try:
     driver_path = Path(__file__).parent.parent / "driver.json"
     with open(driver_path, "r", encoding="utf-8") as f:
