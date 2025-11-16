@@ -7,66 +7,78 @@ Xbox remote entity module for Unfolded Circle integration.
 
 import logging
 from ucapi import Remote, StatusCodes
-from ucapi.remote import States as RemoteStates
-from ucapi.remote import Features
+from ucapi.remote import States as RemoteStates, Features, Commands
 
 _LOG = logging.getLogger("XBOX_REMOTE")
 
-SUPPORTED_COMMANDS = [
-    "on",
-    "off",
-    "up",
-    "down",
-    "left",
-    "right",
-    "select",
-    "back",
-    "home",
-    "menu",
-    "view",
-    "a_button",
-    "b_button",
-    "x_button",
-    "y_button",
-    "play",
-    "pause",
-    "stop",
-    "next_track",
-    "previous_track",
-    "red",
-    "green",
-    "blue",
-    "yellow",
-    "volume_up",
-    "volume_down",
-    "mute_toggle",
+SIMPLE_COMMANDS = [
+    "POWER_ON",
+    "POWER_OFF",
+    "POWER_TOGGLE",
+    "DPAD_UP",
+    "DPAD_DOWN",
+    "DPAD_LEFT",
+    "DPAD_RIGHT",
+    "DPAD_CENTER",
+    "BACK",
+    "HOME",
+    "MENU",
+    "CONTEXT_MENU",
+    "CHANNEL_UP",
+    "CHANNEL_DOWN",
+    "A",
+    "B",
+    "X",
+    "Y",
+    "PLAY",
+    "PAUSE",
+    "STOP",
+    "NEXT",
+    "PREVIOUS",
+    "FAST_FORWARD",
+    "REWIND",
+    "VOLUME_UP",
+    "VOLUME_DOWN",
+    "MUTE_TOGGLE",
+    "RED",
+    "GREEN",
+    "BLUE",
+    "YELLOW",
 ]
 
-REMOTE_COMMANDS_MAP = {
-    "on": "on",
-    "off": "off",
-    "up": "Up",
-    "down": "Down",
-    "left": "Left",
-    "right": "Right",
-    "select": "A",
-    "back": "B",
-    "home": "Home",
-    "menu": "Menu",
-    "view": "View",
-    "a_button": "A",
-    "b_button": "B",
-    "x_button": "X",
-    "y_button": "Y",
-    "play": "Play",
-    "pause": "Pause",
-    "stop": "Stop",
-    "next_track": "NextTrack",
-    "previous_track": "PrevTrack",
-    "green": "A",
-    "red": "B",
-    "blue": "X",
-    "yellow": "Y",
+COMMAND_MAP = {
+    "POWER_ON": "on",
+    "POWER_OFF": "off",
+    "POWER_TOGGLE": "toggle",
+    "DPAD_UP": "Up",
+    "DPAD_DOWN": "Down",
+    "DPAD_LEFT": "Left",
+    "DPAD_RIGHT": "Right",
+    "DPAD_CENTER": "A",
+    "BACK": "B",
+    "HOME": "Home",
+    "MENU": "Menu",
+    "CONTEXT_MENU": "View",
+    "CHANNEL_UP": "Y",
+    "CHANNEL_DOWN": "X",
+    "A": "A",
+    "B": "B",
+    "X": "X",
+    "Y": "Y",
+    "PLAY": "Play",
+    "PAUSE": "Pause",
+    "STOP": "Stop",
+    "NEXT": "NextTrack",
+    "PREVIOUS": "PrevTrack",
+    "FAST_FORWARD": "NextTrack",
+    "REWIND": "PrevTrack",
+    "VOLUME_UP": "volume_up",
+    "VOLUME_DOWN": "volume_down",
+    "MUTE_TOGGLE": "mute",
+    "RED": "B",
+    "GREEN": "A",
+    "BLUE": "X",
+    "YELLOW": "Y",
 }
 
 
@@ -79,14 +91,14 @@ class XboxRemote(Remote):
         super().__init__(
             entity_id,
             entity_name,
-            features=[Features.ON_OFF, Features.VOLUME, Features.MUTE],
+            features=[Features.ON_OFF, Features.TOGGLE, Features.SEND_CMD],
             attributes={"state": RemoteStates.ON},
-            simple_commands=SUPPORTED_COMMANDS,
+            simple_commands=SIMPLE_COMMANDS,
             cmd_handler=self.handle_command,
         )
         self.api = api
         self.xbox_client = xbox_client
-        _LOG.info(f"XboxRemote entity '{entity_name}' initialized.")
+        _LOG.info(f"XboxRemote entity initialized for {entity_name}")
 
     async def handle_command(self, entity, cmd_id: str, params: dict = None) -> StatusCodes:
         if not self.xbox_client or not self.xbox_client.client:
@@ -94,38 +106,45 @@ class XboxRemote(Remote):
             return StatusCodes.BAD_REQUEST
         
         try:
-            actual_command = (
-                params.get("command")
-                if cmd_id == "remote.send_cmd"
-                else cmd_id
-            )
-
-            if actual_command == "on" or actual_command == "remote.on":
+            if cmd_id == Commands.ON:
                 await self.xbox_client.turn_on()
                 self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.ON})
                 return StatusCodes.OK
                 
-            elif actual_command == "off" or actual_command == "remote.off":
+            elif cmd_id == Commands.OFF:
                 await self.xbox_client.turn_off()
                 self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.OFF})
                 return StatusCodes.OK
-
-            elif actual_command == "volume_up":
-                await self.xbox_client.change_volume("Up")
-                return StatusCodes.OK
                 
-            elif actual_command == "volume_down":
-                await self.xbox_client.change_volume("Down")
-                return StatusCodes.OK
-                
-            elif actual_command == "mute_toggle":
-                await self.xbox_client.mute()
+            elif cmd_id == Commands.TOGGLE:
+                current_state = self.attributes.get("state")
+                if current_state == RemoteStates.ON:
+                    await self.xbox_client.turn_off()
+                    self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.OFF})
+                else:
+                    await self.xbox_client.turn_on()
+                    self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.ON})
                 return StatusCodes.OK
 
-            elif actual_command in REMOTE_COMMANDS_MAP:
-                button_to_press = REMOTE_COMMANDS_MAP[actual_command]
-                await self.xbox_client.press_button(button_to_press)
-                return StatusCodes.OK
+            elif cmd_id == Commands.SEND_CMD and params:
+                command = params.get("command")
+                if command in COMMAND_MAP:
+                    xbox_cmd = COMMAND_MAP[command]
+                    
+                    if xbox_cmd == "on":
+                        await self.xbox_client.turn_on()
+                    elif xbox_cmd == "off":
+                        await self.xbox_client.turn_off()
+                    elif xbox_cmd == "volume_up":
+                        await self.xbox_client.change_volume("Up")
+                    elif xbox_cmd == "volume_down":
+                        await self.xbox_client.change_volume("Down")
+                    elif xbox_cmd == "mute":
+                        await self.xbox_client.mute()
+                    else:
+                        await self.xbox_client.press_button(xbox_cmd)
+                    
+                    return StatusCodes.OK
 
             return StatusCodes.BAD_REQUEST
             
