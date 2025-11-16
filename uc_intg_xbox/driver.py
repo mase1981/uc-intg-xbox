@@ -10,6 +10,8 @@ import logging
 import os
 import ucapi
 from ucapi import DeviceStates, Events
+from ucapi.remote import States as RemoteStates
+from ucapi.media_player import States as MediaStates
 
 from uc_intg_xbox.config import XboxConfig
 from uc_intg_xbox.setup import XboxSetup
@@ -139,9 +141,21 @@ async def on_subscribe_entities(entity_ids: list[str]):
         if _remote_entity and entity_id == _remote_entity.id:
             api.configured_entities.add(_remote_entity)
             _LOG.info(f"Remote entity {entity_id} subscribed")
+            api.configured_entities.update_attributes(_remote_entity.id, {"state": RemoteStates.ON})
+            _LOG.info(f"Remote entity initial state pushed: ON")
+            
         if _media_player_entity and entity_id == _media_player_entity.id:
             api.configured_entities.add(_media_player_entity)
             _LOG.info(f"Media player entity {entity_id} subscribed")
+            
+            initial_presence = {
+                "state": MediaStates.OFF,
+                "title": "Offline",
+                "image": ""
+            }
+            await _media_player_entity.update_presence(initial_presence)
+            _LOG.info(f"Media player initial state pushed: OFF")
+            
             start_presence_updates()
 
 def start_token_refresh_loop():
@@ -194,7 +208,7 @@ async def presence_update_loop():
                     continue
                 
                 presence_data = {
-                    "state": "OFF",
+                    "state": MediaStates.OFF,
                     "title": "Offline",
                     "image": ""
                 }
@@ -202,14 +216,14 @@ async def presence_update_loop():
                 if presence.presence_state == "Online":
                     if console_status and console_status.focus_app_aumid:
                         if presence.presence_text and presence.presence_text != "Home":
-                            presence_data["state"] = "PLAYING"
+                            presence_data["state"] = MediaStates.PLAYING
                             presence_data["title"] = presence.presence_text
                             _LOG.info(f"Now playing: {presence.presence_text}")
                         else:
-                            presence_data["state"] = "ON"
+                            presence_data["state"] = MediaStates.ON
                             presence_data["title"] = "Home"
                     else:
-                        presence_data["state"] = "ON"
+                        presence_data["state"] = MediaStates.ON
                         presence_data["title"] = "Home"
                 
                 await _media_player_entity.update_presence(presence_data)

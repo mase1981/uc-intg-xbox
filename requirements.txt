@@ -1,5 +1,5 @@
 ucapi==0.3.1
-python-xbox==0.1.0
+python-xbox==0.1.1
 xbox-webapi==2.1.0
 httpx
 platformdirs==4.5.0
