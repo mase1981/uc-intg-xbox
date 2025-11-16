@@ -1,6 +1,7 @@
-ucapi==0.3.1
-xbox-webapi @ git+https://github.com/OpenXbox/xbox-webapi-python.git
+ucapi>=0.3.1
+python-xbox==0.1.1
 pydantic>=2.0
 certifi
-requests
 httpx
+platformdirs
+aiofiles

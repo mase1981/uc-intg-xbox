@@ -2,9 +2,9 @@
   "driver_id": "uc-intg-xbox",
   "name": { "en": "Xbox Integration" },
   "icon": "uc:gamepad-modern",
-  "description": { "en": "Control your Xbox console" },
-  "version": "1.2.6",
-  "developer": { "name": "Meir Miyara" },
+  "description": { "en": "Control your Xbox console and view gaming activity" },
+  "version": "2.0.0",
+  "developer": { "name": "Meir Miyara", "email": "meir.miyara@gmail.com" },
   "min_core_api": "0.3.1",
   "setup_data_schema": {
     "title": { "en": "Xbox Configuration" },
