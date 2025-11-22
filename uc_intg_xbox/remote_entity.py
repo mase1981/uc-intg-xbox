@@ -81,7 +81,6 @@ COMMAND_MAP = {
     "YELLOW": "Y",
 }
 
-
 class XboxRemote(Remote):
     def __init__(self, api, xbox_client, entity_id: str = ""):
         if not entity_id:
@@ -106,14 +105,18 @@ class XboxRemote(Remote):
             return StatusCodes.BAD_REQUEST
         
         try:
+            from uc_intg_xbox.driver import trigger_state_update
+            
             if cmd_id == Commands.ON:
                 await self.xbox_client.turn_on()
                 self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.ON})
+                trigger_state_update()
                 return StatusCodes.OK
                 
             elif cmd_id == Commands.OFF:
                 await self.xbox_client.turn_off()
                 self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.OFF})
+                trigger_state_update()
                 return StatusCodes.OK
                 
             elif cmd_id == Commands.TOGGLE:
@@ -124,6 +127,7 @@ class XboxRemote(Remote):
                 else:
                     await self.xbox_client.turn_on()
                     self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.ON})
+                trigger_state_update()
                 return StatusCodes.OK
 
             elif cmd_id == Commands.SEND_CMD and params:
@@ -133,8 +137,10 @@ class XboxRemote(Remote):
                     
                     if xbox_cmd == "on":
                         await self.xbox_client.turn_on()
+                        trigger_state_update()
                     elif xbox_cmd == "off":
                         await self.xbox_client.turn_off()
+                        trigger_state_update()
                     elif xbox_cmd == "volume_up":
                         await self.xbox_client.change_volume("Up")
                     elif xbox_cmd == "volume_down":
@@ -143,6 +149,8 @@ class XboxRemote(Remote):
                         await self.xbox_client.mute()
                     else:
                         await self.xbox_client.press_button(xbox_cmd)
+                        if xbox_cmd in ["Home", "A", "B"]:
+                            trigger_state_update()
                     
                     return StatusCodes.OK
 
