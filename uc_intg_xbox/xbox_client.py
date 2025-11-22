@@ -28,6 +28,7 @@ class XboxClient:
         self.session: httpx.AsyncClient | None = None
         self.xuid: str | None = None
         self.gamertag: str = "Xbox User"
+        self._last_known_state: str = "UNKNOWN"
 
     @classmethod
     async def from_config(cls, config, existing_session: httpx.AsyncClient = None):
@@ -77,6 +78,7 @@ class XboxClient:
         try:
             await self.client.smartglass.wake_up(self.live_id)
             _LOG.info("Power on command sent successfully")
+            self._last_known_state = "ON"
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
                 _LOG.error("Xbox API returned 404 - Console may be in Energy Saving mode or not reachable. Ensure console is in Sleep mode.")
@@ -92,6 +94,7 @@ class XboxClient:
         try:
             await self.client.smartglass.turn_off(self.live_id)
             _LOG.info("Power off command sent")
+            self._last_known_state = "OFF"
         except Exception as e:
             _LOG.exception("Failed to send power off command", exc_info=e)
             raise
@@ -137,6 +140,30 @@ class XboxClient:
             _LOG.exception(f"Failed to press button '{button}'", exc_info=e)
             raise
 
+    async def get_console_state(self):
+        try:
+            batch = await self.client.people.get_friends_own_batch([self.xuid])
+            people = getattr(batch, "people", None) or []
+            
+            profile = next((p for p in people if getattr(p, "xuid", None) == self.xuid), None)
+            
+            if not profile:
+                _LOG.warning("Could not find own profile in batch")
+                return self._last_known_state
+            
+            presence_state = getattr(profile, "presence_state", "Offline")
+            
+            if presence_state == "Offline":
+                self._last_known_state = "OFF"
+                return "OFF"
+            
+            self._last_known_state = "ON"
+            return "ON"
+            
+        except Exception as e:
+            _LOG.debug(f"Failed to get console state: {e}")
+            return self._last_known_state
+
     async def get_presence_and_title(self):
         try:
             batch = await self.client.people.get_friends_own_batch([self.xuid])
@@ -151,12 +178,14 @@ class XboxClient:
             presence_state = getattr(profile, "presence_state", "Offline")
             
             if presence_state == "Offline":
+                self._last_known_state = "OFF"
                 return {
                     "state": "OFF",
                     "title": "Offline",
                     "image": ""
                 }
             
+            self._last_known_state = "ON"
             presence_text = getattr(profile, "presence_text", None)
             presence_details = getattr(profile, "presence_details", None) or []
             
