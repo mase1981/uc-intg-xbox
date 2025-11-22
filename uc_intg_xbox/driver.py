@@ -39,9 +39,11 @@ _token_refresh_task: asyncio.Task | None = None
 _presence_update_task: asyncio.Task | None = None
 _force_update_event: asyncio.Event = asyncio.Event()
 _last_forced_update: float = 0
+_delayed_check_task: asyncio.Task | None = None
 UPDATE_INTERVAL_ON = 60
 UPDATE_INTERVAL_OFF = 90
 FORCE_UPDATE_COOLDOWN = 5
+DELAYED_CHECK_SECONDS = 15
 
 async def _initialize_entities():
     global _config, _xbox_client, _remote_entity, _media_player_entity, api, _entities_ready
@@ -180,6 +182,17 @@ def trigger_state_update():
         _force_update_event.set()
         _LOG.debug("State update triggered after command")
 
+async def _delayed_check():
+    await asyncio.sleep(DELAYED_CHECK_SECONDS)
+    _force_update_event.set()
+    _LOG.debug(f"Delayed state check triggered after {DELAYED_CHECK_SECONDS}s")
+
+def trigger_delayed_state_update():
+    global _delayed_check_task
+    if _delayed_check_task and not _delayed_check_task.done():
+        _delayed_check_task.cancel()
+    _delayed_check_task = loop.create_task(_delayed_check())
+
 def start_token_refresh_loop():
     global _token_refresh_task
     if _token_refresh_task and not _token_refresh_task.done():
@@ -235,7 +248,7 @@ async def presence_update_loop():
             
             if event_task in done:
                 _force_update_event.clear()
-                _LOG.debug("Performing immediate state check after command")
+                _LOG.debug("Performing immediate state check after trigger")
             
             if _xbox_client and _xbox_client.client and _media_player_entity:
                 _LOG.debug("Fetching Xbox presence data...")

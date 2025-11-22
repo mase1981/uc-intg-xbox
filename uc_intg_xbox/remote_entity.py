@@ -105,7 +105,7 @@ class XboxRemote(Remote):
             return StatusCodes.BAD_REQUEST
         
         try:
-            from uc_intg_xbox.driver import trigger_state_update
+            from uc_intg_xbox.driver import trigger_state_update, trigger_delayed_state_update
             
             if cmd_id == Commands.ON:
                 await self.xbox_client.turn_on()
@@ -151,6 +151,7 @@ class XboxRemote(Remote):
                         await self.xbox_client.press_button(xbox_cmd)
                         if xbox_cmd in ["Home", "A", "B"]:
                             trigger_state_update()
+                            trigger_delayed_state_update()
                     
                     return StatusCodes.OK
 
