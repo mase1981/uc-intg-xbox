@@ -28,8 +28,8 @@ Microsoft deprecated the OAuth redirect URI that the python-xbox library was usi
    - **Name**: `Unfolded Circle Xbox Integration` (or any name you prefer)
    - **Supported account types**: Select **"Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant) and personal Microsoft accounts (e.g. Skype, Xbox)"**
    - **Redirect URI**:
-     - From the dropdown, select **"Public client/native (mobile & desktop)"**
-     - Enter: `http://localhost`
+     - From the dropdown, select **"Web"**
+     - Enter: `https://mase1981.github.io/uc-intg-xbox-auth/`
 5. Click **"Register"**
 
 ### 3. Copy Your Application (Client) ID
@@ -55,11 +55,9 @@ After registration, you'll be on your app's overview page:
 ### 5. Verify Redirect URI (Optional)
 
 1. In the left sidebar, click **"Authentication"**
-2. Under **"Platform configurations"**, you should see **"Mobile and desktop applications"**
-3. Verify that `http://localhost` is listed as a redirect URI
-4. If you want to add additional redirect URIs for testing, you can add:
-   - `http://localhost:36677`
-   - `http://localhost:36677/auth`
+2. Under **"Platform configurations"**, you should see **"Web"**
+3. Verify that `https://mase1981.github.io/uc-intg-xbox-auth/` is listed as a redirect URI
+4. This redirect URI points to a callback page that displays your authorization code
 
 ## Using Your Credentials
 
@@ -80,8 +78,8 @@ When setting up the Xbox integration in your Unfolded Circle Remote:
 ## Troubleshooting
 
 ### "The provided value for 'redirect_uri' is not valid"
-- Make sure you selected **"Public client/native (mobile & desktop)"** as the redirect URI type
-- Verify the redirect URI is exactly: `http://localhost` (no trailing slash)
+- Make sure you selected **"Web"** as the redirect URI type
+- Verify the redirect URI is exactly: `https://mase1981.github.io/uc-intg-xbox-auth/` (with trailing slash)
 
 ### "Supported account types" error during authentication
 - Ensure you selected the option that includes **"personal Microsoft accounts (e.g. Skype, Xbox)"**

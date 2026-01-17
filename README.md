@@ -183,7 +183,7 @@ docker run -d --name=uc-intg-xbox --network host -v </local/path>:/data -e UC_CO
 3. Create new registration with:
    - **Name**: `Unfolded Circle Xbox Integration`
    - **Supported accounts**: **Personal Microsoft accounts (e.g. Skype, Xbox)**
-   - **Redirect URI**: `http://localhost` (Public client/native)
+   - **Redirect URI**: `https://mase1981.github.io/uc-intg-xbox-auth/` (Web type)
 4. Copy your **Application (client) ID**
 5. Create a **Client Secret** and copy the **Value**
 6. Save both for the integration setup

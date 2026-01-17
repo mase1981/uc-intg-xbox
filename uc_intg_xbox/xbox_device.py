@@ -10,7 +10,7 @@ from xbox.webapi.authentication.models import OAuth2TokenResponse
 from xbox.webapi.api.provider.smartglass.models import VolumeDirection
 _LOG = logging.getLogger("XBOX_DEVICE")
 
-OAUTH2_LOCALHOST_URI = "http://localhost"
+OAUTH2_REDIRECT_URI = "https://mase1981.github.io/uc-intg-xbox-auth/"
 
 class SystemInput(str, Enum):
     A = "A"
@@ -51,7 +51,7 @@ class XboxDevice:
                 session,
                 config.client_id,
                 config.client_secret,
-                OAUTH2_LOCALHOST_URI,
+                OAUTH2_REDIRECT_URI,
             )
             auth_mgr.oauth = OAuth2TokenResponse.model_validate(config.tokens)
 
