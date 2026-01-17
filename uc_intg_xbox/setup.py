@@ -31,15 +31,23 @@ class XboxSetup:
     async def handle_command(self, request):
         if isinstance(request, DriverSetupRequest):
             if request.reconfigure or not self.config.tokens:
+                # Capture Azure App credentials
+                self.config.client_id = request.setup_data.get("client_id", "").strip()
+                self.config.client_secret = request.setup_data.get("client_secret", "").strip()
                 self.config.liveid = request.setup_data.get("liveid", "").strip()
 
-                if not self.config.liveid:
+                if not self.config.client_id or not self.config.client_secret:
+                    _LOG.error("Azure App credentials missing.")
                     return SetupError(IntegrationSetupError.INVALID_INPUT)
 
-                _LOG.info("Live ID captured. Starting OAuth authentication flow.")
+                if not self.config.liveid:
+                    _LOG.error("Xbox Live Device ID missing.")
+                    return SetupError(IntegrationSetupError.INVALID_INPUT)
+
+                _LOG.info("Credentials captured. Starting OAuth authentication flow.")
                 ssl_context = ssl.create_default_context(cafile=certifi.where())
                 self.auth_session = httpx.AsyncClient(verify=ssl_context)
-                auth_handler = XboxAuth(self.auth_session)
+                auth_handler = XboxAuth(self.auth_session, self.config.client_id, self.config.client_secret)
                 auth_url = auth_handler.generate_auth_url()
 
                 return RequestUserInput(
@@ -99,10 +107,10 @@ class XboxSetup:
 
         if hasattr(request, 'input_values') and "auth_code" in request.input_values:
             auth_code = request.input_values.get("auth_code", "").strip()
-            if not self.auth_session:
+            if not self.auth_session or not self.config.client_id or not self.config.client_secret:
                 return SetupError(IntegrationSetupError.OTHER)
 
-            auth_handler = XboxAuth(self.auth_session)
+            auth_handler = XboxAuth(self.auth_session, self.config.client_id, self.config.client_secret)
             try:
                 tokens = await auth_handler.process_auth_code(auth_code)
             finally:

@@ -16,10 +16,8 @@ from xbox.webapi.api.provider.smartglass.models import (
     InputKeyType,
     VolumeDirection,
 )
-from xbox.webapi.scripts import CLIENT_ID, CLIENT_SECRET
-
 _LOG = logging.getLogger("XBOX_CLIENT")
-OAUTH2_DESKTOP_REDIRECT_URI = "https://login.live.com/oauth20_desktop.srf"
+OAUTH2_LOCALHOST_URI = "http://localhost"
 
 class XboxClient:
     def __init__(self, live_id: str):
@@ -33,7 +31,7 @@ class XboxClient:
     @classmethod
     async def from_config(cls, config, existing_session: httpx.AsyncClient = None):
         instance = cls(config.liveid)
-        
+
         try:
             if existing_session:
                 instance.session = existing_session
@@ -41,11 +39,12 @@ class XboxClient:
                 ssl_context = ssl.create_default_context(cafile=certifi.where())
                 instance.session = httpx.AsyncClient(verify=ssl_context)
 
+            # Use user-provided Azure App credentials from config
             auth_mgr = AuthenticationManager(
                 instance.session,
-                CLIENT_ID,
-                CLIENT_SECRET,
-                OAUTH2_DESKTOP_REDIRECT_URI,
+                config.client_id,
+                config.client_secret,
+                OAUTH2_LOCALHOST_URI,
             )
             auth_mgr.oauth = OAuth2TokenResponse.model_validate(config.tokens)
             

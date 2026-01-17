@@ -171,7 +171,24 @@ docker run -d --name=uc-intg-xbox --network host -v </local/path>:/data -e UC_CO
 
 ## Configuration
 
-### Step 1: Prepare Your Xbox Console
+### Step 1: Create Azure App Registration
+
+**IMPORTANT**: Starting with version 3.2.0, due to Microsoft OAuth changes, you must create your own Azure App Registration.
+
+📖 **[Complete Azure Setup Guide](AZURE_SETUP_GUIDE.md)**
+
+**Quick Summary:**
+1. Go to https://portal.azure.com
+2. Navigate to **Microsoft Entra ID** → **App registrations**
+3. Create new registration with:
+   - **Name**: `Unfolded Circle Xbox Integration`
+   - **Supported accounts**: **Personal Microsoft accounts (e.g. Skype, Xbox)**
+   - **Redirect URI**: `http://localhost` (Public client/native)
+4. Copy your **Application (client) ID**
+5. Create a **Client Secret** and copy the **Value**
+6. Save both for the integration setup
+
+### Step 2: Prepare Your Xbox Console
 
 **IMPORTANT**: Xbox console must be configured before adding the integration.
 
@@ -185,13 +202,15 @@ docker run -d --name=uc-intg-xbox --network host -v </local/path>:/data -e UC_CO
 2. Select **"Sleep"** power mode
 3. Ensure console is connected to network
 
-### Step 2: Setup Integration
+### Step 3: Setup Integration
 
 1. After installation, go to **Settings** → **Integrations**
 2. The Xbox integration should appear in **Available Integrations**
 3. Click **"Configure"** and follow the setup wizard:
 
-   **Page 1 - Xbox Live Device ID:**
+   **Page 1 - Azure App Credentials:**
+   - **Azure App Client ID**: Paste your Application (client) ID from Azure
+   - **Azure App Client Secret**: Paste your Client Secret Value from Azure
    - **Xbox Live Device ID**: Paste the ID from Xbox console settings
    - Click **Next**
 
