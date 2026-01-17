@@ -18,8 +18,9 @@ _LOG = logging.getLogger("OAUTH_SERVER")
 class OAuthCallbackServer:
     """Temporary HTTP server to handle OAuth callbacks."""
 
-    def __init__(self, port: int = 8080):
+    def __init__(self, port: int = 8765, host: str = "0.0.0.0"):
         self.port = port
+        self.host = host
         self.app = web.Application()
         self.runner = None
         self.site = None
@@ -164,9 +165,9 @@ class OAuthCallbackServer:
         try:
             self.runner = web.AppRunner(self.app)
             await self.runner.setup()
-            self.site = web.TCPSite(self.runner, 'localhost', self.port)
+            self.site = web.TCPSite(self.runner, self.host, self.port)
             await self.site.start()
-            _LOG.info(f"OAuth callback server started on http://localhost:{self.port}")
+            _LOG.info(f"OAuth callback server started on http://{self.host}:{self.port}")
         except Exception as e:
             _LOG.exception(f"Failed to start OAuth callback server: {e}")
             raise
