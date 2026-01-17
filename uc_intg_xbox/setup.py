@@ -59,9 +59,9 @@ class XboxSetup:
                             "field": {
                                 "label": {
                                     "value": {
-                                        "en": "Click the link below to sign in with your Microsoft account.\n"
-                                              "After signing in, you'll be redirected to a blank page.\n"
-                                              "Copy the ENTIRE URL from your browser's address bar and paste it below."
+                                        "en": "IMPORTANT: Right-click the link below and select 'Copy link address'.\n"
+                                              "Paste it into a NEW browser tab (do NOT click directly).\n"
+                                              "This prevents the browser from closing after authentication."
                                     }
                                 }
                             }
@@ -87,14 +87,18 @@ class XboxSetup:
                         },
                         {
                             "id": "help_text",
-                            "label": {"en": "Need Help?"},
+                            "label": {"en": "Instructions"},
                             "field": {
                                 "label": {
                                     "value": {
-                                        "en": "After signing in, you'll see a blank page or error. This is normal!\n"
-                                              "Look at your browser's address bar - the URL will look like:\n"
-                                              "http://localhost/?code=M.R3_BAY.abc123...\n\n"
-                                              "Copy the ENTIRE URL and paste it above. The integration will extract the code automatically."
+                                        "en": "1. Copy the Authorization URL above\n"
+                                              "2. Paste it into a NEW browser tab\n"
+                                              "3. Sign in with your Microsoft account\n"
+                                              "4. After signing in, QUICKLY copy the URL from the address bar\n"
+                                              "   It will look like: http://localhost/?code=M.R3_BAY.abc123...\n"
+                                              "5. Paste the ENTIRE URL in Step 2 above\n\n"
+                                              "Note: The page may be blank or show an error - this is normal!\n"
+                                              "The important part is the URL in the address bar."
                                     }
                                 }
                             }
