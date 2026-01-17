@@ -14,18 +14,19 @@ from pythonxbox.scripts import CLIENT_ID, CLIENT_SECRET
 
 _LOG = logging.getLogger("XBOX_AUTH")
 
-# OAuth redirect URI - Out-of-band (OOB) flow
-# This tells Microsoft to display the authorization code directly on the page
-# instead of redirecting. This works without any external server or redirect URI!
-OAUTH2_OOB_URI = "urn:ietf:wg:oauth:2.0:oob"
+# OAuth redirect URI - Localhost redirect
+# Microsoft deprecated OOB flow for login.live.com
+# Using http://localhost which the python-xbox CLIENT_ID supports
+# User will see the code in the redirected localhost URL
+OAUTH2_LOCALHOST_URI = "http://localhost"
 
 class XboxAuth:
     def __init__(self, session: httpx.AsyncClient):
         self.session = session
         self.auth_mgr = AuthenticationManager(
-            session, CLIENT_ID, CLIENT_SECRET, OAUTH2_OOB_URI
+            session, CLIENT_ID, CLIENT_SECRET, OAUTH2_LOCALHOST_URI
         )
-        _LOG.info("XboxAuth initialized with out-of-band flow.")
+        _LOG.info("XboxAuth initialized with localhost redirect.")
 
     def generate_auth_url(self) -> str:
         """Generate OAuth authorization URL that redirects to our callback page."""
@@ -33,23 +34,43 @@ class XboxAuth:
         _LOG.info(f"Generated auth URL: {auth_url[:100]}...")
         return auth_url
 
-    async def process_auth_code(self, auth_code: str) -> dict | None:
+    async def process_auth_code(self, auth_input: str) -> dict | None:
         """
         Exchange authorization code for OAuth tokens.
 
         Args:
-            auth_code: The authorization code copied from the callback page
+            auth_input: Either the full redirect URL or just the authorization code
 
         Returns:
             dict with OAuth tokens if successful, None otherwise
         """
-        _LOG.info("Processing authorization code...")
+        _LOG.info("Processing authorization input...")
         try:
-            if not auth_code or not auth_code.strip():
-                _LOG.error("Empty authorization code provided.")
+            if not auth_input or not auth_input.strip():
+                _LOG.error("Empty authorization input provided.")
                 return None
 
-            auth_code = auth_code.strip()
+            auth_input = auth_input.strip()
+
+            # Try to extract code from URL if user pasted full URL
+            auth_code = auth_input
+            if auth_input.startswith("http://localhost") or auth_input.startswith("http%3A%2F%2Flocalhost"):
+                _LOG.info("Detected full redirect URL, extracting code...")
+                try:
+                    from urllib.parse import urlparse, parse_qs, unquote
+                    # Handle URL-encoded URLs
+                    if auth_input.startswith("http%3A"):
+                        auth_input = unquote(auth_input)
+
+                    parsed = urlparse(auth_input)
+                    params = parse_qs(parsed.query)
+                    code = params.get('code', [None])[0]
+                    if code:
+                        auth_code = code
+                        _LOG.info(f"Extracted code from URL: {len(code)} characters")
+                except Exception as e:
+                    _LOG.warning(f"Failed to parse URL, treating as plain code: {e}")
+
             _LOG.info(f"Authorization code length: {len(auth_code)}")
 
             await self.auth_mgr.request_tokens(auth_code)

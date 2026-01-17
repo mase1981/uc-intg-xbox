@@ -52,8 +52,8 @@ class XboxSetup:
                                 "label": {
                                     "value": {
                                         "en": "Click the link below to sign in with your Microsoft account.\n"
-                                              "After signing in, Microsoft will display your authorization code.\n"
-                                              "Copy the code and paste it in the field below."
+                                              "After signing in, you'll be redirected to a blank page.\n"
+                                              "Copy the ENTIRE URL from your browser's address bar and paste it below."
                                     }
                                 }
                             }
@@ -70,7 +70,7 @@ class XboxSetup:
                         },
                         {
                             "id": "auth_code",
-                            "label": {"en": "Step 2: Paste Authorization Code"},
+                            "label": {"en": "Step 2: Paste URL or Code"},
                             "field": {
                                 "text": {
                                     "value": ""
@@ -83,9 +83,10 @@ class XboxSetup:
                             "field": {
                                 "label": {
                                     "value": {
-                                        "en": "After signing in, Microsoft will show a page with your authorization code.\n"
-                                              "The code is a long string of letters and numbers.\n"
-                                              "Copy the entire code and paste it above."
+                                        "en": "After signing in, you'll see a blank page or error. This is normal!\n"
+                                              "Look at your browser's address bar - the URL will look like:\n"
+                                              "http://localhost/?code=M.R3_BAY.abc123...\n\n"
+                                              "Copy the ENTIRE URL and paste it above. The integration will extract the code automatically."
                                     }
                                 }
                             }
