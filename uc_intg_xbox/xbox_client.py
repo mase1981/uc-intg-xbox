@@ -17,7 +17,7 @@ from xbox.webapi.api.provider.smartglass.models import (
     VolumeDirection,
 )
 _LOG = logging.getLogger("XBOX_CLIENT")
-OAUTH2_REDIRECT_URI = "https://mase1981.github.io/uc-intg-xbox-auth/"
+OAUTH2_REDIRECT_URI = "http://localhost:8080/callback"
 
 class XboxClient:
     def __init__(self, live_id: str):

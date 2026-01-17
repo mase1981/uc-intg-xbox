@@ -29,7 +29,7 @@ Microsoft deprecated the OAuth redirect URI that the python-xbox library was usi
    - **Supported account types**: Select **"Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant) and personal Microsoft accounts (e.g. Skype, Xbox)"**
    - **Redirect URI**:
      - From the dropdown, select **"Web"**
-     - Enter: `https://mase1981.github.io/uc-intg-xbox-auth/`
+     - Enter: `http://localhost:8080/callback`
 5. Click **"Register"**
 
 ### 3. Copy Your Application (Client) ID
@@ -56,8 +56,8 @@ After registration, you'll be on your app's overview page:
 
 1. In the left sidebar, click **"Authentication"**
 2. Under **"Platform configurations"**, you should see **"Web"**
-3. Verify that `https://mase1981.github.io/uc-intg-xbox-auth/` is listed as a redirect URI
-4. This redirect URI points to a callback page that displays your authorization code
+3. Verify that `http://localhost:8080/callback` is listed as a redirect URI
+4. This redirect URI points to a local callback server that the integration starts temporarily during authentication
 
 ## Using Your Credentials
 
@@ -66,7 +66,12 @@ When setting up the Xbox integration in your Unfolded Circle Remote:
 1. Enter your **Application (client) ID** in the **"Azure App Client ID"** field
 2. Enter your **Client Secret Value** in the **"Azure App Client Secret"** field
 3. Enter your Xbox Live Device ID as usual
-4. Follow the OAuth authentication flow to complete setup
+4. The integration will start a temporary local web server on port 8080
+5. Click the provided authorization URL to authenticate with Microsoft
+6. You'll be automatically redirected back to the local server (browser will show a success page)
+7. Return to the setup flow and confirm to complete authentication
+
+The authentication now happens automatically through a local callback server - no manual code copying required!
 
 ## Security Notes
 
@@ -79,7 +84,8 @@ When setting up the Xbox integration in your Unfolded Circle Remote:
 
 ### "The provided value for 'redirect_uri' is not valid"
 - Make sure you selected **"Web"** as the redirect URI type
-- Verify the redirect URI is exactly: `https://mase1981.github.io/uc-intg-xbox-auth/` (with trailing slash)
+- Verify the redirect URI is exactly: `http://localhost:8080/callback`
+- Note: Do NOT use `https://` - it must be `http://` for localhost
 
 ### "Supported account types" error during authentication
 - Ensure you selected the option that includes **"personal Microsoft accounts (e.g. Skype, Xbox)"**
@@ -88,6 +94,11 @@ When setting up the Xbox integration in your Unfolded Circle Remote:
 ### Cannot find Client Secret Value
 - The secret value is only shown once when created
 - If you missed copying it, delete the old secret and create a new one
+
+### Port 8080 already in use
+- The integration uses port 8080 for the local callback server
+- If another application is using this port, close it or change the port in the integration
+- Check if you have another instance of the integration running
 
 ## Need Help?
 
