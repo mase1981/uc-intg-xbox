@@ -29,7 +29,8 @@ Microsoft deprecated the OAuth redirect URI that the python-xbox library was usi
    - **Supported account types**: Select **"Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant) and personal Microsoft accounts (e.g. Skype, Xbox)"**
    - **Redirect URI**:
      - From the dropdown, select **"Web"**
-     - Enter: `http://localhost:8765/callback`
+     - **OPTION 1 (Automatic)**: Enter your Remote's IP: `http://192.168.X.X:8765/callback` (replace with actual IP)
+     - **OPTION 2 (Manual)**: Enter: `http://localhost:8765/callback` (you'll copy the code manually)
 5. Click **"Register"**
 
 ### 3. Copy Your Application (Client) ID
@@ -56,8 +57,12 @@ After registration, you'll be on your app's overview page:
 
 1. In the left sidebar, click **"Authentication"**
 2. Under **"Platform configurations"**, you should see **"Web"**
-3. Verify that `http://localhost:8765/callback` is listed as a redirect URI
+3. Verify your chosen redirect URI is listed (either your Remote's IP or localhost)
 4. This redirect URI points to a local callback server that the integration starts temporarily during authentication
+
+**Finding Your Remote's IP Address:**
+- On the Remote: **Settings** → **System** → **Network** → Look for the IP address
+- Or check your router's DHCP client list for "Unfolded Circle Remote"
 
 ## Using Your Credentials
 
@@ -68,10 +73,16 @@ When setting up the Xbox integration in your Unfolded Circle Remote:
 3. Enter your Xbox Live Device ID as usual
 4. The integration will start a temporary local web server on port 8765
 5. Click the provided authorization URL to authenticate with Microsoft
-6. You'll be automatically redirected back to the local server (browser will show a success page)
-7. Return to the setup flow and confirm to complete authentication
 
-The authentication now happens automatically through a local callback server - no manual code copying required!
+**If you registered your Remote's IP (Automatic):**
+6. You'll be redirected back to the Remote (browser will show success page)
+7. Return to the setup flow and click Submit to complete
+
+**If you registered localhost (Manual fallback):**
+6. After signing in, the browser will try to redirect to localhost:8765 (page won't load)
+7. **Copy the URL from your browser's address bar** (it will contain `code=`)
+8. Paste it in the **"Manual Code"** field in the setup flow
+9. Click Submit to complete
 
 ## Security Notes
 
@@ -84,8 +95,9 @@ The authentication now happens automatically through a local callback server - n
 
 ### "The provided value for 'redirect_uri' is not valid"
 - Make sure you selected **"Web"** as the redirect URI type
-- Verify the redirect URI is exactly: `http://localhost:8765/callback`
-- Note: Do NOT use `https://` - it must be `http://` for localhost
+- Verify the redirect URI matches what you entered (either your Remote's IP or localhost)
+- Note: Do NOT use `https://` - it must be `http://`
+- Format: `http://192.168.X.X:8765/callback` OR `http://localhost:8765/callback`
 
 ### "Supported account types" error during authentication
 - Ensure you selected the option that includes **"personal Microsoft accounts (e.g. Skype, Xbox)"**
@@ -101,9 +113,20 @@ The authentication now happens automatically through a local callback server - n
 - Check if you have another instance of the integration running
 
 ### Callback doesn't work / browser can't connect
-- The callback server runs on the Unfolded Circle Remote, not your computer
-- If your browser can't reach `localhost:8765`, you may need to use the Remote's IP address
-- Contact support if the automatic callback doesn't work - manual code copying may be needed
+- **Solution**: Use the manual code fallback option
+- After signing in to Microsoft, copy the URL from your browser's address bar
+- Paste it in the "Manual Code" field in the setup flow
+- The integration will extract the code automatically from the URL
+
+### How do I find my Remote's IP address?
+- On Remote: **Settings** → **System** → **Network**
+- Check your router's DHCP client list
+- Use automatic (localhost) with manual code entry if unsure about IP
+
+### Which redirect URI should I use?
+- **Remote's IP** (`http://192.168.X.X:8765/callback`): Automatic callback, no code copying
+- **localhost** (`http://localhost:8765/callback`): Manual code copying from browser URL
+- **Recommendation**: Start with localhost, upgrade to IP address later if desired
 
 ## Need Help?
 
