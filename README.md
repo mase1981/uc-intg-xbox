@@ -215,12 +215,12 @@ docker run -d --name=uc-intg-xbox --network host -v </local/path>:/data -e UC_CO
    - Click **Next**
 
    **Page 2 - Microsoft Authentication:**
-   - **Login URL**: A Microsoft login URL will be displayed
+   - **Authorization URL**: A Microsoft login URL will be displayed
    - Click the URL to open in browser
    - **Sign in** with your Microsoft account (the one linked to your Xbox)
-   - After successful login, you'll be redirected to a blank page
-   - **Copy the entire URL** from your browser address bar
-   - **Paste the redirect URL** back into the integration
+   - After successful login, you'll be redirected to a callback page displaying your authorization code
+   - **Copy the authorization code** from the page (or copy the entire URL from the address bar)
+   - **Paste the code** back into the integration
    - Click **Complete Setup**
 
 4. Integration will create **TWO entities**:
