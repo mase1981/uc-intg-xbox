@@ -52,7 +52,7 @@ class XboxSetup:
                                 "label": {
                                     "value": {
                                         "en": "Click the link below to sign in with your Microsoft account.\n"
-                                              "After signing in, you'll be redirected to a page that displays your authorization code.\n"
+                                              "After signing in, Microsoft will display your authorization code.\n"
                                               "Copy the code and paste it in the field below."
                                     }
                                 }
@@ -83,8 +83,9 @@ class XboxSetup:
                             "field": {
                                 "label": {
                                     "value": {
-                                        "en": "The authorization code is a long string of letters and numbers displayed on the callback page after you sign in.\n"
-                                              "It looks like: eyJ0eXAiOiJK..."
+                                        "en": "After signing in, Microsoft will show a page with your authorization code.\n"
+                                              "The code is a long string of letters and numbers.\n"
+                                              "Copy the entire code and paste it above."
                                     }
                                 }
                             }
