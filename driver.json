@@ -3,12 +3,24 @@
   "name": { "en": "Xbox Integration" },
   "icon": "uc:gamepad-modern",
   "description": { "en": "Control your Xbox console and view gaming activity" },
-  "version": "3.1.1",
+  "version": "3.2.0",
   "developer": { "name": "Meir Miyara", "email": "meir.miyara@gmail.com" },
   "min_core_api": "0.3.1",
   "setup_data_schema": {
     "title": { "en": "Xbox Configuration" },
     "settings": [
+      {
+        "id": "client_id",
+        "label": { "en": "Azure App Client ID" },
+        "value": { "en": "Your Azure App Registration Client ID. See setup guide for instructions." },
+        "field": { "text": { "value": "" } }
+      },
+      {
+        "id": "client_secret",
+        "label": { "en": "Azure App Client Secret" },
+        "value": { "en": "Your Azure App Client Secret. See setup guide for instructions." },
+        "field": { "text": { "value": "" } }
+      },
       {
         "id": "liveid",
         "label": { "en": "Xbox Live Device ID" },

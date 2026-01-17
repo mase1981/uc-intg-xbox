@@ -8,11 +8,9 @@ from xbox.webapi.api.client import XboxLiveClient
 from xbox.webapi.authentication.manager import AuthenticationManager
 from xbox.webapi.authentication.models import OAuth2TokenResponse
 from xbox.webapi.api.provider.smartglass.models import VolumeDirection
-from xbox.webapi.scripts import CLIENT_ID, CLIENT_SECRET
-
 _LOG = logging.getLogger("XBOX_DEVICE")
 
-OAUTH2_DESKTOP_REDIRECT_URI = "https://login.live.com/oauth20_desktop.srf"
+OAUTH2_LOCALHOST_URI = "http://localhost"
 
 class SystemInput(str, Enum):
     A = "A"
@@ -48,14 +46,15 @@ class XboxDevice:
         """Create Xbox device with proactive token refresh (matching Xbox Live logic)."""
         _LOG.info("Authenticating Xbox client...")
         try:
+            # Use user-provided Azure App credentials from config
             auth_mgr = AuthenticationManager(
                 session,
-                CLIENT_ID,
-                CLIENT_SECRET,
-                OAUTH2_DESKTOP_REDIRECT_URI,
+                config.client_id,
+                config.client_secret,
+                OAUTH2_LOCALHOST_URI,
             )
             auth_mgr.oauth = OAuth2TokenResponse.model_validate(config.tokens)
-            
+
             await auth_mgr.refresh_tokens()
             _LOG.info("✅ Successfully refreshed Xbox authentication tokens")
             

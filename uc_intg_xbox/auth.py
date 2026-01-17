@@ -10,23 +10,29 @@ import asyncio
 from urllib.parse import urlparse, parse_qs
 import httpx
 from pythonxbox.authentication.manager import AuthenticationManager
-from pythonxbox.scripts import CLIENT_ID, CLIENT_SECRET
 
 _LOG = logging.getLogger("XBOX_AUTH")
 
 # OAuth redirect URI - Localhost redirect
-# Microsoft deprecated OOB flow for login.live.com
-# Using http://localhost which the python-xbox CLIENT_ID supports
-# User will see the code in the redirected localhost URL
+# User's custom Azure App must have http://localhost properly registered
+# This allows the OAuth flow to work correctly with personal Microsoft/Xbox accounts
 OAUTH2_LOCALHOST_URI = "http://localhost"
 
 class XboxAuth:
-    def __init__(self, session: httpx.AsyncClient):
+    def __init__(self, session: httpx.AsyncClient, client_id: str, client_secret: str):
+        """
+        Initialize Xbox authentication with user-provided Azure App credentials.
+
+        Args:
+            session: HTTP client session
+            client_id: Azure App Registration Client ID
+            client_secret: Azure App Client Secret
+        """
         self.session = session
         self.auth_mgr = AuthenticationManager(
-            session, CLIENT_ID, CLIENT_SECRET, OAUTH2_LOCALHOST_URI
+            session, client_id, client_secret, OAUTH2_LOCALHOST_URI
         )
-        _LOG.info("XboxAuth initialized with localhost redirect.")
+        _LOG.info("XboxAuth initialized with user-provided credentials and localhost redirect.")
 
     def generate_auth_url(self) -> str:
         """Generate OAuth authorization URL that redirects to our callback page."""

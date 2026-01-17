@@ -21,16 +21,20 @@ class DateTimeEncoder(json.JSONEncoder):
 
 @dataclass
 class XboxConfig:
+    client_id: str | None = None
+    client_secret: str | None = None
     liveid: str | None = None
     tokens: dict | None = field(default_factory=dict)
 
     def is_configured(self) -> bool:
-        return bool(self.liveid and self.tokens)
+        return bool(self.client_id and self.client_secret and self.liveid and self.tokens)
 
     def reload_from_disk(self, config_path: str):
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 config_data = json.load(f)
+            self.client_id = config_data.get("client_id")
+            self.client_secret = config_data.get("client_secret")
             self.liveid = config_data.get("liveid")
             self.tokens = config_data.get("tokens")
             _LOG.info("Configuration reloaded from disk.")
@@ -44,6 +48,8 @@ class XboxConfig:
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 config_data = json.load(f)
+            self.client_id = config_data.get("client_id")
+            self.client_secret = config_data.get("client_secret")
             self.liveid = config_data.get("liveid")
             self.tokens = config_data.get("tokens")
             _LOG.info("Configuration loaded successfully.")
