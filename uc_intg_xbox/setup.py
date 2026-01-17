@@ -27,6 +27,7 @@ class XboxSetup:
         self.api = api
         self.config = config
         self.auth_session: httpx.AsyncClient | None = None
+        self.auth_handler: XboxAuth | None = None
 
     async def handle_command(self, request):
         if isinstance(request, DriverSetupRequest):
@@ -44,11 +45,19 @@ class XboxSetup:
                     _LOG.error("Xbox Live Device ID missing.")
                     return SetupError(IntegrationSetupError.INVALID_INPUT)
 
-                _LOG.info("Credentials captured. Starting OAuth authentication flow.")
+                _LOG.info("Credentials captured. Starting OAuth authentication flow with local callback server.")
                 ssl_context = ssl.create_default_context(cafile=certifi.where())
                 self.auth_session = httpx.AsyncClient(verify=ssl_context)
-                auth_handler = XboxAuth(self.auth_session, self.config.client_id, self.config.client_secret)
-                auth_url = auth_handler.generate_auth_url()
+                self.auth_handler = XboxAuth(self.auth_session, self.config.client_id, self.config.client_secret)
+
+                # Start the OAuth flow and get the auth URL
+                result = await self.auth_handler.authenticate_with_oauth()
+                if not result or "auth_url" not in result:
+                    _LOG.error("Failed to start OAuth flow")
+                    await self._cleanup_session()
+                    return SetupError(IntegrationSetupError.OTHER)
+
+                auth_url = result["auth_url"]
 
                 return RequestUserInput(
                     {"en": "Xbox Authentication"},
@@ -59,9 +68,10 @@ class XboxSetup:
                             "field": {
                                 "label": {
                                     "value": {
-                                        "en": "Click the Authorization URL below to sign in with your Microsoft account.\n"
-                                              "After signing in, you'll see a page displaying your authorization code.\n"
-                                              "Copy the code and paste it in Step 2 below."
+                                        "en": "A local callback server has been started.\n"
+                                              "Click the Authorization URL below to sign in with your Microsoft account.\n"
+                                              "After signing in, you'll automatically be redirected back.\n"
+                                              "The authentication will complete automatically - no code copying needed!"
                                     }
                                 }
                             }
@@ -77,11 +87,11 @@ class XboxSetup:
                             }
                         },
                         {
-                            "id": "auth_code",
-                            "label": {"en": "Step 2: Paste URL or Code"},
+                            "id": "confirm",
+                            "label": {"en": "Step 2: Confirm"},
                             "field": {
-                                "text": {
-                                    "value": ""
+                                "checkbox": {
+                                    "value": False
                                 }
                             }
                         },
@@ -93,11 +103,11 @@ class XboxSetup:
                                     "value": {
                                         "en": "1. Click the Authorization URL above\n"
                                               "2. Sign in with your Microsoft account (the one linked to your Xbox)\n"
-                                              "3. You'll be redirected to a page showing your authorization code\n"
-                                              "4. Copy the entire code displayed on the page\n"
-                                              "5. Paste the code in Step 2 above\n\n"
-                                              "Note: You can also paste the full URL from the address bar,\n"
-                                              "and the integration will extract the code automatically."
+                                              "3. You'll be automatically redirected back (browser will show success page)\n"
+                                              "4. Return here and check the 'Confirm' box\n"
+                                              "5. Submit to complete authentication\n\n"
+                                              "The integration is waiting for the OAuth callback on localhost:8080.\n"
+                                              "Please complete the authentication within 5 minutes."
                                     }
                                 }
                             }
@@ -108,22 +118,29 @@ class XboxSetup:
                 _LOG.info("Configuration already exists. Completing setup.")
                 return SetupComplete()
 
-        if hasattr(request, 'input_values') and "auth_code" in request.input_values:
-            auth_code = request.input_values.get("auth_code", "").strip()
-            if not self.auth_session or not self.config.client_id or not self.config.client_secret:
+        if hasattr(request, 'input_values') and "confirm" in request.input_values:
+            if not self.auth_handler:
+                _LOG.error("No auth handler available")
+                await self._cleanup_session()
                 return SetupError(IntegrationSetupError.OTHER)
 
-            auth_handler = XboxAuth(self.auth_session, self.config.client_id, self.config.client_secret)
             try:
-                tokens = await auth_handler.process_auth_code(auth_code)
+                # Wait for the OAuth callback to complete
+                _LOG.info("Waiting for OAuth callback from local server...")
+                tokens = await self.auth_handler.wait_for_auth_completion(timeout=300)
+            except Exception as e:
+                _LOG.exception(f"Error waiting for OAuth completion: {e}")
+                tokens = None
             finally:
                 await self._cleanup_session()
 
             if not tokens:
+                _LOG.error("Failed to receive OAuth tokens")
                 return SetupError(IntegrationSetupError.AUTHENTICATION_FAILED)
 
             self.config.tokens = tokens
             await self.config.save(self.api)
+            _LOG.info("OAuth authentication completed successfully!")
             return SetupComplete()
 
         if isinstance(request, AbortDriverSetup):
