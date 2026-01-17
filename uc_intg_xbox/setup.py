@@ -68,10 +68,9 @@ class XboxSetup:
                             "field": {
                                 "label": {
                                     "value": {
-                                        "en": "A local callback server has been started.\n"
-                                              "Click the Authorization URL below to sign in with your Microsoft account.\n"
-                                              "After signing in, you'll automatically be redirected back.\n"
-                                              "The authentication will complete automatically - no code copying needed!"
+                                        "en": "Click the Authorization URL below to sign in with your Microsoft account.\n"
+                                              "The integration will try to receive the callback automatically.\n"
+                                              "If automatic callback doesn't work, you can manually paste the code."
                                     }
                                 }
                             }
@@ -87,11 +86,11 @@ class XboxSetup:
                             }
                         },
                         {
-                            "id": "confirm",
-                            "label": {"en": "Step 2: Confirm"},
+                            "id": "manual_code",
+                            "label": {"en": "Step 2: Manual Code (Optional)"},
                             "field": {
-                                "checkbox": {
-                                    "value": False
+                                "text": {
+                                    "value": ""
                                 }
                             }
                         },
@@ -101,13 +100,15 @@ class XboxSetup:
                             "field": {
                                 "label": {
                                     "value": {
-                                        "en": "1. Click the Authorization URL above\n"
-                                              "2. Sign in with your Microsoft account (the one linked to your Xbox)\n"
-                                              "3. You'll be automatically redirected back (browser will show success page)\n"
-                                              "4. Return here and check the 'Confirm' box\n"
-                                              "5. Submit to complete authentication\n\n"
-                                              "The integration is waiting for the OAuth callback on localhost:8765.\n"
-                                              "Please complete the authentication within 5 minutes."
+                                        "en": "AUTOMATIC (Recommended):\n"
+                                              "1. Click the Authorization URL above\n"
+                                              "2. Sign in with your Microsoft account\n"
+                                              "3. If redirected successfully, just click Submit below\n\n"
+                                              "MANUAL (Fallback):\n"
+                                              "1. If redirect fails, copy the URL from your browser address bar\n"
+                                              "2. Paste it in the 'Manual Code' field (or just the code= part)\n"
+                                              "3. Click Submit\n\n"
+                                              "Server listening on port 8765. Timeout: 5 minutes."
                                     }
                                 }
                             }
@@ -118,18 +119,25 @@ class XboxSetup:
                 _LOG.info("Configuration already exists. Completing setup.")
                 return SetupComplete()
 
-        if hasattr(request, 'input_values') and "confirm" in request.input_values:
+        if hasattr(request, 'input_values') and ("manual_code" in request.input_values or "confirm" in request.input_values):
             if not self.auth_handler:
                 _LOG.error("No auth handler available")
                 await self._cleanup_session()
                 return SetupError(IntegrationSetupError.OTHER)
 
+            manual_code = request.input_values.get("manual_code", "").strip() if hasattr(request, 'input_values') else ""
+
             try:
-                # Wait for the OAuth callback to complete
-                _LOG.info("Waiting for OAuth callback from local server...")
-                tokens = await self.auth_handler.wait_for_auth_completion(timeout=300)
+                if manual_code:
+                    # Manual code provided - use it directly
+                    _LOG.info(f"Manual code provided (length: {len(manual_code)}), processing...")
+                    tokens = await self.auth_handler.process_manual_code(manual_code)
+                else:
+                    # No manual code - wait for automatic callback
+                    _LOG.info("No manual code provided, waiting for OAuth callback from local server...")
+                    tokens = await self.auth_handler.wait_for_auth_completion(timeout=300)
             except Exception as e:
-                _LOG.exception(f"Error waiting for OAuth completion: {e}")
+                _LOG.exception(f"Error during OAuth completion: {e}")
                 tokens = None
             finally:
                 await self._cleanup_session()

@@ -113,3 +113,66 @@ class XboxAuth:
             await self.callback_server.stop()
             _LOG.info("OAuth callback server stopped.")
 
+    async def process_manual_code(self, auth_input: str) -> dict | None:
+        """
+        Process manually entered authorization code or URL.
+
+        Args:
+            auth_input: Either the full redirect URL or just the authorization code
+
+        Returns:
+            dict with OAuth tokens if successful, None otherwise
+        """
+        _LOG.info("Processing manually provided authorization code...")
+        try:
+            # Stop the callback server since we're doing manual entry
+            await self.callback_server.stop()
+
+            if not auth_input or not auth_input.strip():
+                _LOG.error("Empty authorization input provided.")
+                return None
+
+            auth_input = auth_input.strip()
+
+            # Try to extract code from URL if user pasted full URL
+            auth_code = auth_input
+            if auth_input.startswith("http") or "code=" in auth_input:
+                _LOG.info("Detected URL or query string, extracting code...")
+                try:
+                    from urllib.parse import urlparse, parse_qs, unquote
+
+                    # Handle URL-encoded URLs
+                    if auth_input.startswith("http%3A"):
+                        auth_input = unquote(auth_input)
+
+                    # If it looks like a URL, parse it
+                    if auth_input.startswith("http"):
+                        parsed = urlparse(auth_input)
+                        params = parse_qs(parsed.query)
+                        code = params.get('code', [None])[0]
+                        if code:
+                            auth_code = code
+                            _LOG.info(f"Extracted code from URL: {len(code)} characters")
+                    # If it has code= but isn't a full URL, extract the value after code=
+                    elif "code=" in auth_input:
+                        parts = auth_input.split("code=")
+                        if len(parts) > 1:
+                            # Get everything after code= and before any & or other delimiters
+                            code_part = parts[1].split("&")[0].split("#")[0]
+                            auth_code = code_part
+                            _LOG.info(f"Extracted code from query string: {len(auth_code)} characters")
+                except Exception as e:
+                    _LOG.warning(f"Failed to parse input, treating as plain code: {e}")
+
+            _LOG.info(f"Authorization code length: {len(auth_code)}")
+
+            # Exchange code for tokens
+            await self.auth_mgr.request_tokens(auth_code)
+            _LOG.info("OAuth2 tokens successfully retrieved from manual code.")
+
+            return self.auth_mgr.oauth.model_dump()
+
+        except Exception as e:
+            _LOG.exception(f"Error during manual token exchange: {e}")
+            return None
+
