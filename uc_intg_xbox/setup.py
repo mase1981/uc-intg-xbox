@@ -106,7 +106,7 @@ class XboxSetup:
                                               "3. You'll be automatically redirected back (browser will show success page)\n"
                                               "4. Return here and check the 'Confirm' box\n"
                                               "5. Submit to complete authentication\n\n"
-                                              "The integration is waiting for the OAuth callback on localhost:8080.\n"
+                                              "The integration is waiting for the OAuth callback on localhost:8765.\n"
                                               "Please complete the authentication within 5 minutes."
                                     }
                                 }

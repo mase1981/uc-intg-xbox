@@ -16,7 +16,9 @@ _LOG = logging.getLogger("XBOX_AUTH")
 
 # OAuth redirect URI - Local callback server
 # User's custom Azure App must have this URL properly registered
-OAUTH2_REDIRECT_URI = "http://localhost:8080/callback"
+# Port 8765 chosen to avoid conflicts with common ports
+OAUTH2_REDIRECT_URI = "http://localhost:8765/callback"
+DEFAULT_CALLBACK_PORT = 8765
 
 class XboxAuth:
     def __init__(self, session: httpx.AsyncClient, client_id: str, client_secret: str):
@@ -32,7 +34,7 @@ class XboxAuth:
         self.auth_mgr = AuthenticationManager(
             session, client_id, client_secret, OAUTH2_REDIRECT_URI
         )
-        self.callback_server = OAuthCallbackServer(port=8080)
+        self.callback_server = OAuthCallbackServer(port=DEFAULT_CALLBACK_PORT, host="0.0.0.0")
         _LOG.info("XboxAuth initialized with user-provided credentials and local callback server.")
 
     def generate_auth_url(self) -> str:

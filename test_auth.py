@@ -10,7 +10,7 @@ from pythonxbox.authentication.manager import AuthenticationManager
 # Replace these with your actual values from Azure App Registration
 CLIENT_ID = "YOUR_CLIENT_ID_HERE"
 CLIENT_SECRET = "YOUR_CLIENT_SECRET_HERE"
-REDIRECT_URI = "http://localhost:8080/callback"
+REDIRECT_URI = "http://localhost:8765/callback"
 
 async def test_auth():
     print("Testing Azure App credentials...")

@@ -29,7 +29,7 @@ Microsoft deprecated the OAuth redirect URI that the python-xbox library was usi
    - **Supported account types**: Select **"Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant) and personal Microsoft accounts (e.g. Skype, Xbox)"**
    - **Redirect URI**:
      - From the dropdown, select **"Web"**
-     - Enter: `http://localhost:8080/callback`
+     - Enter: `http://localhost:8765/callback`
 5. Click **"Register"**
 
 ### 3. Copy Your Application (Client) ID
@@ -56,7 +56,7 @@ After registration, you'll be on your app's overview page:
 
 1. In the left sidebar, click **"Authentication"**
 2. Under **"Platform configurations"**, you should see **"Web"**
-3. Verify that `http://localhost:8080/callback` is listed as a redirect URI
+3. Verify that `http://localhost:8765/callback` is listed as a redirect URI
 4. This redirect URI points to a local callback server that the integration starts temporarily during authentication
 
 ## Using Your Credentials
@@ -66,7 +66,7 @@ When setting up the Xbox integration in your Unfolded Circle Remote:
 1. Enter your **Application (client) ID** in the **"Azure App Client ID"** field
 2. Enter your **Client Secret Value** in the **"Azure App Client Secret"** field
 3. Enter your Xbox Live Device ID as usual
-4. The integration will start a temporary local web server on port 8080
+4. The integration will start a temporary local web server on port 8765
 5. Click the provided authorization URL to authenticate with Microsoft
 6. You'll be automatically redirected back to the local server (browser will show a success page)
 7. Return to the setup flow and confirm to complete authentication
@@ -84,7 +84,7 @@ The authentication now happens automatically through a local callback server - n
 
 ### "The provided value for 'redirect_uri' is not valid"
 - Make sure you selected **"Web"** as the redirect URI type
-- Verify the redirect URI is exactly: `http://localhost:8080/callback`
+- Verify the redirect URI is exactly: `http://localhost:8765/callback`
 - Note: Do NOT use `https://` - it must be `http://` for localhost
 
 ### "Supported account types" error during authentication
@@ -95,10 +95,15 @@ The authentication now happens automatically through a local callback server - n
 - The secret value is only shown once when created
 - If you missed copying it, delete the old secret and create a new one
 
-### Port 8080 already in use
-- The integration uses port 8080 for the local callback server
+### Port 8765 already in use
+- The integration uses port 8765 for the local callback server
 - If another application is using this port, close it or change the port in the integration
 - Check if you have another instance of the integration running
+
+### Callback doesn't work / browser can't connect
+- The callback server runs on the Unfolded Circle Remote, not your computer
+- If your browser can't reach `localhost:8765`, you may need to use the Remote's IP address
+- Contact support if the automatic callback doesn't work - manual code copying may be needed
 
 ## Need Help?
 
