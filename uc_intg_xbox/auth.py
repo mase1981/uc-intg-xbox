@@ -14,20 +14,18 @@ from pythonxbox.scripts import CLIENT_ID, CLIENT_SECRET
 
 _LOG = logging.getLogger("XBOX_AUTH")
 
-# OAuth redirect URI - GitHub Pages callback page
-# This page displays the authorization code for users to copy
-OAUTH2_CALLBACK_URI = "https://mase1981.github.io/uc-intg-xbox-auth/"
-
-# Fallback to desktop redirect for compatibility
-OAUTH2_DESKTOP_REDIRECT_URI = "https://login.live.com/oauth20_desktop.srf"
+# OAuth redirect URI - Out-of-band (OOB) flow
+# This tells Microsoft to display the authorization code directly on the page
+# instead of redirecting. This works without any external server or redirect URI!
+OAUTH2_OOB_URI = "urn:ietf:wg:oauth:2.0:oob"
 
 class XboxAuth:
     def __init__(self, session: httpx.AsyncClient):
         self.session = session
         self.auth_mgr = AuthenticationManager(
-            session, CLIENT_ID, CLIENT_SECRET, OAUTH2_CALLBACK_URI
+            session, CLIENT_ID, CLIENT_SECRET, OAUTH2_OOB_URI
         )
-        _LOG.info("XboxAuth initialized with callback URI.")
+        _LOG.info("XboxAuth initialized with out-of-band flow.")
 
     def generate_auth_url(self) -> str:
         """Generate OAuth authorization URL that redirects to our callback page."""
