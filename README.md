@@ -173,20 +173,25 @@ docker run -d --name=uc-intg-xbox --network host -v </local/path>:/data -e UC_CO
 
 ### Step 1: Create Azure App Registration
 
-**IMPORTANT**: Starting with version 3.2.0, due to Microsoft OAuth changes, you must create your own Azure App Registration.
+**IMPORTANT**: Starting with version 4.0.0, due to Microsoft OAuth changes, you must create your own Azure App Registration.
 
-📖 **[Complete Azure Setup Guide](AZURE_SETUP_GUIDE.md)**
+📖 **[Complete Azure Setup Guide](AZURE_SETUP_GUIDE.md)** ← Click for detailed instructions
 
-**Quick Summary:**
+**Quick Setup:**
 1. Go to https://portal.azure.com
 2. Navigate to **Microsoft Entra ID** → **App registrations**
-3. Create new registration with:
+3. Click **"+ New registration"**
+4. Fill in:
    - **Name**: `Unfolded Circle Xbox Integration`
-   - **Supported accounts**: **Personal Microsoft accounts (e.g. Skype, Xbox)**
-   - **Redirect URI**: `https://mase1981.github.io/uc-intg-xbox-auth/` (Web type)
-4. Copy your **Application (client) ID**
-5. Create a **Client Secret** and copy the **Value**
-6. Save both for the integration setup
+   - **Supported accounts**: Select **"Personal Microsoft accounts (e.g. Skype, Xbox)"**
+   - **Redirect URI**:
+     - Type: **Web**
+     - URL: `http://localhost:8765/callback`
+5. Click **"Register"**
+6. Copy your **Application (client) ID**
+7. Go to **Certificates & secrets** → Create new **Client Secret**
+8. Copy the **Secret Value** (shown only once!)
+9. Save both ID and Secret for integration setup
 
 ### Step 2: Prepare Your Xbox Console
 
@@ -204,26 +209,35 @@ docker run -d --name=uc-intg-xbox --network host -v </local/path>:/data -e UC_CO
 
 ### Step 3: Setup Integration
 
-1. After installation, go to **Settings** → **Integrations**
+1. After installation, go to **Settings** → **Integrations** on your Remote
 2. The Xbox integration should appear in **Available Integrations**
 3. Click **"Configure"** and follow the setup wizard:
 
-   **Page 1 - Azure App Credentials:**
+#### Page 1: Enter Credentials
    - **Azure App Client ID**: Paste your Application (client) ID from Azure
    - **Azure App Client Secret**: Paste your Client Secret Value from Azure
    - **Xbox Live Device ID**: Paste the ID from Xbox console settings
    - Click **Next**
 
-   **Page 2 - Microsoft Authentication:**
-   - **Authorization URL**: A Microsoft login URL will be displayed
-   - Click the URL to open in browser
-   - **Sign in** with your Microsoft account (the one linked to your Xbox)
-   - After successful login, you'll be redirected to a callback page displaying your authorization code
-   - **Copy the authorization code** from the page (or copy the entire URL from the address bar)
-   - **Paste the code** back into the integration
-   - Click **Complete Setup**
+#### Page 2: Microsoft Authentication
 
-4. Integration will create **TWO entities**:
+The integration uses a **hybrid authentication** system with automatic callback + manual fallback:
+
+**🔹 Steps:**
+1. **Click the Authorization URL** (opens in your browser)
+2. **Sign in** with your Microsoft account (the one linked to your Xbox)
+3. After signing in, Microsoft will redirect to `http://localhost:8765/callback?code=...`
+4. **The page won't load** (this is normal - the server is on the Remote, not your computer)
+5. **Copy the entire URL** from your browser's address bar
+   - Example: `http://localhost:8765/callback?code=M.C123_ABC...&lc=1033`
+6. **Paste the URL** into the **"Manual Code"** field in the setup flow
+7. Click **Submit**
+8. Authentication completes automatically! ✅
+
+**💡 Pro Tip:** The integration automatically extracts the code from the URL - you can paste the full URL or just the `code=` part.
+
+#### Page 3: Success!
+The integration will create **TWO entities**:
    - **Remote Control**: `remote.xbox_remote_[device_id]` - Full button control
    - **Media Player**: `media_player.xbox_[device_id]` - Gaming status display
 
