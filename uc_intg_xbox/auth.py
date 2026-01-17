@@ -13,10 +13,10 @@ from pythonxbox.authentication.manager import AuthenticationManager
 
 _LOG = logging.getLogger("XBOX_AUTH")
 
-# OAuth redirect URI - Localhost redirect
-# User's custom Azure App must have http://localhost properly registered
-# This allows the OAuth flow to work correctly with personal Microsoft/Xbox accounts
-OAUTH2_LOCALHOST_URI = "http://localhost"
+# OAuth redirect URI - GitHub Pages callback
+# User's custom Azure App must have this URL properly registered
+# This displays the authorization code on a web page, preventing browser auto-close
+OAUTH2_REDIRECT_URI = "https://mase1981.github.io/uc-intg-xbox-auth/"
 
 class XboxAuth:
     def __init__(self, session: httpx.AsyncClient, client_id: str, client_secret: str):
@@ -30,9 +30,9 @@ class XboxAuth:
         """
         self.session = session
         self.auth_mgr = AuthenticationManager(
-            session, client_id, client_secret, OAUTH2_LOCALHOST_URI
+            session, client_id, client_secret, OAUTH2_REDIRECT_URI
         )
-        _LOG.info("XboxAuth initialized with user-provided credentials and localhost redirect.")
+        _LOG.info("XboxAuth initialized with user-provided credentials and GitHub Pages redirect.")
 
     def generate_auth_url(self) -> str:
         """Generate OAuth authorization URL that redirects to our callback page."""
@@ -60,7 +60,7 @@ class XboxAuth:
 
             # Try to extract code from URL if user pasted full URL
             auth_code = auth_input
-            if auth_input.startswith("http://localhost") or auth_input.startswith("http%3A%2F%2Flocalhost"):
+            if auth_input.startswith("http") or auth_input.startswith("http%3A"):
                 _LOG.info("Detected full redirect URL, extracting code...")
                 try:
                     from urllib.parse import urlparse, parse_qs, unquote

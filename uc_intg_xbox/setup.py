@@ -59,9 +59,9 @@ class XboxSetup:
                             "field": {
                                 "label": {
                                     "value": {
-                                        "en": "IMPORTANT: Right-click the link below and select 'Copy link address'.\n"
-                                              "Paste it into a NEW browser tab (do NOT click directly).\n"
-                                              "This prevents the browser from closing after authentication."
+                                        "en": "Click the Authorization URL below to sign in with your Microsoft account.\n"
+                                              "After signing in, you'll see a page displaying your authorization code.\n"
+                                              "Copy the code and paste it in Step 2 below."
                                     }
                                 }
                             }
@@ -91,14 +91,13 @@ class XboxSetup:
                             "field": {
                                 "label": {
                                     "value": {
-                                        "en": "1. Copy the Authorization URL above\n"
-                                              "2. Paste it into a NEW browser tab\n"
-                                              "3. Sign in with your Microsoft account\n"
-                                              "4. After signing in, QUICKLY copy the URL from the address bar\n"
-                                              "   It will look like: http://localhost/?code=M.R3_BAY.abc123...\n"
-                                              "5. Paste the ENTIRE URL in Step 2 above\n\n"
-                                              "Note: The page may be blank or show an error - this is normal!\n"
-                                              "The important part is the URL in the address bar."
+                                        "en": "1. Click the Authorization URL above\n"
+                                              "2. Sign in with your Microsoft account (the one linked to your Xbox)\n"
+                                              "3. You'll be redirected to a page showing your authorization code\n"
+                                              "4. Copy the entire code displayed on the page\n"
+                                              "5. Paste the code in Step 2 above\n\n"
+                                              "Note: You can also paste the full URL from the address bar,\n"
+                                              "and the integration will extract the code automatically."
                                     }
                                 }
                             }
