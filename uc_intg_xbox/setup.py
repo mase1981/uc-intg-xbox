@@ -19,6 +19,7 @@ from ucapi import (
 )
 from uc_intg_xbox.config import XboxConfig
 from uc_intg_xbox.auth import XboxAuth
+from uc_intg_xbox.xbox_client import XboxClient
 
 _LOG = logging.getLogger("XBOX_SETUP")
 
@@ -41,9 +42,9 @@ class XboxSetup:
                     _LOG.error("Azure App credentials missing.")
                     return SetupError(IntegrationSetupError.INVALID_INPUT)
 
+                # liveid is now optional - will be discovered automatically if not provided
                 if not self.config.liveid:
-                    _LOG.error("Xbox Live Device ID missing.")
-                    return SetupError(IntegrationSetupError.INVALID_INPUT)
+                    _LOG.info("No Xbox Live Device ID provided - will use automatic discovery")
 
                 _LOG.info("Credentials captured. Starting OAuth authentication flow with local callback server.")
                 ssl_context = ssl.create_default_context(cafile=certifi.where())
@@ -147,8 +148,47 @@ class XboxSetup:
                 return SetupError(IntegrationSetupError.AUTHENTICATION_FAILED)
 
             self.config.tokens = tokens
+
+            # Discover consoles automatically
+            _LOG.info("Discovering Xbox consoles on your account...")
+            try:
+                discovered = await XboxClient.discover_consoles(self.config)
+
+                if discovered:
+                    _LOG.info(f"Discovered {len(discovered)} console(s)")
+                    # Add all discovered consoles
+                    for console in discovered:
+                        self.config.add_console(
+                            liveid=console['liveid'],
+                            name=console['name'],
+                            enabled=True
+                        )
+                    _LOG.info("All discovered consoles added to configuration")
+                elif self.config.liveid:
+                    # Fallback to legacy liveid if provided and no consoles discovered
+                    _LOG.info("No consoles discovered, using provided Live ID")
+                    self.config.add_console(
+                        liveid=self.config.liveid,
+                        name="Xbox Console",
+                        enabled=True
+                    )
+                else:
+                    _LOG.warning("No consoles discovered and no Live ID provided. "
+                               "Ensure at least one Xbox console is online and in Sleep mode.")
+                    # Continue anyway - user might add console later
+
+            except Exception as e:
+                _LOG.warning(f"Console discovery failed: {e}")
+                # Fallback to legacy liveid if discovery fails
+                if self.config.liveid:
+                    self.config.add_console(
+                        liveid=self.config.liveid,
+                        name="Xbox Console",
+                        enabled=True
+                    )
+
             await self.config.save(self.api)
-            _LOG.info("OAuth authentication completed successfully!")
+            _LOG.info("Setup completed successfully!")
             return SetupComplete()
 
         if isinstance(request, AbortDriverSetup):
@@ -158,7 +198,19 @@ class XboxSetup:
         return SetupError(IntegrationSetupError.OTHER)
 
     async def _cleanup_session(self):
-        """Clean up authentication session."""
+        """Clean up authentication session and OAuth server."""
+        # Stop OAuth callback server if running
+        if self.auth_handler and self.auth_handler.callback_server:
+            try:
+                await self.auth_handler.callback_server.stop()
+                _LOG.debug("OAuth callback server stopped during cleanup")
+            except Exception as e:
+                _LOG.warning(f"Error stopping OAuth server during cleanup: {e}")
+
+        # Close HTTP session
         if self.auth_session and not self.auth_session.is_closed:
             await self.auth_session.aclose()
             _LOG.debug("Auth session closed")
+
+        # Clear auth handler reference
+        self.auth_handler = None

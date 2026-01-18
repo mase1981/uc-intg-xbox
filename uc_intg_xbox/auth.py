@@ -136,7 +136,7 @@ class XboxAuth:
 
             # Try to extract code from URL if user pasted full URL
             auth_code = auth_input
-            if auth_input.startswith("http") or "code=" in auth_input:
+            if auth_input.startswith("http") or "code=" in auth_input or "error=" in auth_input:
                 _LOG.info("Detected URL or query string, extracting code...")
                 try:
                     from urllib.parse import urlparse, parse_qs, unquote
@@ -149,6 +149,25 @@ class XboxAuth:
                     if auth_input.startswith("http"):
                         parsed = urlparse(auth_input)
                         params = parse_qs(parsed.query)
+
+                        # Check for OAuth error first
+                        error = params.get('error', [None])[0]
+                        if error:
+                            error_desc = params.get('error_description', ['Unknown error'])[0]
+                            error_desc = unquote(error_desc)
+                            _LOG.error(f"OAuth error from Microsoft: {error} - {error_desc}")
+
+                            # Provide specific guidance based on error
+                            if error == "unauthorized_client" and "secret" in error_desc.lower():
+                                _LOG.error("SETUP ERROR: Azure App is missing a Client Secret. "
+                                          "Go to Azure Portal → Your App → Certificates & secrets → "
+                                          "Create a new Client Secret and use its VALUE (not ID).")
+                            elif error == "invalid_request":
+                                _LOG.error("SETUP ERROR: Invalid redirect URI or app configuration. "
+                                          "Verify redirect URI is exactly: http://localhost:8765/callback")
+
+                            return None
+
                         code = params.get('code', [None])[0]
                         if code:
                             auth_code = code
