@@ -200,7 +200,7 @@ docker run -d --name=uc-intg-xbox --network host -v </local/path>:/data -e UC_CO
 #### Enable Remote Features:
 1. On Xbox console: **Settings** → **Devices & connections** → **Remote features**
 2. Enable **"Enable remote features"**
-3. Copy your **Xbox Live Device ID** (you'll need this during setup)
+3. Copy your **Xbox Live Device ID** (optional - v4.1.0+ can auto-discover consoles)
 
 #### Configure Power Mode:
 1. On Xbox console: **Settings** → **General** → **Power options**
@@ -216,8 +216,10 @@ docker run -d --name=uc-intg-xbox --network host -v </local/path>:/data -e UC_CO
 #### Page 1: Enter Credentials
    - **Azure App Client ID**: Paste your Application (client) ID from Azure
    - **Azure App Client Secret**: Paste your Client Secret Value from Azure
-   - **Xbox Live Device ID**: Paste the ID from Xbox console settings
+   - **Xbox Live Device ID (Optional)**: Leave empty for automatic discovery, or paste manually
    - Click **Next**
+
+   **🆕 v4.1.0 Auto-Discovery:** If you leave the Live ID empty, the integration will automatically discover all Xbox consoles on your Microsoft account after authentication!
 
 #### Page 2: Microsoft Authentication
 
@@ -236,10 +238,15 @@ The integration uses a **hybrid authentication** system with automatic callback 
 
 **💡 Pro Tip:** The integration automatically extracts the code from the URL - you can paste the full URL or just the `code=` part.
 
-#### Page 3: Success!
-The integration will create **TWO entities**:
+#### Page 3: Console Discovery & Success!
+After authentication, the integration will:
+1. **Automatically discover** all Xbox consoles on your account (if Live ID was empty)
+2. **Add all discovered consoles** to the configuration
+3. Create **TWO entities** for the active console:
    - **Remote Control**: `remote.xbox_remote_[device_id]` - Full button control
    - **Media Player**: `media_player.xbox_[device_id]` - Gaming status display
+
+**📝 Note:** v4.1.0 discovers all consoles but creates entities for the first one. Full multi-console UI support coming in v4.2.0!
 
 
 ## Using the Integration
