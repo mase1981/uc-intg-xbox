@@ -3,7 +3,7 @@
   "name": { "en": "Xbox Integration" },
   "icon": "uc:gamepad-modern",
   "description": { "en": "Control your Xbox console and view gaming activity" },
-  "version": "4.1.0",
+  "version": "4.1.1",
   "developer": { "name": "Meir Miyara", "email": "meir.miyara@gmail.com" },
   "min_core_api": "0.3.1",
   "setup_data_schema": {
@@ -22,10 +22,30 @@
         "field": { "text": { "value": "" } }
       },
       {
-        "id": "liveid",
-        "label": { "en": "Xbox Live Device ID (Optional)" },
-        "value": { "en": "Leave empty for automatic discovery, or manually enter Live ID from Settings > Devices & connections > Remote features." },
-        "field": { "text": { "value": "" } }
+        "id": "console_count",
+        "label": { "en": "Number of Xbox Consoles" },
+        "value": { "en": "How many Xbox consoles do you want to configure?" },
+        "field": {
+          "number": {
+            "value": 1,
+            "min": 1,
+            "max": 10,
+            "steps": 1,
+            "decimals": 0,
+            "unit": { "en": "consoles" }
+          }
+        }
+      },
+      {
+        "id": "info",
+        "label": { "en": "Setup Instructions" },
+        "field": {
+          "label": {
+            "value": {
+              "en": "After clicking NEXT, you will provide a name and Xbox Live Device ID for each console. Find your Live ID in: Xbox Settings > Devices & connections > Remote features."
+            }
+          }
+        }
       }
     ]
   }
