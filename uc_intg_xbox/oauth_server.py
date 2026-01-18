@@ -176,9 +176,28 @@ class OAuthCallbackServer:
         """Stop the OAuth callback server."""
         try:
             if self.site:
-                await self.site.stop()
+                try:
+                    await self.site.stop()
+                    _LOG.debug("Site stopped successfully")
+                except RuntimeError as e:
+                    # Site might not be registered if start() failed
+                    _LOG.debug(f"Site stop skipped (not registered): {e}")
+                except Exception as e:
+                    _LOG.warning(f"Error stopping site: {e}")
+
             if self.runner:
-                await self.runner.cleanup()
+                try:
+                    await self.runner.cleanup()
+                    _LOG.debug("Runner cleaned up successfully")
+                except Exception as e:
+                    _LOG.warning(f"Error cleaning up runner: {e}")
+
+            # Clear references
+            self.site = None
+            self.runner = None
+            self.auth_code = None
+            self.code_received.clear()
+
             _LOG.info("OAuth callback server stopped")
         except Exception as e:
             _LOG.exception(f"Error stopping OAuth callback server: {e}")
