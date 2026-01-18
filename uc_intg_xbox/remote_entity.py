@@ -82,11 +82,15 @@ COMMAND_MAP = {
 }
 
 class XboxRemote(Remote):
-    def __init__(self, api, xbox_client, entity_id: str = ""):
-        if not entity_id:
-            entity_id = f"xbox-remote-{xbox_client.live_id}"
-        entity_name = {"en": f"Xbox Remote ({xbox_client.gamertag})"}
-        
+    def __init__(self, api, xbox_client, console_name: str = None, liveid: str = None):
+        # Use provided console name or fallback to gamertag
+        display_name = console_name or f"Xbox ({xbox_client.gamertag})"
+
+        # Use liveid for entity ID to ensure uniqueness
+        self.liveid = liveid or xbox_client.live_id
+        entity_id = f"xbox-remote-{self.liveid}"
+        entity_name = {"en": f"{display_name} Remote"}
+
         super().__init__(
             entity_id,
             entity_name,
@@ -97,7 +101,7 @@ class XboxRemote(Remote):
         )
         self.api = api
         self.xbox_client = xbox_client
-        _LOG.info(f"XboxRemote entity initialized for {entity_name}")
+        _LOG.info(f"XboxRemote entity initialized: {entity_id} - {entity_name}")
 
     async def handle_command(self, entity, cmd_id: str, params: dict = None) -> StatusCodes:
         if not self.xbox_client or not self.xbox_client.client:
@@ -110,13 +114,13 @@ class XboxRemote(Remote):
             if cmd_id == Commands.ON:
                 await self.xbox_client.turn_on()
                 self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.ON})
-                trigger_state_update()
+                trigger_state_update(self.liveid)
                 return StatusCodes.OK
-                
+
             elif cmd_id == Commands.OFF:
                 await self.xbox_client.turn_off()
                 self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.OFF})
-                trigger_state_update()
+                trigger_state_update(self.liveid)
                 return StatusCodes.OK
                 
             elif cmd_id == Commands.TOGGLE:
@@ -127,7 +131,7 @@ class XboxRemote(Remote):
                 else:
                     await self.xbox_client.turn_on()
                     self.api.configured_entities.update_attributes(self.id, {"state": RemoteStates.ON})
-                trigger_state_update()
+                trigger_state_update(self.liveid)
                 return StatusCodes.OK
 
             elif cmd_id == Commands.SEND_CMD and params:
@@ -137,10 +141,10 @@ class XboxRemote(Remote):
                     
                     if xbox_cmd == "on":
                         await self.xbox_client.turn_on()
-                        trigger_state_update()
+                        trigger_state_update(self.liveid)
                     elif xbox_cmd == "off":
                         await self.xbox_client.turn_off()
-                        trigger_state_update()
+                        trigger_state_update(self.liveid)
                     elif xbox_cmd == "volume_up":
                         await self.xbox_client.change_volume("Up")
                     elif xbox_cmd == "volume_down":
@@ -150,8 +154,8 @@ class XboxRemote(Remote):
                     else:
                         await self.xbox_client.press_button(xbox_cmd)
                         if xbox_cmd in ["Home", "A", "B"]:
-                            trigger_state_update()
-                            trigger_delayed_state_update()
+                            trigger_state_update(self.liveid)
+                            trigger_delayed_state_update(self.liveid)
                     
                     return StatusCodes.OK
 

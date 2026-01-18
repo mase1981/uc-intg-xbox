@@ -12,11 +12,14 @@ from ucapi.media_player import MediaPlayer, DeviceClasses
 _LOG = logging.getLogger("XBOX_MEDIA_PLAYER")
 
 class XboxMediaPlayer(MediaPlayer):
-    def __init__(self, api, xbox_client, entity_id: str = ""):
-        if not entity_id:
-            entity_id = f"xbox-player-{xbox_client.live_id}"
-        entity_name = {"en": f"Xbox ({xbox_client.gamertag})"}
-        
+    def __init__(self, api, xbox_client, console_name: str = None, liveid: str = None):
+        # Use provided console name or fallback to gamertag
+        display_name = console_name or f"Xbox ({xbox_client.gamertag})"
+
+        # Use liveid for entity ID to ensure uniqueness
+        entity_id = f"xbox-player-{liveid or xbox_client.live_id}"
+        entity_name = {"en": display_name}
+
         super().__init__(
             entity_id,
             entity_name,
@@ -32,7 +35,7 @@ class XboxMediaPlayer(MediaPlayer):
         )
         self.api = api
         self.xbox_client = xbox_client
-        _LOG.info(f"XboxMediaPlayer entity initialized for {entity_name}")
+        _LOG.info(f"XboxMediaPlayer entity initialized: {entity_id} - {entity_name}")
 
     async def handle_command(self, entity, cmd_id: str, params: dict | None = None) -> StatusCodes:
         _LOG.debug(f"Command '{cmd_id}' received. Ignoring (read-only entity).")

@@ -72,59 +72,6 @@ class XboxClient:
                 await instance.session.aclose()
             return None, None
 
-    @staticmethod
-    async def discover_consoles(config):
-        """
-        Discover all Xbox consoles associated with the authenticated account.
-
-        Returns:
-            list of dict with keys: liveid, name, type
-        """
-        _LOG.info("Discovering Xbox consoles on the account...")
-        discovered_consoles = []
-
-        try:
-            # Create temporary client for discovery
-            ssl_context = ssl.create_default_context(cafile=certifi.where())
-            session = httpx.AsyncClient(verify=ssl_context)
-
-            # Authenticate
-            auth_mgr = AuthenticationManager(
-                session,
-                config.client_id,
-                config.client_secret,
-                OAUTH2_REDIRECT_URI,
-            )
-            auth_mgr.oauth = OAuth2TokenResponse.model_validate(config.tokens)
-
-            # Create Xbox Live client
-            client = XboxLiveClient(auth_mgr)
-
-            # Get list of devices
-            try:
-                devices = await client.smartglass.get_console_list()
-                _LOG.info(f"Found {len(devices.result)} console(s)")
-
-                for device in devices.result:
-                    console_info = {
-                        'liveid': device.id,
-                        'name': device.name or f"Xbox {device.console_type}",
-                        'type': device.console_type or "Unknown"
-                    }
-                    discovered_consoles.append(console_info)
-                    _LOG.info(f"Discovered console: {console_info['name']} ({console_info['liveid']})")
-
-            except Exception as e:
-                _LOG.warning(f"Could not discover consoles via API: {e}")
-                _LOG.info("Console discovery requires at least one console to be online and in Sleep mode")
-
-            await session.aclose()
-
-        except Exception as e:
-            _LOG.exception(f"Error during console discovery: {e}")
-
-        return discovered_consoles
-
     async def turn_on(self):
         _LOG.info(f"Sending power on to Xbox Live ID: {self.live_id}")
         try:
