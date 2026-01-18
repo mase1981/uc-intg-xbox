@@ -165,7 +165,14 @@ class OAuthCallbackServer:
         try:
             self.runner = web.AppRunner(self.app)
             await self.runner.setup()
-            self.site = web.TCPSite(self.runner, self.host, self.port)
+            # Enable SO_REUSEADDR to allow port reuse after abrupt termination
+            self.site = web.TCPSite(
+                self.runner,
+                self.host,
+                self.port,
+                reuse_address=True,
+                reuse_port=True
+            )
             await self.site.start()
             _LOG.info(f"OAuth callback server started on http://{self.host}:{self.port}")
         except Exception as e:
