@@ -58,20 +58,35 @@ async def _initialize_entities():
             return
             
         _LOG.info("Initializing entities...")
-        
+
+        # Get consoles from config
+        consoles = _config.get_consoles()
+        if not consoles:
+            _LOG.error("No consoles configured")
+            _entities_ready = False
+            return
+
+        # For v4.1.0, use the first enabled console
+        # TODO: Full multi-console UI support in v4.2.0
+        active_console = next((c for c in consoles if c.enabled), consoles[0])
+        _LOG.info(f"Using console: {active_console.name} ({active_console.liveid})")
+
+        # Temporarily set liveid for XboxClient.from_config
+        _config.liveid = active_console.liveid
+
         try:
             _xbox_client, refreshed_tokens = await XboxClient.from_config(_config)
-            
+
             if not _xbox_client:
                 _LOG.error("Failed to create Xbox client")
                 _entities_ready = False
                 return
-            
+
             if refreshed_tokens:
                 _config.tokens = refreshed_tokens
                 await _config.save(api)
                 _LOG.info("Tokens refreshed and saved during entity initialization")
-            
+
             _remote_entity = XboxRemote(api, _xbox_client)
             _media_player_entity = XboxMediaPlayer(api, _xbox_client)
             

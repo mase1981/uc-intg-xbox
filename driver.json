@@ -3,7 +3,7 @@
   "name": { "en": "Xbox Integration" },
   "icon": "uc:gamepad-modern",
   "description": { "en": "Control your Xbox console and view gaming activity" },
-  "version": "4.0.0",
+  "version": "4.1.0",
   "developer": { "name": "Meir Miyara", "email": "meir.miyara@gmail.com" },
   "min_core_api": "0.3.1",
   "setup_data_schema": {
@@ -23,8 +23,8 @@
       },
       {
         "id": "liveid",
-        "label": { "en": "Xbox Live Device ID" },
-        "value": { "en": "Found in Settings > Devices & connections > Remote features." },
+        "label": { "en": "Xbox Live Device ID (Optional)" },
+        "value": { "en": "Leave empty for automatic discovery, or manually enter Live ID from Settings > Devices & connections > Remote features." },
         "field": { "text": { "value": "" } }
       }
     ]
