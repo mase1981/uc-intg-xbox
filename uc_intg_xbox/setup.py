@@ -67,7 +67,55 @@ class XboxSetup:
                 _LOG.info("Configuration already exists. Completing setup.")
                 return SetupComplete()
 
+        # Handle OAuth completion - Page 3: Exchange code for tokens and save config
+        # Check this BEFORE Page 2 to avoid false positives when auth_url is present
+        if hasattr(request, 'input_values') and "auth_url" in request.input_values:
+            _LOG.info("Processing OAuth authentication page")
+
+            if not self.auth_handler:
+                _LOG.error("No auth handler available")
+                await self._cleanup_session()
+                return SetupError(IntegrationSetupError.OTHER)
+
+            manual_code = request.input_values.get("manual_code", "").strip()
+
+            try:
+                if manual_code:
+                    # Manual code provided - use it directly
+                    _LOG.info(f"Manual code provided (length: {len(manual_code)}), processing...")
+                    tokens = await self.auth_handler.process_manual_code(manual_code)
+                else:
+                    # No manual code - wait for automatic callback
+                    _LOG.info("No manual code provided, waiting for OAuth callback from local server...")
+                    tokens = await self.auth_handler.wait_for_auth_completion(timeout=300)
+            except Exception as e:
+                _LOG.exception(f"Error during OAuth completion: {e}")
+                tokens = None
+            finally:
+                await self._cleanup_session()
+
+            if not tokens:
+                _LOG.error("Failed to receive OAuth tokens")
+                return SetupError(IntegrationSetupError.AUTHENTICATION_FAILED)
+
+            self.config.tokens = tokens
+
+            # Add all configured consoles
+            _LOG.info(f"Adding {len(self.consoles_data)} console(s) to configuration...")
+            for console_data in self.consoles_data:
+                self.config.add_console(
+                    liveid=console_data["liveid"],
+                    name=console_data["name"],
+                    enabled=True
+                )
+                _LOG.info(f"Added console: {console_data['name']}")
+
+            await self.config.save(self.api)
+            _LOG.info("Setup completed successfully!")
+            return SetupComplete()
+
         # Handle console details input - Page 2: Collect console names and Live IDs
+        # Check this AFTER Page 3 OAuth handler
         if hasattr(request, 'input_values') and any(f"console_0_name" in key or f"console_0_liveid" in key for key in request.input_values.keys()):
             _LOG.info("Received console configuration data")
 
@@ -161,50 +209,6 @@ class XboxSetup:
                     }
                 ]
             )
-
-        # Handle OAuth completion - Page 3: Exchange code for tokens and save config
-        if hasattr(request, 'input_values') and ("manual_code" in request.input_values or "confirm" in request.input_values):
-            if not self.auth_handler:
-                _LOG.error("No auth handler available")
-                await self._cleanup_session()
-                return SetupError(IntegrationSetupError.OTHER)
-
-            manual_code = request.input_values.get("manual_code", "").strip() if hasattr(request, 'input_values') else ""
-
-            try:
-                if manual_code:
-                    # Manual code provided - use it directly
-                    _LOG.info(f"Manual code provided (length: {len(manual_code)}), processing...")
-                    tokens = await self.auth_handler.process_manual_code(manual_code)
-                else:
-                    # No manual code - wait for automatic callback
-                    _LOG.info("No manual code provided, waiting for OAuth callback from local server...")
-                    tokens = await self.auth_handler.wait_for_auth_completion(timeout=300)
-            except Exception as e:
-                _LOG.exception(f"Error during OAuth completion: {e}")
-                tokens = None
-            finally:
-                await self._cleanup_session()
-
-            if not tokens:
-                _LOG.error("Failed to receive OAuth tokens")
-                return SetupError(IntegrationSetupError.AUTHENTICATION_FAILED)
-
-            self.config.tokens = tokens
-
-            # Add all configured consoles
-            _LOG.info(f"Adding {len(self.consoles_data)} console(s) to configuration...")
-            for console_data in self.consoles_data:
-                self.config.add_console(
-                    liveid=console_data["liveid"],
-                    name=console_data["name"],
-                    enabled=True
-                )
-                _LOG.info(f"Added console: {console_data['name']}")
-
-            await self.config.save(self.api)
-            _LOG.info("Setup completed successfully!")
-            return SetupComplete()
 
         if isinstance(request, AbortDriverSetup):
             await self._cleanup_session()
