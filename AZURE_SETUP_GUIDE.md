@@ -29,8 +29,7 @@ Microsoft deprecated the OAuth redirect URI that the python-xbox library was usi
    - **Supported account types**: Select **"Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant) and personal Microsoft accounts (e.g. Skype, Xbox)"**
    - **Redirect URI**:
      - From the dropdown, select **"Web"**
-     - **OPTION 1 (Automatic)**: Enter your Remote's IP: `http://192.168.X.X:8765/callback` (replace with actual IP)
-     - **OPTION 2 (Manual)**: Enter: `http://localhost:8765/callback` (you'll copy the code manually)
+     - **(exactly as you see here)**: Enter: `http://localhost:8765/callback` (you'll copy the code manually)
 5. Click **"Register"**
 
 ### 3. Copy Your Application (Client) ID
