@@ -88,6 +88,10 @@ class XboxSetup:
 
             # Page 3: Start OAuth authentication flow
             _LOG.info("Console details captured. Starting OAuth authentication flow with local callback server.")
+
+            # Clean up any existing session/handler (in case of retry)
+            await self._cleanup_session()
+
             ssl_context = ssl.create_default_context(cafile=certifi.where())
             self.auth_session = httpx.AsyncClient(verify=ssl_context)
             self.auth_handler = XboxAuth(self.auth_session, self.config.client_id, self.config.client_secret)
