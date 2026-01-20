@@ -37,8 +37,8 @@ class XboxConfig:
     liveid: str | None = None
 
     def is_configured(self) -> bool:
-        return bool(self.client_id and self.client_secret and self.tokens and
-                   (self.consoles or self.liveid))
+        # client_secret is optional (required for Web apps, not for Mobile/Desktop apps)
+        return bool(self.client_id and self.tokens and (self.consoles or self.liveid))
 
     def get_consoles(self) -> list[ConsoleConfig]:
         """Get list of console configurations."""

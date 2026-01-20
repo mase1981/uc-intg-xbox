@@ -39,9 +39,25 @@ class XboxSetup:
                 self.config.client_id = request.setup_data.get("client_id", "").strip()
                 self.config.client_secret = request.setup_data.get("client_secret", "").strip()
 
-                if not self.config.client_id or not self.config.client_secret:
-                    _LOG.error("Azure App credentials missing.")
+                if not self.config.client_id:
+                    _LOG.error("Azure App Client ID is required.")
                     return SetupError(IntegrationSetupError.INVALID_INPUT)
+
+                # Client secret is optional - used for Web apps, not needed for Mobile/Desktop apps
+                if self.config.client_secret:
+                    _LOG.info("Client secret provided - using Web app (confidential client) flow")
+                    # Warn about special characters that may cause issues
+                    problematic_chars = ['+', '~', '/']
+                    found_chars = [c for c in problematic_chars if c in self.config.client_secret]
+                    if found_chars:
+                        _LOG.warning(
+                            f"Client secret contains special characters {found_chars} that may cause "
+                            "authentication failures. If setup fails with 'unauthorized_client' error, "
+                            "try using Mobile/Desktop app platform (no secret required). "
+                            "See AZURE_SETUP_GUIDE.md for details."
+                        )
+                else:
+                    _LOG.info("No client secret provided - using Mobile/Desktop app (public client) flow")
 
                 console_count_value = request.setup_data.get("console_count")
                 if console_count_value is None:

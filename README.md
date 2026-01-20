@@ -175,23 +175,37 @@ docker run -d --name=uc-intg-xbox --network host -v </local/path>:/data -e UC_CO
 
 **IMPORTANT**: Starting with version 4.0.0, due to Microsoft OAuth changes, you must create your own Azure App Registration.
 
-📖 **[Complete Azure Setup Guide](AZURE_SETUP_GUIDE.md)** ← Click for detailed instructions
+#### Method 1: Web App (Try This First)
 
-**Quick Setup:**
 1. Go to https://portal.azure.com
 2. Navigate to **Microsoft Entra ID** → **App registrations**
 3. Click **"+ New registration"**
 4. Fill in:
    - **Name**: `Unfolded Circle Xbox Integration`
-   - **Supported accounts**: Select **"Personal Microsoft accounts (e.g. Skype, Xbox)"**
-   - **Redirect URI**:
-     - Type: **Web**
-     - URL: `http://localhost:8765/callback`
-5. Click **"Register"**
+   - **Supported accounts**: Select **"Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant) and personal Microsoft accounts (e.g. Skype, Xbox)"**
+5. Click **"Register"** (don't add redirect URI yet)
 6. Copy your **Application (client) ID**
-7. Go to **Certificates & secrets** → Create new **Client Secret**
-8. Copy the **Secret Value** (shown only once!)
-9. Save both ID and Secret for integration setup
+7. Click **Authentication** → **Add a platform** → Select **"Web"**
+8. Enter redirect URI: `http://localhost:8765/callback`
+9. Click **Configure**
+10. Go to **Certificates & secrets** → Click **"+ New client secret"**
+11. Add description, choose expiration (24 months recommended)
+12. Click **Add** and immediately copy the **Secret VALUE** (not the Secret ID)
+13. Save both Client ID and Secret for setup
+
+**If authentication fails with "unauthorized_client" error, use Method 2 below.**
+
+#### Method 2: Mobile/Desktop App (Fallback)
+
+If Method 1 fails:
+1. Go back to your Azure app → **Authentication**
+2. Under **Platform configurations**, remove the **Web** platform
+3. Click **Add a platform** → Select **"Mobile and desktop applications"**
+4. In **Custom redirect URIs**, enter: `http://localhost:8765/callback`
+5. Click **Configure**
+6. Scroll down to **Advanced settings** → Set **"Allow public client flows"** to **YES**
+7. Click **Save**
+8. During integration setup, **LEAVE THE CLIENT SECRET FIELD EMPTY** (don't enter anything)
 
 ### Step 2: Prepare Your Xbox Console
 
@@ -215,11 +229,17 @@ docker run -d --name=uc-intg-xbox --network host -v </local/path>:/data -e UC_CO
 
 #### Page 1: Enter Credentials
    - **Azure App Client ID**: Paste your Application (client) ID from Azure
-   - **Azure App Client Secret**: Paste your Client Secret Value from Azure
-   - **Xbox Live Device ID (Optional)**: Leave empty for automatic discovery, or paste manually
+   - **Azure App Client Secret**:
+     - **If using Method 1 (Web)**: Paste your Client Secret Value
+     - **If using Method 2 (Mobile/Desktop)**: Leave this field EMPTY
+   - **Number of Consoles**: Enter how many Xbox consoles you want to configure
    - Click **Next**
 
-   **🆕 v4.1.0 Auto-Discovery:** If you leave the Live ID empty, the integration will automatically discover all Xbox consoles on your Microsoft account after authentication!
+#### Page 2: Console Details
+   - For each console, enter:
+     - **Console Name**: Friendly name (e.g., "Living Room Xbox")
+     - **Xbox Live Device ID**: Found in Xbox Settings → Devices & connections → Remote features
+   - Click **Next**
 
 #### Page 2: Microsoft Authentication
 
@@ -323,10 +343,19 @@ The media player entity displays live Xbox gaming activity:
 
 ### Authentication Failed
 
-**Symptoms:** Setup fails during Microsoft login
+**Symptoms:** Setup fails during Microsoft login or returns "unauthorized_client" error
 
-**Solutions:**
-1. ✅ Ensure you're using correct Microsoft account (linked to Xbox)
+**Solution:** Switch from Web to Mobile/Desktop platform
+
+1. ✅ Go to Azure Portal → Your App → **Authentication**
+2. ✅ Remove the **Web** platform
+3. ✅ Click **Add a platform** → Select **"Mobile and desktop applications"**
+4. ✅ Enter redirect URI: `http://localhost:8765/callback`
+5. ✅ Set **"Allow public client flows"** to **YES**
+6. ✅ **IMPORTANT**: During integration setup, **LEAVE CLIENT SECRET EMPTY**
+7. ✅ Try setup again
+
+**Why this works:** Some Azure app configurations have issues with the Web platform. The Mobile/Desktop platform uses public client flow (no secret required) and is more reliable for localhost OAuth.
 2. ✅ Copy the **entire** redirect URL including all parameters
 3. ✅ Don't modify the URL - paste exactly as shown in browser
 4. ✅ Clear browser cache and try again
