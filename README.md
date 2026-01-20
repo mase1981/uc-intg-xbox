@@ -266,8 +266,6 @@ After authentication, the integration will:
    - **Remote Control**: `remote.xbox_remote_[device_id]` - Full button control
    - **Media Player**: `media_player.xbox_[device_id]` - Gaming status display
 
-**📝 Note:** v4.1.0 discovers all consoles but creates entities for the first one. Full multi-console UI support coming in v4.2.0!
-
 
 ## Using the Integration
 
@@ -662,7 +660,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 - **GitHub Issues**: [Report bugs and request features](https://github.com/mase1981/uc-intg-xbox/issues)
 - **GitHub Discussions**: [General discussion and support](https://github.com/mase1981/uc-intg-xbox/discussions)
-- **UC Community Forum**: [Unfolded Circle community](https://community.unfoldedcircle.com/)
+- **UC Community Forum**: [Unfolded Circle community](https://unfolded.community/)
 - **Discord**: [Unfolded Circle Discord](https://discord.gg/zGVYf58)
 - **Developer**: [Meir Miyara](https://github.com/mase1981)
 
