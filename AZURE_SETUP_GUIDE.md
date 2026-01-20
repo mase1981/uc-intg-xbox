@@ -52,6 +52,16 @@ After registration, you'll be on your app's overview page:
 6. **IMPORTANT**: Immediately copy the **"Value"** (the long string, not the Secret ID)
 7. **Save this secret value** - you cannot view it again after leaving this page
 
+**CRITICAL: Special Character Issue**
+
+Azure-generated client secrets may contain special characters (like `+`, `~`, or `/`) that cause authentication failures with Microsoft's Xbox Live OAuth endpoint. This is a known Microsoft platform issue.
+
+**If you get an error like:**
+- `error=unauthorized_client&error_description=The client does not have a secret configured`
+- `AADSTS7000215: Invalid client secret provided`
+
+**Solution:** Delete the secret you just created and generate a new one. Repeat until you get a secret that **does not contain** `+`, `~`, or `/` characters. While these characters should work according to web standards, Microsoft's OAuth endpoint does not handle them correctly.
+
 ### 5. Verify Redirect URI (Optional)
 
 1. In the left sidebar, click **"Authentication"**
@@ -101,6 +111,13 @@ When setting up the Xbox integration in your Unfolded Circle Remote:
 ### "Supported account types" error during authentication
 - Ensure you selected the option that includes **"personal Microsoft accounts (e.g. Skype, Xbox)"**
 - You may need to delete and recreate the app registration with the correct account type
+
+### "unauthorized_client" or "client does not have a secret configured"
+- **Most Common Cause**: Your Azure-generated client secret contains special characters (`+`, `~`, `/`) that Microsoft's OAuth endpoint cannot handle properly
+- **Solution**: In Azure Portal, delete the current secret and generate a new one
+- Keep generating new secrets until you get one without these problematic characters
+- This is a known Microsoft platform issue, not a bug in the integration
+- See Step 4 above for detailed explanation
 
 ### Cannot find Client Secret Value
 - The secret value is only shown once when created

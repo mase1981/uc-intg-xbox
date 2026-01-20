@@ -321,7 +321,21 @@ The media player entity displays live Xbox gaming activity:
 - Console not connected to network
 - First-time setup incomplete
 
-### Authentication Failed
+### Authentication Failed - "unauthorized_client" Error
+
+**Symptoms:** Setup fails with error: "The client does not have a secret configured"
+
+**Most Common Cause:** Your Azure client secret contains special characters (`+`, `~`, `/`) that Microsoft's OAuth cannot handle
+
+**Quick Fix:**
+1. ✅ Go to Azure Portal → Your App → Certificates & secrets
+2. ✅ Delete current client secret and generate a new one
+3. ✅ Keep generating until you get a secret WITHOUT `+`, `~`, or `/` characters
+4. ✅ Use the new secret in integration setup
+
+📖 **[Detailed troubleshooting guide](TROUBLESHOOTING_SPECIAL_CHARS.md)**
+
+### Authentication Failed - Other Issues
 
 **Symptoms:** Setup fails during Microsoft login
 

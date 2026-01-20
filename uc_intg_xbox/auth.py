@@ -159,9 +159,13 @@ class XboxAuth:
 
                             # Provide specific guidance based on error
                             if error == "unauthorized_client" and "secret" in error_desc.lower():
-                                _LOG.error("SETUP ERROR: Azure App is missing a Client Secret. "
-                                          "Go to Azure Portal → Your App → Certificates & secrets → "
-                                          "Create a new Client Secret and use its VALUE (not ID).")
+                                _LOG.error("SETUP ERROR: Azure App Client Secret issue detected.")
+                                _LOG.error("MOST COMMON CAUSE: Your client secret contains special characters "
+                                          "(+, ~, /) that Microsoft's OAuth endpoint cannot handle properly.")
+                                _LOG.error("SOLUTION: Go to Azure Portal → Your App → Certificates & secrets → "
+                                          "Delete the current secret and generate a NEW one. Keep generating until "
+                                          "you get a secret WITHOUT +, ~, or / characters.")
+                                _LOG.error("ALTERNATIVE: Verify you copied the secret VALUE (not the Secret ID).")
                             elif error == "invalid_request":
                                 _LOG.error("SETUP ERROR: Invalid redirect URI or app configuration. "
                                           "Verify redirect URI is exactly: http://localhost:8765/callback")
