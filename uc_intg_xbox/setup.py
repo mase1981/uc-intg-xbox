@@ -43,6 +43,17 @@ class XboxSetup:
                     _LOG.error("Azure App credentials missing.")
                     return SetupError(IntegrationSetupError.INVALID_INPUT)
 
+                # Warn about special characters that Microsoft's OAuth endpoint may not handle correctly
+                problematic_chars = ['+', '~', '/']
+                found_chars = [c for c in problematic_chars if c in self.config.client_secret]
+                if found_chars:
+                    _LOG.warning(
+                        f"Client secret contains special characters {found_chars} that may cause "
+                        "authentication failures with Microsoft OAuth. If setup fails with "
+                        "'unauthorized_client' error, regenerate the secret in Azure Portal. "
+                        "See AZURE_SETUP_GUIDE.md for details."
+                    )
+
                 console_count_value = request.setup_data.get("console_count")
                 if console_count_value is None:
                     _LOG.error("console_count field missing from setup_data")
