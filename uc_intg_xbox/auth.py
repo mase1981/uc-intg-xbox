@@ -21,21 +21,27 @@ OAUTH2_REDIRECT_URI = "http://localhost:8765/callback"
 DEFAULT_CALLBACK_PORT = 8765
 
 class XboxAuth:
-    def __init__(self, session: httpx.AsyncClient, client_id: str, client_secret: str):
+    def __init__(self, session: httpx.AsyncClient, client_id: str, client_secret: str | None = None):
         """
         Initialize Xbox authentication with user-provided Azure App credentials.
 
         Args:
             session: HTTP client session
             client_id: Azure App Registration Client ID
-            client_secret: Azure App Client Secret
+            client_secret: Azure App Client Secret (optional - required for Web apps, not needed for Mobile/Desktop apps)
         """
         self.session = session
+        # Pass empty string if client_secret is None to maintain compatibility with AuthenticationManager
+        secret = client_secret if client_secret else ""
         self.auth_mgr = AuthenticationManager(
-            session, client_id, client_secret, OAUTH2_REDIRECT_URI
+            session, client_id, secret, OAUTH2_REDIRECT_URI
         )
         self.callback_server = OAuthCallbackServer(port=DEFAULT_CALLBACK_PORT, host="0.0.0.0")
-        _LOG.info("XboxAuth initialized with user-provided credentials and local callback server.")
+
+        if client_secret:
+            _LOG.info("XboxAuth initialized with client secret (Web app / confidential client flow)")
+        else:
+            _LOG.info("XboxAuth initialized without client secret (Mobile/Desktop app / public client flow)")
 
     def generate_auth_url(self) -> str:
         """Generate OAuth authorization URL that redirects to our callback page."""

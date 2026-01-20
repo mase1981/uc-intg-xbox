@@ -3,7 +3,7 @@
   "name": { "en": "Xbox Integration" },
   "icon": "uc:gamepad-modern",
   "description": { "en": "Control your Xbox console and view gaming activity" },
-  "version": "4.1.6",
+  "version": "4.1.7",
   "developer": { "name": "Meir Miyara", "email": "meir.miyara@gmail.com" },
   "min_core_api": "0.5.1",
   "setup_data_schema": {
@@ -17,8 +17,8 @@
       },
       {
         "id": "client_secret",
-        "label": { "en": "Azure App Client Secret" },
-        "value": { "en": "Your Azure App Client Secret. See setup guide for instructions." },
+        "label": { "en": "Azure App Client Secret (Optional)" },
+        "value": { "en": "Required for Web apps only. Leave empty if using Mobile/Desktop app platform. See setup guide." },
         "field": { "password": { "value": "" } }
       },
       {
