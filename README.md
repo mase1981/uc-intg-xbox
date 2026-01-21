@@ -175,8 +175,28 @@ docker run -d --name=uc-intg-xbox --network host -v </local/path>:/data -e UC_CO
 
 **IMPORTANT**: Starting with version 4.0.0, due to Microsoft OAuth changes, you must create your own Azure App Registration.
 
-#### Method 1: Web App (Try This First)
+#### Method 1: Mobile/Desktop App (Recommended)
 
+1. Go to https://portal.azure.com
+2. Navigate to **Microsoft Entra ID** → **App registrations**
+3. Click **"+ New registration"**
+4. Fill in:
+   - **Name**: `Unfolded Circle Xbox Integration`
+   - **Supported accounts**: Select **"Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant) and personal Microsoft accounts (e.g. Skype, Xbox)"**
+5. Click **"Register"** (don't add redirect URI yet)
+6. Copy your **Application (client) ID**
+7. Click **Authentication** → **Add a platform** → Select **"Mobile and desktop applications"**
+8. In **Custom redirect URIs**, enter: `http://localhost:8765/callback`
+9. Click **Configure**
+10. Scroll down to **Advanced settings** → Set **"Allow public client flows"** to **YES**
+11. Click **Save**
+12. During integration setup, **LEAVE THE CLIENT SECRET FIELD EMPTY** (don't enter anything)
+
+**Note:** This method works for most users and doesn't require managing a client secret.
+
+#### Method 2: Web App (Alternative)
+
+If you prefer using a client secret or Method 1 doesn't work:
 1. Go to https://portal.azure.com
 2. Navigate to **Microsoft Entra ID** → **App registrations**
 3. Click **"+ New registration"**
@@ -192,20 +212,6 @@ docker run -d --name=uc-intg-xbox --network host -v </local/path>:/data -e UC_CO
 11. Add description, choose expiration (24 months recommended)
 12. Click **Add** and immediately copy the **Secret VALUE** (not the Secret ID)
 13. Save both Client ID and Secret for setup
-
-**If authentication fails with "unauthorized_client" error, use Method 2 below.**
-
-#### Method 2: Mobile/Desktop App (Fallback)
-
-If Method 1 fails:
-1. Go back to your Azure app → **Authentication**
-2. Under **Platform configurations**, remove the **Web** platform
-3. Click **Add a platform** → Select **"Mobile and desktop applications"**
-4. In **Custom redirect URIs**, enter: `http://localhost:8765/callback`
-5. Click **Configure**
-6. Scroll down to **Advanced settings** → Set **"Allow public client flows"** to **YES**
-7. Click **Save**
-8. During integration setup, **LEAVE THE CLIENT SECRET FIELD EMPTY** (don't enter anything)
 
 ### Step 2: Prepare Your Xbox Console
 
@@ -230,8 +236,8 @@ If Method 1 fails:
 #### Page 1: Enter Credentials
    - **Azure App Client ID**: Paste your Application (client) ID from Azure
    - **Azure App Client Secret**:
-     - **If using Method 1 (Web)**: Paste your Client Secret Value
-     - **If using Method 2 (Mobile/Desktop)**: Leave this field EMPTY
+     - **If using Method 1 (Mobile/Desktop)**: Leave this field EMPTY
+     - **If using Method 2 (Web)**: Paste your Client Secret Value
    - **Number of Consoles**: Enter how many Xbox consoles you want to configure
    - Click **Next**
 
@@ -343,17 +349,18 @@ The media player entity displays live Xbox gaming activity:
 
 **Symptoms:** Setup fails during Microsoft login or returns "unauthorized_client" error
 
-**Solution:** Switch from Web to Mobile/Desktop platform
+**Solution:** If using Method 2 (Web), switch to Method 1 (Mobile/Desktop)
 
 1. ✅ Go to Azure Portal → Your App → **Authentication**
 2. ✅ Remove the **Web** platform
 3. ✅ Click **Add a platform** → Select **"Mobile and desktop applications"**
 4. ✅ Enter redirect URI: `http://localhost:8765/callback`
 5. ✅ Set **"Allow public client flows"** to **YES**
-6. ✅ **IMPORTANT**: During integration setup, **LEAVE CLIENT SECRET EMPTY**
-7. ✅ Try setup again
+6. ✅ Click **Save**
+7. ✅ **IMPORTANT**: During integration setup, **LEAVE CLIENT SECRET EMPTY**
+8. ✅ Try setup again
 
-**Why this works:** Some Azure app configurations have issues with the Web platform. The Mobile/Desktop platform uses public client flow (no secret required) and is more reliable for localhost OAuth.
+**Why this works:** The Mobile/Desktop platform uses public client flow (no secret required) and is more reliable for localhost OAuth.
 2. ✅ Copy the **entire** redirect URL including all parameters
 3. ✅ Don't modify the URL - paste exactly as shown in browser
 4. ✅ Clear browser cache and try again
@@ -454,188 +461,6 @@ Xbox controls TV volume via **HDMI-CEC** only. Commands are sent to TV through H
 - **HDMI-CEC Only** - Volume commands use TV's HDMI-CEC, not Xbox directly
 - **TV Compatibility** - Requires CEC-compatible TV
 - **Receiver Routing** - May not work if Xbox connected through AV receiver
-
-### Authentication
-
-- **Token Expiration** - OAuth tokens expire periodically (~90 days)
-- **Re-authentication** - Will require re-setup when tokens expire
-- **Internet Required** - Authentication requires active internet connection
-
-## Advanced Configuration
-
-### Custom Polling Intervals
-
-Edit `config.json` in integration data directory:
-```json
-{
-  "liveid": "YOUR_XBOX_LIVE_DEVICE_ID",
-  "tokens": { ... },
-  "polling_interval": 60
-}
-```
-
-- **polling_interval**: Game presence update frequency in seconds (default: 60)
-
-**Note:** Lower polling intervals increase API requests and may impact Xbox Live rate limits.
-
-### Multiple Xbox Consoles
-
-Currently, the integration supports **one Xbox console per installation**.
-
-For multiple consoles, install separate integration instances:
-1. Each instance connects to different console
-2. Each instance requires separate authentication
-3. Use Docker with different config paths for each instance
-4. Each needs unique Xbox Live Device ID
-
-## For Developers
-
-### Local Development
-
-1. **Clone and setup:**
-```bash
-   git clone https://github.com/mase1981/uc-intg-xbox.git
-   cd uc-intg-xbox
-   python -m venv venv
-   source venv/bin/activate  # Windows: venv\Scripts\activate
-   pip install -r requirements.txt
-```
-
-2. **Configuration:**
-```bash
-   export UC_CONFIG_HOME=./config
-```
-
-3. **Run development:**
-```bash
-   python uc_intg_xbox/driver.py
-```
-
-4. **VS Code debugging:**
-   - Open project in VS Code
-   - Use F5 to start debugging session
-   - Configure with real Xbox Live credentials
-
-### Project Structure
-```
-uc-intg-xbox/
-├── uc_intg_xbox/              # Main package
-│   ├── __init__.py            # Package info  
-│   ├── auth.py                # Xbox OAuth2 authentication
-│   ├── config.py              # Configuration management
-│   ├── driver.py              # Main integration driver
-│   ├── xbox_client.py         # Xbox Web API client
-│   ├── remote_entity.py       # Remote control entity
-│   ├── media_player_entity.py # Media player entity
-│   └── setup.py               # Setup wizard
-├── .github/workflows/         # GitHub Actions CI/CD
-│   └── build.yml              # Automated build pipeline
-├── docker-compose.yml         # Docker deployment
-├── Dockerfile                 # Container build instructions
-├── driver.json                # Integration metadata
-├── requirements.txt           # Dependencies
-├── pyproject.toml             # Python project config
-└── README.md                  # This file
-```
-
-### Key Implementation Details
-
-#### **Xbox Live Web API Communication**
-- Uses `xbox-webapi-python` library for Xbox Live API
-- OAuth2 authentication via Microsoft identity platform
-- Commands sent to `https://xccs.xboxlive.com/commands`
-- Presence data from `https://peoplehub.xboxlive.com`
-- Game metadata from `https://titlehub.xboxlive.com`
-
-#### **Authentication Flow**
-```python
-# OAuth2 with authorization code flow
-1. Generate authorization URL
-2. User authenticates with Microsoft
-3. Receive authorization code from redirect
-4. Exchange code for access/refresh tokens
-5. Store tokens for future use
-6. Auto-refresh every 12 hours
-```
-
-#### **Entity Architecture**
-- **Remote Entity**: Full button control via `InputKeyType` enums
-- **Media Player Entity**: Read-only presence display
-- Independent command handlers per entity
-- Remote uses Xbox SmartGlass API endpoints
-- Media player polls Xbox Live presence API
-
-#### **Presence Detection**
-```python
-# Presence update flow
-1. Call get_friends_own_batch([xuid])
-2. Extract presence_details from response
-3. Check for Active game with is_primary=True
-4. Fetch title_info for game metadata
-5. Update media player attributes
-6. Repeat every 60 seconds
-```
-
-#### **Reboot Survival Pattern**
-```python
-# Pre-initialize entities if config exists
-if config.is_configured():
-    asyncio.create_task(_initialize_entities())
-
-# Reload config on reconnect
-async def on_connect():
-    config.reload_from_disk()
-    if not entities_ready:
-        await _initialize_entities()
-```
-
-### Xbox Web API Reference
-
-Essential API endpoints used by this integration:
-
-**SmartGlass Commands:**
-```python
-# Power control
-client.smartglass.wake_up(live_id)
-client.smartglass.turn_off(live_id)
-
-# Button presses
-client.smartglass.press_button(live_id, InputKeyType.A)
-client.smartglass.press_button(live_id, InputKeyType.Home)
-
-# Volume control (HDMI-CEC)
-client.smartglass.change_volume(live_id, VolumeDirection.Up)
-client.smartglass.mute(live_id)
-
-# Console status
-client.smartglass.get_console_status(live_id)
-```
-
-**Presence API:**
-```python
-# Get user presence
-client.people.get_friends_own_batch([xuid])
-
-# Get game title info
-client.titlehub.get_title_info(title_id)
-```
-
-### Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes and test with real Xbox console
-4. Commit changes: `git commit -m 'Add amazing feature'`
-5. Push to branch: `git push origin feature/amazing-feature`
-6. Open a Pull Request
-
-### Code Style
-
-- Follow PEP 8 Python conventions
-- Use type hints for all functions
-- Async/await for all I/O operations
-- Comprehensive docstrings
-- Descriptive variable names
 
 ## Credits
 
