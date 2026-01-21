@@ -180,17 +180,31 @@ docker run -d --name=uc-intg-xbox --network host -v </local/path>:/data -e UC_CO
 1. Go to https://portal.azure.com
 2. Navigate to **Microsoft Entra ID** → **App registrations**
 3. Click **"+ New registration"**
-4. Fill in:
+<img width="1052" height="383" alt="image" src="https://github.com/user-attachments/assets/4ae080ba-254c-4f84-b9e0-05e56d4a5b0b" />
+<img width="393" height="417" alt="image" src="https://github.com/user-attachments/assets/09f4cef3-eded-4874-89cc-df8f22b203c2" />
+
+5. Fill in:
    - **Name**: `Unfolded Circle Xbox Integration`
    - **Supported accounts**: Select **"Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant) and personal Microsoft accounts (e.g. Skype, Xbox)"**
-5. Click **"Register"** (don't add redirect URI yet)
-6. Copy your **Application (client) ID**
-7. Click **Authentication** → **Add a platform** → Select **"Mobile and desktop applications"**
-8. In **Custom redirect URIs**, enter: `http://localhost:8765/callback`
-9. Click **Configure**
-10. Scroll down to **Advanced settings** → Set **"Allow public client flows"** to **YES**
-11. Click **Save**
-12. During integration setup, **LEAVE THE CLIENT SECRET FIELD EMPTY** (don't enter anything)
+6. Click **"Register"** (don't add redirect URI yet)
+<img width="681" height="363" alt="image" src="https://github.com/user-attachments/assets/8ca1d6e4-06cd-423f-87c4-3644af22a155" />
+
+8. Copy your **Application (client) ID**
+<img width="587" height="269" alt="image" src="https://github.com/user-attachments/assets/94cce609-d7ae-4d2f-aff0-172cf953f1a9" />
+
+10. Click **Authentication** → **Add a platform** → Select **"Mobile and desktop applications"**
+<img width="1275" height="515" alt="image" src="https://github.com/user-attachments/assets/32cac6d5-efdc-49d1-80e5-7f87b40374f3" />
+
+12. In **Custom redirect URIs**, enter: `http://localhost:8765/callback`
+13. Click **Register**
+<img width="1048" height="306" alt="image" src="https://github.com/user-attachments/assets/71ae53d6-7c12-465f-af60-2b371613bd82" />
+
+14. Click on **Settings** → Set **"Allow public client flows"** to **YES**
+15. Click **Save**
+
+<img width="288" height="179" alt="image" src="https://github.com/user-attachments/assets/4222f653-3abc-437e-bfde-04f6afadc14b" />
+
+16. During integration setup, **LEAVE THE CLIENT SECRET FIELD EMPTY** (don't enter anything)
 
 **Note:** This method works for most users and doesn't require managing a client secret.
 
@@ -326,120 +340,6 @@ The media player entity displays live Xbox gaming activity:
 - Presence updates in real-time
 - No manual refresh needed
 
-## Troubleshooting
-
-### Power On Not Working
-
-**Symptoms:** Cannot turn on Xbox console remotely
-
-**Solutions:**
-1. ✅ Verify console is in **Sleep** power mode (Settings → Power options)
-2. ✅ Check that **Remote Features** are enabled on Xbox
-3. ✅ Ensure console is on same network as Remote
-4. ✅ Wait 30-60 seconds after console enters sleep before trying power on
-5. ✅ Console may need to be turned on once manually after changing power mode
-
-**Common Causes:**
-- Console in "Energy Saving" mode instead of "Sleep"
-- Remote features not enabled
-- Console not connected to network
-- First-time setup incomplete
-
-### Authentication Failed
-
-**Symptoms:** Setup fails during Microsoft login or returns "unauthorized_client" error
-
-**Solution:** If using Method 2 (Web), switch to Method 1 (Mobile/Desktop)
-
-1. ✅ Go to Azure Portal → Your App → **Authentication**
-2. ✅ Remove the **Web** platform
-3. ✅ Click **Add a platform** → Select **"Mobile and desktop applications"**
-4. ✅ Enter redirect URI: `http://localhost:8765/callback`
-5. ✅ Set **"Allow public client flows"** to **YES**
-6. ✅ Click **Save**
-7. ✅ **IMPORTANT**: During integration setup, **LEAVE CLIENT SECRET EMPTY**
-8. ✅ Try setup again
-
-**Why this works:** The Mobile/Desktop platform uses public client flow (no secret required) and is more reliable for localhost OAuth.
-2. ✅ Copy the **entire** redirect URL including all parameters
-3. ✅ Don't modify the URL - paste exactly as shown in browser
-4. ✅ Clear browser cache and try again
-5. ✅ Try incognito/private browsing mode
-
-**Common Causes:**
-- Wrong Microsoft account used
-- Partial URL copied (missing parameters)
-- Browser auto-completing/modifying URL
-- Account doesn't have Xbox Live access
-
-### Commands Not Responding
-
-**Symptoms:** Remote buttons don't control console
-
-**Solutions:**
-1. ✅ Verify console is powered on and connected
-2. ✅ Test Xbox app on phone to confirm console is reachable
-3. ✅ Restart integration from Remote web configurator
-4. ✅ Check integration logs for authentication errors
-5. ✅ Re-authenticate if tokens expired (typically 90 days)
-
-**Common Causes:**
-- Console powered off or in Energy Saving mode
-- Network connectivity issues
-- Authentication tokens expired
-- Xbox Live service issues
-
-### Game Not Showing in Media Player
-
-**Symptoms:** Media player shows "Home" but not current game
-
-**Solutions:**
-1. ✅ Wait up to 60 seconds for presence update
-2. ✅ Verify game is actually running (not suspended)
-3. ✅ Check that Xbox Live privacy settings allow presence sharing
-4. ✅ Some games may not report detailed presence information
-
-**Common Causes:**
-- Game suspended in background
-- Privacy settings restricting presence
-- Update polling interval hasn't elapsed
-- Game doesn't report to Xbox Live
-
-### Volume Control Not Working
-
-**Symptoms:** Volume buttons have no effect
-
-**Explanation:**
-Xbox controls TV volume via **HDMI-CEC** only. Commands are sent to TV through HDMI cable.
-
-**Solutions:**
-1. ✅ Enable HDMI-CEC on your TV:
-   - Samsung: "Anynet+"
-   - LG: "Simplink"  
-   - Sony: "Bravia Sync"
-   - Panasonic: "VIERA Link"
-   - Philips: "EasyLink"
-2. ✅ Verify HDMI cable connects Xbox to TV
-3. ✅ Check TV settings for CEC/device control
-4. ✅ Enable CEC per HDMI input on some TVs
-
-**Common Causes:**
-- HDMI-CEC disabled on TV
-- Xbox connected through AV receiver/soundbar
-- TV doesn't support CEC
-- Wrong HDMI input selected
-
-### Integration Logs
-
-**Access Logs:**
-- **Remote Interface**: Settings → Integrations → Xbox Integration → View Logs
-- **Docker**: `docker logs uc-intg-xbox`
-
-**Look For:**
-- Authentication failures
-- Token refresh errors  
-- API communication issues
-- Button command errors
 
 ## Known Limitations
 
