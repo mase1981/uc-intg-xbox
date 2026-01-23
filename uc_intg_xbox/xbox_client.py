@@ -139,6 +139,42 @@ class XboxClient:
             _LOG.exception(f"Failed to press button '{button}'", exc_info=e)
             raise
 
+    async def play(self):
+        _LOG.info(f"Sending Play to {self.live_id}")
+        try:
+            await self.client.smartglass.play(self.live_id)
+            _LOG.info("Play command sent successfully")
+        except Exception as e:
+            _LOG.exception("Failed to send play command", exc_info=e)
+            raise
+
+    async def pause(self):
+        _LOG.info(f"Sending Pause to {self.live_id}")
+        try:
+            await self.client.smartglass.pause(self.live_id)
+            _LOG.info("Pause command sent successfully")
+        except Exception as e:
+            _LOG.exception("Failed to send pause command", exc_info=e)
+            raise
+
+    async def next_track(self):
+        _LOG.info(f"Sending Next Track to {self.live_id}")
+        try:
+            await self.client.smartglass.next(self.live_id)
+            _LOG.info("Next track command sent successfully")
+        except Exception as e:
+            _LOG.exception("Failed to send next track command", exc_info=e)
+            raise
+
+    async def previous_track(self):
+        _LOG.info(f"Sending Previous Track to {self.live_id}")
+        try:
+            await self.client.smartglass.previous(self.live_id)
+            _LOG.info("Previous track command sent successfully")
+        except Exception as e:
+            _LOG.exception("Failed to send previous track command", exc_info=e)
+            raise
+
     async def get_console_state(self):
         try:
             batch = await self.client.people.get_friends_own_batch([self.xuid])
