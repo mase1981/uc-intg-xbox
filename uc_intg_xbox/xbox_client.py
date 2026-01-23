@@ -126,6 +126,15 @@ class XboxClient:
             _LOG.exception("Failed to unmute", exc_info=e)
             raise
 
+    async def go_home(self):
+        _LOG.info(f"Sending Go Home to {self.live_id}")
+        try:
+            await self.client.smartglass.go_home(self.live_id)
+            _LOG.info("Go home command sent successfully")
+        except Exception as e:
+            _LOG.exception("Failed to go home", exc_info=e)
+            raise
+
     async def press_button(self, button: str):
         _LOG.info(f"Sending button press: '{button}' to {self.live_id}")
         try:

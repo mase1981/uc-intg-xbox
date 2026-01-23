@@ -56,7 +56,7 @@ COMMAND_MAP = {
     "DPAD_RIGHT": "Right",
     "DPAD_CENTER": "A",
     "BACK": "B",
-    "HOME": "Guide",
+    "HOME": "home",
     # "NEXUS": "Nexus",  # Removed: Not supported in xbox-webapi < 2.1.0
     "MENU": "Menu",
     "CONTEXT_MENU": "View",
@@ -151,6 +151,10 @@ class XboxRemote(Remote):
                         await self.xbox_client.change_volume("Down")
                     elif xbox_cmd == "mute":
                         await self.xbox_client.mute()
+                    elif xbox_cmd == "home":
+                        await self.xbox_client.go_home()
+                        trigger_state_update(self.liveid)
+                        trigger_delayed_state_update(self.liveid)
                     elif xbox_cmd == "play":
                         await self.xbox_client.play()
                     elif xbox_cmd == "pause":
@@ -161,7 +165,7 @@ class XboxRemote(Remote):
                         await self.xbox_client.previous_track()
                     else:
                         await self.xbox_client.press_button(xbox_cmd)
-                        if xbox_cmd in ["Guide", "Menu", "A", "B"]:
+                        if xbox_cmd in ["Menu", "A", "B"]:
                             trigger_state_update(self.liveid)
                             trigger_delayed_state_update(self.liveid)
 
