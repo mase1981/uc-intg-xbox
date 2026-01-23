@@ -59,7 +59,7 @@ COMMAND_MAP = {
     "HOME": "home",
     # "NEXUS": "Nexus",  # Removed: Not supported in xbox-webapi < 2.1.0
     "MENU": "Menu",
-    "CONTEXT_MENU": "View",
+    "CONTEXT_MENU": "context_menu",
     "CHANNEL_UP": "Y",
     "CHANNEL_DOWN": "X",
     "A": "A",
@@ -153,6 +153,10 @@ class XboxRemote(Remote):
                         await self.xbox_client.mute()
                     elif xbox_cmd == "home":
                         await self.xbox_client.go_home()
+                        trigger_state_update(self.liveid)
+                        trigger_delayed_state_update(self.liveid)
+                    elif xbox_cmd == "context_menu":
+                        await self.xbox_client.go_back()
                         trigger_state_update(self.liveid)
                         trigger_delayed_state_update(self.liveid)
                     elif xbox_cmd == "play":
