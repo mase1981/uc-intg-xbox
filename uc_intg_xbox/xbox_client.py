@@ -132,9 +132,10 @@ class XboxClient:
             button_enum = InputKeyType(button)
             await self.client.smartglass.press_button(self.live_id, button_enum)
             _LOG.info(f"Button '{button}' pressed successfully")
-        except ValueError:
-            _LOG.error(f"Unknown button command: {button}")
-            raise ValueError(f"Unknown button command: {button}")
+        except ValueError as e:
+            valid_buttons = [btn.value for btn in InputKeyType]
+            _LOG.error(f"Unknown button command: {button}. Valid buttons: {valid_buttons}")
+            raise ValueError(f"Unknown button command: {button}. Valid buttons: {valid_buttons}")
         except Exception as e:
             _LOG.exception(f"Failed to press button '{button}'", exc_info=e)
             raise

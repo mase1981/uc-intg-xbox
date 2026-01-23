@@ -22,7 +22,7 @@ SIMPLE_COMMANDS = [
     "DPAD_CENTER",
     "BACK",
     "HOME",
-    "NEXUS",
+    # "NEXUS",  # Removed: Not supported in xbox-webapi < 2.1.0
     "MENU",
     "CONTEXT_MENU",
     "CHANNEL_UP",
@@ -57,7 +57,7 @@ COMMAND_MAP = {
     "DPAD_CENTER": "A",
     "BACK": "B",
     "HOME": "Guide",
-    "NEXUS": "Nexus",
+    # "NEXUS": "Nexus",  # Removed: Not supported in xbox-webapi < 2.1.0
     "MENU": "Menu",
     "CONTEXT_MENU": "View",
     "CHANNEL_UP": "Y",
@@ -161,7 +161,7 @@ class XboxRemote(Remote):
                         await self.xbox_client.previous_track()
                     else:
                         await self.xbox_client.press_button(xbox_cmd)
-                        if xbox_cmd in ["Guide", "Nexus", "A", "B"]:
+                        if xbox_cmd in ["Guide", "Menu", "A", "B"]:
                             trigger_state_update(self.liveid)
                             trigger_delayed_state_update(self.liveid)
 
