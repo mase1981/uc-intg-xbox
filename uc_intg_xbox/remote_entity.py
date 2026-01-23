@@ -22,6 +22,7 @@ SIMPLE_COMMANDS = [
     "DPAD_CENTER",
     "BACK",
     "HOME",
+    "NEXUS",
     "MENU",
     "CONTEXT_MENU",
     "CHANNEL_UP",
@@ -32,7 +33,6 @@ SIMPLE_COMMANDS = [
     "Y",
     "PLAY",
     "PAUSE",
-    "STOP",
     "NEXT",
     "PREVIOUS",
     "FAST_FORWARD",
@@ -56,7 +56,8 @@ COMMAND_MAP = {
     "DPAD_RIGHT": "Right",
     "DPAD_CENTER": "A",
     "BACK": "B",
-    "HOME": "Home",
+    "HOME": "Guide",
+    "NEXUS": "Nexus",
     "MENU": "Menu",
     "CONTEXT_MENU": "View",
     "CHANNEL_UP": "Y",
@@ -65,13 +66,12 @@ COMMAND_MAP = {
     "B": "B",
     "X": "X",
     "Y": "Y",
-    "PLAY": "Play",
-    "PAUSE": "Pause",
-    "STOP": "Stop",
-    "NEXT": "NextTrack",
-    "PREVIOUS": "PrevTrack",
-    "FAST_FORWARD": "NextTrack",
-    "REWIND": "PrevTrack",
+    "PLAY": "play",
+    "PAUSE": "pause",
+    "NEXT": "next",
+    "PREVIOUS": "previous",
+    "FAST_FORWARD": "next",
+    "REWIND": "previous",
     "VOLUME_UP": "volume_up",
     "VOLUME_DOWN": "volume_down",
     "MUTE_TOGGLE": "mute",
@@ -138,7 +138,7 @@ class XboxRemote(Remote):
                 command = params.get("command")
                 if command in COMMAND_MAP:
                     xbox_cmd = COMMAND_MAP[command]
-                    
+
                     if xbox_cmd == "on":
                         await self.xbox_client.turn_on()
                         trigger_state_update(self.liveid)
@@ -151,12 +151,20 @@ class XboxRemote(Remote):
                         await self.xbox_client.change_volume("Down")
                     elif xbox_cmd == "mute":
                         await self.xbox_client.mute()
+                    elif xbox_cmd == "play":
+                        await self.xbox_client.play()
+                    elif xbox_cmd == "pause":
+                        await self.xbox_client.pause()
+                    elif xbox_cmd in ["next", "fast_forward"]:
+                        await self.xbox_client.next_track()
+                    elif xbox_cmd in ["previous", "rewind"]:
+                        await self.xbox_client.previous_track()
                     else:
                         await self.xbox_client.press_button(xbox_cmd)
-                        if xbox_cmd in ["Home", "A", "B"]:
+                        if xbox_cmd in ["Guide", "Nexus", "A", "B"]:
                             trigger_state_update(self.liveid)
                             trigger_delayed_state_update(self.liveid)
-                    
+
                     return StatusCodes.OK
 
             return StatusCodes.BAD_REQUEST
