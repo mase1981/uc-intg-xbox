@@ -3,7 +3,7 @@
   "name": { "en": "Xbox Integration" },
   "icon": "uc:gamepad-modern",
   "description": { "en": "Control your Xbox console and view gaming activity" },
-  "version": "4.1.13",
+  "version": "4.1.14",
   "developer": { "name": "Meir Miyara", "email": "meir.miyara@gmail.com" },
   "min_core_api": "0.5.1",
   "setup_data_schema": {
