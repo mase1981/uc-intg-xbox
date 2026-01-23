@@ -152,7 +152,7 @@ class XboxRemote(Remote):
                     elif xbox_cmd == "mute":
                         await self.xbox_client.mute()
                     elif xbox_cmd == "home":
-                        await self.xbox_client.go_home()
+                        await self.xbox_client.show_guide()
                         trigger_state_update(self.liveid)
                         trigger_delayed_state_update(self.liveid)
                     elif xbox_cmd == "context_menu":
