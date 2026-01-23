@@ -144,6 +144,16 @@ class XboxClient:
             _LOG.exception("Failed to go back", exc_info=e)
             raise
 
+    async def show_guide(self):
+        _LOG.info(f"Sending Show Guide to {self.live_id}")
+        try:
+            from xbox.webapi.api.provider.smartglass.models import GuideTab
+            await self.client.smartglass.show_guide_tab(self.live_id, GuideTab.Guide)
+            _LOG.info("Show guide command sent successfully")
+        except Exception as e:
+            _LOG.exception("Failed to show guide", exc_info=e)
+            raise
+
     async def press_button(self, button: str):
         _LOG.info(f"Sending button press: '{button}' to {self.live_id}")
         try:
