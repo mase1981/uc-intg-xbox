@@ -1,15 +1,15 @@
 version: '3.8'
-
 services:
-  horizon-integration:
+  integration:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: uc-intg-horizon
+    container_name: uc-intg-xbox
     restart: unless-stopped
-    network_mode: host  # Required for device discovery
+    ports:
+      - "9090:9090"
     volumes:
-      - ./data:/data  # Persistent configuration storage
+      - ./data:/data
     environment:
       - UC_CONFIG_HOME=/data
       - UC_INTEGRATION_INTERFACE=0.0.0.0

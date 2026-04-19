@@ -1,61 +1,139 @@
 """
-Xbox media player entity module for Unfolded Circle integration.
+Xbox media player entity.
 
 :copyright: (c) 2025 by Meir Miyara.
 :license: MPL-2.0, see LICENSE for more details.
 """
 
 import logging
-from ucapi import StatusCodes
-from ucapi.media_player import MediaPlayer, DeviceClasses
+from typing import Any
 
-_LOG = logging.getLogger("XBOX_MEDIA_PLAYER")
+from ucapi import StatusCodes, media_player
+from ucapi_framework import MediaPlayerEntity
 
-class XboxMediaPlayer(MediaPlayer):
-    def __init__(self, api, xbox_client, console_name: str = None, liveid: str = None):
-        # Use provided console name or fallback to gamertag
-        display_name = console_name or f"Xbox ({xbox_client.gamertag})"
+from uc_intg_xbox.config import XboxConfig
+from uc_intg_xbox.device import XboxDevice
 
-        # Use liveid for entity ID to ensure uniqueness
-        entity_id = f"xbox-player-{liveid or xbox_client.live_id}"
-        entity_name = {"en": display_name}
+_LOG = logging.getLogger(__name__)
 
+FEATURES = [
+    media_player.Features.ON_OFF,
+    media_player.Features.TOGGLE,
+    media_player.Features.PLAY_PAUSE,
+    media_player.Features.NEXT,
+    media_player.Features.PREVIOUS,
+    media_player.Features.FAST_FORWARD,
+    media_player.Features.REWIND,
+    media_player.Features.VOLUME_UP_DOWN,
+    media_player.Features.MUTE_TOGGLE,
+    media_player.Features.MEDIA_TITLE,
+    media_player.Features.MEDIA_IMAGE_URL,
+    media_player.Features.MEDIA_TYPE,
+    media_player.Features.HOME,
+    media_player.Features.MENU,
+    media_player.Features.CONTEXT_MENU,
+    media_player.Features.DPAD,
+    media_player.Features.COLOR_BUTTONS,
+]
+
+
+class XboxMediaPlayer(MediaPlayerEntity):
+    """Xbox media player entity."""
+
+    def __init__(self, device_config: XboxConfig, device: XboxDevice) -> None:
+        self._device = device
+        entity_id = f"media_player.{device_config.identifier}"
         super().__init__(
             entity_id,
-            entity_name,
-            features=[],
-            attributes={
-                "state": "OFF",
-                "media_title": "Offline",
-                "media_image_url": "",
-                "media_type": "GAME",
+            device_config.name,
+            FEATURES,
+            {
+                media_player.Attributes.STATE: media_player.States.UNKNOWN,
+                media_player.Attributes.MEDIA_TITLE: "",
+                media_player.Attributes.MEDIA_IMAGE_URL: "",
+                media_player.Attributes.MEDIA_TYPE: "",
             },
-            device_class=DeviceClasses.RECEIVER,
-            cmd_handler=self.handle_command,
+            device_class=media_player.DeviceClasses.SET_TOP_BOX,
+            cmd_handler=self._handle_command,
         )
-        self.api = api
-        self.xbox_client = xbox_client
-        _LOG.info(f"XboxMediaPlayer entity initialized: {entity_id} - {entity_name}")
+        self.subscribe_to_device(device)
 
-    async def handle_command(self, entity, cmd_id: str, params: dict | None = None) -> StatusCodes:
-        _LOG.debug(f"Command '{cmd_id}' received. Ignoring (read-only entity).")
-        return StatusCodes.OK
+    async def sync_state(self) -> None:
+        if self._device.state == "UNAVAILABLE":
+            self.update({media_player.Attributes.STATE: media_player.States.UNAVAILABLE})
+            return
 
-    async def update_presence(self, presence_data: dict):
-        attributes_to_update = {}
-        
-        new_state = presence_data.get("state")
-        if self.attributes.get("state") != new_state:
-            attributes_to_update["state"] = new_state
-        
-        new_title = presence_data.get("title", "Unknown")
-        if self.attributes.get("media_title") != new_title:
-            attributes_to_update["media_title"] = new_title
+        presence = self._device.presence_state
+        if presence == "OFF":
+            state = media_player.States.OFF
+        elif presence == "PLAYING":
+            state = media_player.States.PLAYING
+        else:
+            state = media_player.States.ON
 
-        new_image = presence_data.get("image", "")
-        if self.attributes.get("media_image_url") != new_image:
-            attributes_to_update["media_image_url"] = new_image
+        self.update({
+            media_player.Attributes.STATE: state,
+            media_player.Attributes.MEDIA_TITLE: self._device.media_title or "",
+            media_player.Attributes.MEDIA_IMAGE_URL: self._device.media_image or "",
+            media_player.Attributes.MEDIA_TYPE: "game" if presence == "PLAYING" else "",
+        })
 
-        if attributes_to_update:
-            self.api.configured_entities.update_attributes(self.id, attributes_to_update)
-            _LOG.info(f"Media player updated: {attributes_to_update}")
+    async def _handle_command(
+        self, entity: Any, cmd_id: str, params: dict[str, Any] | None
+    ) -> StatusCodes:
+        try:
+            match cmd_id:
+                case media_player.Commands.ON:
+                    await self._device.power_on()
+                case media_player.Commands.OFF:
+                    await self._device.power_off()
+                case media_player.Commands.TOGGLE:
+                    await self._device.send_command("POWER_TOGGLE")
+                case media_player.Commands.PLAY_PAUSE:
+                    await self._device.send_command("PLAY_PAUSE")
+                case media_player.Commands.NEXT:
+                    await self._device.send_command("NEXT")
+                case media_player.Commands.PREVIOUS:
+                    await self._device.send_command("PREVIOUS")
+                case media_player.Commands.FAST_FORWARD:
+                    await self._device.send_command("FAST_FORWARD")
+                case media_player.Commands.REWIND:
+                    await self._device.send_command("REWIND")
+                case media_player.Commands.VOLUME_UP:
+                    await self._device.send_command("VOLUME_UP")
+                case media_player.Commands.VOLUME_DOWN:
+                    await self._device.send_command("VOLUME_DOWN")
+                case media_player.Commands.MUTE_TOGGLE:
+                    await self._device.send_command("MUTE_TOGGLE")
+                case media_player.Commands.HOME:
+                    await self._device.send_command("HOME")
+                case media_player.Commands.MENU:
+                    await self._device.send_command("MENU")
+                case media_player.Commands.CONTEXT_MENU:
+                    await self._device.send_command("CONTEXT_MENU")
+                case media_player.Commands.CURSOR_UP:
+                    await self._device.send_command("DPAD_UP")
+                case media_player.Commands.CURSOR_DOWN:
+                    await self._device.send_command("DPAD_DOWN")
+                case media_player.Commands.CURSOR_LEFT:
+                    await self._device.send_command("DPAD_LEFT")
+                case media_player.Commands.CURSOR_RIGHT:
+                    await self._device.send_command("DPAD_RIGHT")
+                case media_player.Commands.CURSOR_ENTER:
+                    await self._device.send_command("A")
+                case media_player.Commands.BACK:
+                    await self._device.send_command("BACK")
+                case media_player.Commands.FUNCTION_RED:
+                    await self._device.send_command("B")
+                case media_player.Commands.FUNCTION_GREEN:
+                    await self._device.send_command("A")
+                case media_player.Commands.FUNCTION_YELLOW:
+                    await self._device.send_command("Y")
+                case media_player.Commands.FUNCTION_BLUE:
+                    await self._device.send_command("X")
+                case _:
+                    return StatusCodes.NOT_IMPLEMENTED
+            return StatusCodes.OK
+        except Exception as err:
+            _LOG.error("[%s] Command %s failed: %s", entity.id, cmd_id, err)
+            return StatusCodes.SERVER_ERROR
