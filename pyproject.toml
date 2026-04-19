@@ -1,51 +1,33 @@
 [build-system]
-requires = ["setuptools>=65.0.0", "wheel"]
+requires = ["setuptools>=65.0", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "uc-intg-xbox"
-dynamic = ["version"]
-description = "Unfolded Circle Integration for Xbox One, Xbox Series S/X"
+description = "Xbox Integration for Unfolded Circle Remote"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MPL-2.0" }
-authors = [
-    { name = "Meir Miyara", email = "meir.miyara@gmail.com" }
-]
-keywords = ["unfoldedcircle", "integration", "xbox", "xbox-one", "xbox-series"]
+license = {text = "MPL-2.0"}
+authors = [{name = "Meir Miyara", email = "meir.miyara@gmail.com"}]
+keywords = ["unfoldedcircle", "integration", "xbox"]
 classifiers = [
     "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL-2.0)",
-    "Operating System :: OS Independent",
+    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
     "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Topic :: Home Automation",
 ]
-
 dependencies = [
-    "ucapi>=0.3.1",
-    "python-xbox==0.1.1",
-    "pydantic>=2.0",
-    "certifi",
-    "httpx"
+    "ucapi-framework>=1.9.1",
+    "ucapi>=0.6.0",
+    "xbox-webapi==2.1.0",
+    "httpx",
+    "aiohttp>=3.9.0",
+    "certifi>=2024.0.0",
 ]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.4.0",
-    "pytest-asyncio>=0.21.0",
-    "black>=23.7.0",
-    "isort>=5.12.0",
-    "flake8>=6.1.0",
-    "pylint>=2.17.5",
-]
+dynamic = ["version"]
 
 [project.urls]
-Homepage = "https://github.com/mase1981/uc-intg-xbox"
-Documentation = "https://github.com/mase1981/uc-intg-xbox/blob/main/README.md"
-Repository = "https://github.com/mase1981/uc-intg-xbox"
-Issues = "https://github.com/mase1981/uc-intg-xbox/issues"
+"Homepage" = "https://github.com/mase1981/uc-intg-xbox"
 
 [tool.setuptools]
 packages = ["uc_intg_xbox"]
@@ -53,18 +35,5 @@ packages = ["uc_intg_xbox"]
 [tool.setuptools.dynamic]
 version = {attr = "uc_intg_xbox.__version__"}
 
-[tool.black]
-line-length = 100
-target-version = ['py311']
-
-[tool.isort]
-profile = "black"
-line_length = 100
-
-[tool.pylint.messages_control]
-max-line-length = 100
-disable = [
-    "C0103",
-    "C0114",
-    "R0913",
-]
+[project.scripts]
+uc-intg-xbox = "uc_intg_xbox:main"

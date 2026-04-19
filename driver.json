@@ -1,48 +1,23 @@
 {
   "driver_id": "uc-intg-xbox",
-  "name": { "en": "Xbox Integration" },
+  "version": "5.0.0",
+  "min_core_api": "0.22.0",
+  "name": {"en": "Xbox Integration"},
   "icon": "uc:gamepad-modern",
-  "description": { "en": "Control your Xbox console and view gaming activity" },
-  "version": "4.1.15",
-  "developer": { "name": "Meir Miyara", "email": "meir.miyara@gmail.com" },
-  "min_core_api": "0.5.1",
+  "description": {"en": "Control your Xbox console and browse your game library"},
+  "developer": {"name": "Meir Miyara", "email": "meir.miyara@gmail.com", "url": "https://github.com/mase1981"},
+  "home_page": "https://github.com/mase1981/uc-intg-xbox",
+  "release_date": "2026-04-19",
   "setup_data_schema": {
-    "title": { "en": "Xbox Configuration" },
+    "title": {"en": "Xbox Integration"},
     "settings": [
       {
-        "id": "client_id",
-        "label": { "en": "Azure App Client ID" },
-        "value": { "en": "Your Azure App Registration Client ID. See setup guide for instructions." },
-        "field": { "text": { "value": "" } }
-      },
-      {
-        "id": "client_secret",
-        "label": { "en": "Azure App Client Secret (Optional)" },
-        "value": { "en": "Required for Web apps only. Leave empty if using Mobile/Desktop app platform. See setup guide." },
-        "field": { "password": { "value": "" } }
-      },
-      {
-        "id": "console_count",
-        "label": { "en": "Number of Xbox Consoles" },
-        "value": { "en": "How many Xbox consoles do you want to configure?" },
-        "field": {
-          "number": {
-            "value": 1,
-            "min": 1,
-            "max": 10,
-            "steps": 1,
-            "decimals": 0,
-            "unit": { "en": "consoles" }
-          }
-        }
-      },
-      {
         "id": "info",
-        "label": { "en": "Setup Instructions" },
+        "label": {"en": "Setup Information"},
         "field": {
           "label": {
             "value": {
-              "en": "After clicking NEXT, you will provide a name and Xbox Live Device ID for each console. Find your Live ID in: Xbox Settings > Devices & connections > Remote features."
+              "en": "You will need your Azure App Client ID and Xbox Live Device ID to set up this integration. Find your Live ID in: Xbox Settings > Devices & connections > Remote features."
             }
           }
         }
