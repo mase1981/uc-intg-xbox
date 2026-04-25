@@ -33,7 +33,6 @@ class XboxDriver(BaseIntegrationDriver[XboxDevice, XboxConfig]):
                 lambda cfg, dev: create_sensors(cfg, dev),
             ],
             driver_id="uc-intg-xbox",
-            require_connection_before_registry=True,
         )
         self._token_refresh_task: asyncio.Task | None = None
 
