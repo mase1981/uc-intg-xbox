@@ -8,13 +8,25 @@ Xbox media player entity.
 import logging
 from typing import Any
 
-from ucapi import StatusCodes, media_player
+from ucapi import Pagination, StatusCodes, media_player
+from ucapi.media_player import (
+    BrowseMediaItem,
+    BrowseOptions,
+    BrowseResults,
+    MediaClass,
+    MediaContentType,
+    SearchOptions,
+    SearchResults,
+)
 from ucapi_framework import MediaPlayerEntity
 
 from uc_intg_xbox.config import XboxConfig
 from uc_intg_xbox.device import XboxDevice
 
 _LOG = logging.getLogger(__name__)
+
+PAGE_SIZE = 50
+GAMES_ROOT_ID = "games"
 
 FEATURES = [
     media_player.Features.ON_OFF,
@@ -34,7 +46,22 @@ FEATURES = [
     media_player.Features.CONTEXT_MENU,
     media_player.Features.DPAD,
     media_player.Features.COLOR_BUTTONS,
+    media_player.Features.BROWSE_MEDIA,
+    media_player.Features.SEARCH_MEDIA,
+    media_player.Features.PLAY_MEDIA,
 ]
+
+
+def _game_to_browse_item(game: dict) -> BrowseMediaItem:
+    return BrowseMediaItem(
+        media_id=f"game_{game['title_id']}",
+        title=game["name"],
+        media_class=MediaClass.GAME,
+        media_type=MediaContentType.GAME,
+        can_browse=False,
+        can_play=True,
+        thumbnail=game.get("image", ""),
+    )
 
 
 class XboxMediaPlayer(MediaPlayerEntity):
@@ -60,7 +87,7 @@ class XboxMediaPlayer(MediaPlayerEntity):
 
     async def sync_state(self) -> None:
         if self._device.state == "UNAVAILABLE":
-            self.update({media_player.Attributes.STATE: media_player.States.UNAVAILABLE})
+            self.set_state(media_player.States.UNAVAILABLE, update=True)
             return
 
         presence = self._device.presence_state
@@ -71,12 +98,109 @@ class XboxMediaPlayer(MediaPlayerEntity):
         else:
             state = media_player.States.ON
 
-        self.update({
-            media_player.Attributes.STATE: state,
-            media_player.Attributes.MEDIA_TITLE: self._device.media_title or "",
-            media_player.Attributes.MEDIA_IMAGE_URL: self._device.media_image or "",
-            media_player.Attributes.MEDIA_TYPE: "game" if presence == "PLAYING" else "",
-        })
+        self.set_attributes(
+            state=state,
+            media_title=self._device.media_title or "",
+            media_image_url=self._device.media_image or "",
+            media_type=MediaContentType.GAME if presence == "PLAYING" else "",
+            update=True,
+        )
+
+    async def browse(self, options: BrowseOptions) -> BrowseResults | StatusCodes:
+        if not self._device.client or not self._device.client.is_connected:
+            return StatusCodes.SERVICE_UNAVAILABLE
+
+        if self._device.state == "UNAVAILABLE":
+            return StatusCodes.SERVICE_UNAVAILABLE
+
+        media_id = options.media_id
+
+        if not media_id or media_id == "root":
+            return self._browse_root()
+
+        if media_id == GAMES_ROOT_ID:
+            return await self._browse_games(options)
+
+        return StatusCodes.NOT_FOUND
+
+    def _browse_root(self) -> BrowseResults:
+        game_count = len(self._device.installed_games)
+        items = [
+            BrowseMediaItem(
+                media_id=GAMES_ROOT_ID,
+                title="Games",
+                subtitle=f"{game_count} games" if game_count else None,
+                media_class=MediaClass.DIRECTORY,
+                media_type=MediaContentType.GAME,
+                can_browse=True,
+                can_play=False,
+                can_search=True,
+                thumbnail="icon://uc:gamepad-modern",
+            ),
+        ]
+        return BrowseResults(
+            media=BrowseMediaItem(
+                media_id="root",
+                title="Xbox",
+                media_class=MediaClass.DIRECTORY,
+                media_type="root",
+                can_browse=True,
+                items=items,
+            ),
+            pagination=Pagination(page=1, limit=len(items), count=len(items)),
+        )
+
+    async def _browse_games(self, options: BrowseOptions) -> BrowseResults:
+        try:
+            await self._device.refresh_game_library()
+        except Exception as err:
+            _LOG.warning("[%s] Could not refresh game library: %s", self.id, err)
+
+        games = self._device.installed_games
+        total = len(games)
+
+        page = options.paging.page if options.paging and options.paging.page else 1
+        limit = options.paging.limit if options.paging and options.paging.limit else PAGE_SIZE
+        start = (page - 1) * limit
+        end = min(start + limit, total)
+
+        items = [_game_to_browse_item(game) for game in games[start:end]]
+
+        return BrowseResults(
+            media=BrowseMediaItem(
+                media_id=GAMES_ROOT_ID,
+                title="Games",
+                media_class=MediaClass.DIRECTORY,
+                media_type=MediaContentType.GAME,
+                can_browse=True,
+                items=items,
+            ),
+            pagination=Pagination(page=page, limit=len(items), count=total),
+        )
+
+    async def search(self, options: SearchOptions) -> SearchResults | StatusCodes:
+        if not self._device.client or not self._device.client.is_connected:
+            return StatusCodes.SERVICE_UNAVAILABLE
+
+        query = options.query.lower() if options.query else ""
+        if not query:
+            return SearchResults(media=[], pagination=Pagination(page=1, limit=0, count=0))
+
+        matches = [
+            _game_to_browse_item(game)
+            for game in self._device.installed_games
+            if query in game["name"].lower()
+        ]
+
+        page = options.paging.page if options.paging and options.paging.page else 1
+        limit = options.paging.limit if options.paging and options.paging.limit else PAGE_SIZE
+        start = (page - 1) * limit
+        end = min(start + limit, len(matches))
+
+        return SearchResults(
+            media=matches[start:end],
+            pagination=Pagination(page=page, limit=end - start, count=len(matches)),
+        )
 
     async def _handle_command(
         self, entity: Any, cmd_id: str, params: dict[str, Any] | None
@@ -131,9 +255,26 @@ class XboxMediaPlayer(MediaPlayerEntity):
                     await self._device.send_command("Y")
                 case media_player.Commands.FUNCTION_BLUE:
                     await self._device.send_command("X")
+                case media_player.Commands.PLAY_MEDIA:
+                    return await self._handle_play_media(params)
                 case _:
                     return StatusCodes.NOT_IMPLEMENTED
             return StatusCodes.OK
         except Exception as err:
             _LOG.error("[%s] Command %s failed: %s", entity.id, cmd_id, err)
             return StatusCodes.SERVER_ERROR
+
+    async def _handle_play_media(self, params: dict[str, Any] | None) -> StatusCodes:
+        if not params:
+            return StatusCodes.BAD_REQUEST
+        media_id = params.get("media_id", "")
+        if not media_id:
+            return StatusCodes.BAD_REQUEST
+
+        if media_id.startswith("game_"):
+            title_id = media_id[5:]
+            await self._device.launch_game(title_id)
+            return StatusCodes.OK
+
+        _LOG.warning("[%s] Unknown media_id: %s", self.id, media_id)
+        return StatusCodes.BAD_REQUEST

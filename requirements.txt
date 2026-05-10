@@ -1,5 +1,5 @@
-ucapi-framework>=1.9.1
-ucapi>=0.6.0
+ucapi-framework>=1.9.2
+ucapi>=0.7.0
 xbox-webapi==2.1.0
 httpx
 aiohttp>=3.9.0
