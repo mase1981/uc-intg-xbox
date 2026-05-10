@@ -9,6 +9,7 @@ import logging
 from typing import Any
 
 from ucapi import Pagination, StatusCodes, media_player
+from ucapi.api_definitions import Paging
 from ucapi.media_player import (
     BrowseMediaItem,
     BrowseOptions,
@@ -24,9 +25,6 @@ from uc_intg_xbox.config import XboxConfig
 from uc_intg_xbox.device import XboxDevice
 
 _LOG = logging.getLogger(__name__)
-
-PAGE_SIZE = 50
-GAMES_ROOT_ID = "games"
 
 FEATURES = [
     media_player.Features.ON_OFF,
@@ -50,18 +48,6 @@ FEATURES = [
     media_player.Features.SEARCH_MEDIA,
     media_player.Features.PLAY_MEDIA,
 ]
-
-
-def _game_to_browse_item(game: dict) -> BrowseMediaItem:
-    return BrowseMediaItem(
-        media_id=f"game_{game['title_id']}",
-        title=game["name"],
-        media_class=MediaClass.GAME,
-        media_type=MediaContentType.GAME,
-        can_browse=False,
-        can_play=True,
-        thumbnail=game.get("image", ""),
-    )
 
 
 class XboxMediaPlayer(MediaPlayerEntity):
@@ -113,69 +99,41 @@ class XboxMediaPlayer(MediaPlayerEntity):
         if self._device.state == "UNAVAILABLE":
             return StatusCodes.SERVICE_UNAVAILABLE
 
-        media_id = options.media_id
-
-        if not media_id or media_id == "root":
-            return self._browse_root()
-
-        if media_id == GAMES_ROOT_ID:
-            return await self._browse_games(options)
-
-        return StatusCodes.NOT_FOUND
-
-    def _browse_root(self) -> BrowseResults:
-        game_count = len(self._device.installed_games)
-        items = [
-            BrowseMediaItem(
-                media_id=GAMES_ROOT_ID,
-                title="Games",
-                subtitle=f"{game_count} games" if game_count else None,
-                media_class=MediaClass.DIRECTORY,
-                media_type=MediaContentType.GAME,
-                can_browse=True,
-                can_play=False,
-                can_search=True,
-                thumbnail="icon://uc:gamepad-modern",
-            ),
-        ]
-        return BrowseResults(
-            media=BrowseMediaItem(
-                media_id="root",
-                title="Xbox",
-                media_class=MediaClass.DIRECTORY,
-                media_type="root",
-                can_browse=True,
-                items=items,
-            ),
-            pagination=Pagination(page=1, limit=len(items), count=len(items)),
-        )
-
-    async def _browse_games(self, options: BrowseOptions) -> BrowseResults:
         try:
             await self._device.refresh_game_library()
         except Exception as err:
             _LOG.warning("[%s] Could not refresh game library: %s", self.id, err)
 
         games = self._device.installed_games
-        total = len(games)
+        paging: Paging = options.paging
 
-        page = options.paging.page if options.paging and options.paging.page else 1
-        limit = options.paging.limit if options.paging and options.paging.limit else PAGE_SIZE
-        start = (page - 1) * limit
-        end = min(start + limit, total)
+        page_games = games[paging.offset : paging.offset + paging.limit]
 
-        items = [_game_to_browse_item(game) for game in games[start:end]]
+        items = [
+            BrowseMediaItem(
+                media_id=f"game_{game['title_id']}",
+                title=game["name"],
+                media_class=MediaClass.GAME,
+                can_browse=False,
+                can_play=True,
+                thumbnail=game.get("image") or None,
+            )
+            for game in page_games
+        ]
 
         return BrowseResults(
             media=BrowseMediaItem(
-                media_id=GAMES_ROOT_ID,
+                media_id="xbox_games",
                 title="Games",
-                media_class=MediaClass.DIRECTORY,
-                media_type=MediaContentType.GAME,
+                media_class=MediaClass.GAME,
                 can_browse=True,
                 items=items,
             ),
-            pagination=Pagination(page=page, limit=len(items), count=total),
+            pagination=Pagination(
+                page=paging.page,
+                limit=len(items),
+                count=len(games),
+            ),
         )
 
     async def search(self, options: SearchOptions) -> SearchResults | StatusCodes:
@@ -187,19 +145,28 @@ class XboxMediaPlayer(MediaPlayerEntity):
             return SearchResults(media=[], pagination=Pagination(page=1, limit=0, count=0))
 
         matches = [
-            _game_to_browse_item(game)
+            BrowseMediaItem(
+                media_id=f"game_{game['title_id']}",
+                title=game["name"],
+                media_class=MediaClass.GAME,
+                can_browse=False,
+                can_play=True,
+                thumbnail=game.get("image") or None,
+            )
             for game in self._device.installed_games
             if query in game["name"].lower()
         ]
 
-        page = options.paging.page if options.paging and options.paging.page else 1
-        limit = options.paging.limit if options.paging and options.paging.limit else PAGE_SIZE
-        start = (page - 1) * limit
-        end = min(start + limit, len(matches))
+        paging: Paging = options.paging
+        page_matches = matches[paging.offset : paging.offset + paging.limit]
 
         return SearchResults(
-            media=matches[start:end],
-            pagination=Pagination(page=page, limit=end - start, count=len(matches)),
+            media=page_matches,
+            pagination=Pagination(
+                page=paging.page,
+                limit=len(page_matches),
+                count=len(matches),
+            ),
         )
 
     async def _handle_command(

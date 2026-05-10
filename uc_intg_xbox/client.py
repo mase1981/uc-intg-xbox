@@ -228,26 +228,14 @@ class XboxClient:
 
             one_store_product_id = None
             if titles:
-                detail = getattr(titles[0], "detail", None)
-                if detail:
-                    availabilities = getattr(detail, "availabilities", None) or []
-                    for avail in availabilities:
-                        sku_id = getattr(avail, "sku_id", None)
-                        if sku_id:
-                            one_store_product_id = sku_id
-                            break
-
-                if not one_store_product_id:
-                    product_id = getattr(titles[0], "windows_phone_product_id", None)
-                    if product_id:
-                        one_store_product_id = product_id
+                one_store_product_id = getattr(titles[0], "windows_phone_product_id", None)
 
             if one_store_product_id:
                 await self._client.smartglass.launch_app(liveid, one_store_product_id)
             else:
-                _LOG.warning("Could not find launchable product for title %s, trying pfn", title_id)
                 pfn = getattr(titles[0], "pfn", None) if titles else None
                 if pfn:
+                    _LOG.debug("No product ID for title %s, launching via pfn", title_id)
                     await self._client.smartglass.launch_app(liveid, pfn)
                 else:
                     _LOG.error("No launch method available for title %s", title_id)
