@@ -9,11 +9,18 @@ import asyncio
 import json
 import logging
 import os
+import sys
 from pathlib import Path
 
+
+def _get_driver_json_path() -> str:
+    if getattr(sys, "frozen", False):
+        return os.path.join(sys._MEIPASS, "driver.json")
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "driver.json"))
+
+
 try:
-    _driver_path = Path(__file__).parent.parent / "driver.json"
-    with open(_driver_path, "r", encoding="utf-8") as f:
+    with open(_get_driver_json_path(), "r", encoding="utf-8") as f:
         __version__ = json.load(f).get("version", "0.0.0")
 except (FileNotFoundError, json.JSONDecodeError):
     __version__ = "0.0.0"
@@ -50,8 +57,7 @@ async def main():
     driver.config_manager = config_manager
 
     setup_handler = XboxSetupFlow.create_handler(driver)
-    driver_json_path = os.path.join(os.path.dirname(__file__), "..", "driver.json")
-    await driver.api.init(os.path.abspath(driver_json_path), setup_handler)
+    await driver.api.init(_get_driver_json_path(), setup_handler)
     await driver.register_all_device_instances(connect=False)
 
     device_count = len(list(config_manager.all()))
