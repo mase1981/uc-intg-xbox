@@ -117,7 +117,7 @@ class XboxClient:
 
     async def change_volume(self, liveid: str, direction: str) -> None:
         direction_enum = VolumeDirection(direction)
-        await self._client.smartglass.change_volume(liveid, direction_enum)
+        await self._client.smartglass.volume(liveid, direction_enum)
 
     async def mute(self, liveid: str) -> None:
         await self._client.smartglass.mute(liveid)
