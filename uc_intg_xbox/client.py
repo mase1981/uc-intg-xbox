@@ -188,17 +188,25 @@ class XboxClient:
 
     async def get_installed_apps(self, liveid: str) -> list[dict]:
         try:
-            result = await self._client.smartglass.get_installed_apps(liveid)
-            apps = result.result if result else []
+            sg = self._client.smartglass
+            url = f"{sg.SG_URL}/lists/installedApps"
+            resp = await self._client.session.get(
+                url, params={"deviceId": liveid}, headers=sg.HEADERS_SG
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            apps = data.get("result", [])
             games = []
             for app in apps:
-                if not app.is_game or not app.one_store_product_id:
+                product_id = app.get("oneStoreProductId")
+                if not product_id:
                     continue
                 games.append({
-                    "one_store_product_id": app.one_store_product_id,
-                    "title_id": str(app.title_id),
-                    "name": app.name or f"Game {app.title_id}",
+                    "one_store_product_id": product_id,
+                    "title_id": str(app.get("titleId", "")),
+                    "name": app.get("name") or f"Game {app.get('titleId', 'Unknown')}",
                     "image": "",
+                    "content_type": app.get("contentType", ""),
                 })
             return await self._enrich_game_images(games)
         except Exception as err:
@@ -207,6 +215,8 @@ class XboxClient:
 
     async def _enrich_game_images(self, games: list[dict]) -> list[dict]:
         for game in games:
+            if not game.get("title_id"):
+                continue
             try:
                 title_response = await self._client.titlehub.get_title_info(game["title_id"])
                 titles = getattr(title_response, "titles", None) or []

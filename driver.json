@@ -1,6 +1,6 @@
 {
   "driver_id": "uc-intg-xbox",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "min_core_api": "0.22.0",
   "name": {"en": "Xbox Integration"},
   "icon": "uc:gamepad-modern",
