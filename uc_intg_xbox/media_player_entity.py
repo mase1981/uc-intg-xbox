@@ -111,7 +111,7 @@ class XboxMediaPlayer(MediaPlayerEntity):
 
         items = [
             BrowseMediaItem(
-                media_id=f"game_{game['title_id']}",
+                media_id=game["one_store_product_id"],
                 title=game["name"],
                 media_class=MediaClass.GAME,
                 can_browse=False,
@@ -146,7 +146,7 @@ class XboxMediaPlayer(MediaPlayerEntity):
 
         matches = [
             BrowseMediaItem(
-                media_id=f"game_{game['title_id']}",
+                media_id=game["one_store_product_id"],
                 title=game["name"],
                 media_class=MediaClass.GAME,
                 can_browse=False,
@@ -238,10 +238,5 @@ class XboxMediaPlayer(MediaPlayerEntity):
         if not media_id:
             return StatusCodes.BAD_REQUEST
 
-        if media_id.startswith("game_"):
-            title_id = media_id[5:]
-            await self._device.launch_game(title_id)
-            return StatusCodes.OK
-
-        _LOG.warning("[%s] Unknown media_id: %s", self.id, media_id)
-        return StatusCodes.BAD_REQUEST
+        await self._device.launch_app(media_id)
+        return StatusCodes.OK

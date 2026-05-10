@@ -186,62 +186,50 @@ class XboxClient:
             _LOG.debug("Failed to get presence: %s", err)
             return None
 
-    async def get_installed_games(self) -> list[dict]:
+    async def get_installed_apps(self, liveid: str) -> list[dict]:
         try:
-            from xbox.webapi.api.provider.titlehub.models import TitleFields
-            result = await self._client.titlehub.get_title_history(
-                self._xuid,
-                fields=[TitleFields.IMAGE, TitleFields.DETAIL, TitleFields.PRODUCT_ID],
-                max_items=100,
-            )
-            titles = getattr(result, "titles", None) or []
+            result = await self._client.smartglass.get_installed_apps(liveid)
+            apps = result.result if result else []
             games = []
-            for title in titles:
-                devices = getattr(title, "devices", None) or []
-                is_xbox = any("Xbox" in d or "Console" in d for d in devices)
-                if not is_xbox:
+            for app in apps:
+                if not app.is_game or not app.one_store_product_id:
                     continue
-                name = getattr(title, "name", None)
-                title_id = getattr(title, "title_id", None)
-                image = getattr(title, "display_image", "")
-                pfn = getattr(title, "pfn", None)
-                if name and title_id:
-                    games.append({
-                        "title_id": str(title_id),
-                        "name": name,
-                        "image": image,
-                        "pfn": pfn or "",
-                    })
-            return games
+                games.append({
+                    "one_store_product_id": app.one_store_product_id,
+                    "title_id": str(app.title_id),
+                    "name": app.name or f"Game {app.title_id}",
+                    "image": "",
+                })
+            return await self._enrich_game_images(games)
         except Exception as err:
-            _LOG.debug("Failed to get installed games: %s", err)
+            _LOG.debug("Failed to get installed apps: %s", err)
             return []
 
-    async def launch_game(self, liveid: str, title_id: str) -> None:
+    async def _enrich_game_images(self, games: list[dict]) -> list[dict]:
+        if not games:
+            return games
         try:
             from xbox.webapi.api.provider.titlehub.models import TitleFields
-            title_response = await self._client.titlehub.get_title_info(
-                title_id,
-                fields=[TitleFields.DETAIL, TitleFields.PRODUCT_ID],
-            )
-            titles = getattr(title_response, "titles", None) or []
-
-            one_store_product_id = None
-            if titles:
-                one_store_product_id = getattr(titles[0], "windows_phone_product_id", None)
-
-            if one_store_product_id:
-                await self._client.smartglass.launch_app(liveid, one_store_product_id)
-            else:
-                pfn = getattr(titles[0], "pfn", None) if titles else None
-                if pfn:
-                    _LOG.debug("No product ID for title %s, launching via pfn", title_id)
-                    await self._client.smartglass.launch_app(liveid, pfn)
-                else:
-                    _LOG.error("No launch method available for title %s", title_id)
+            title_ids = [g["title_id"] for g in games]
+            image_map: dict[str, str] = {}
+            for title_id in title_ids:
+                try:
+                    resp = await self._client.titlehub.get_title_info(
+                        title_id, fields=[TitleFields.IMAGE]
+                    )
+                    titles = getattr(resp, "titles", None) or []
+                    if titles:
+                        image_map[title_id] = getattr(titles[0], "display_image", "") or ""
+                except Exception:
+                    pass
+            for game in games:
+                game["image"] = image_map.get(game["title_id"], "")
         except Exception as err:
-            _LOG.error("Failed to launch game %s: %s", title_id, err)
-            raise
+            _LOG.debug("Failed to enrich game images: %s", err)
+        return games
+
+    async def launch_app(self, liveid: str, one_store_product_id: str) -> None:
+        await self._client.smartglass.launch_app(liveid, one_store_product_id)
 
     def generate_auth_url(self) -> str:
         query_params = {

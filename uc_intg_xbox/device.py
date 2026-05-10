@@ -94,7 +94,7 @@ class XboxDevice(PollingDevice):
             _LOG.warning("[%s] Initial state query failed, using defaults", self.log_id)
 
         try:
-            self._installed_games = await self._client.get_installed_games()
+            self._installed_games = await self._client.get_installed_apps(self._device_config.liveid)
             _LOG.info("[%s] Found %d installed games", self.log_id, len(self._installed_games))
         except Exception as err:
             _LOG.warning("[%s] Could not fetch game library: %s", self.log_id, err)
@@ -243,12 +243,12 @@ class XboxDevice(PollingDevice):
     async def power_off(self) -> None:
         await self._client.turn_off(self._device_config.liveid)
 
-    async def launch_game(self, title_id: str) -> None:
-        await self._client.launch_game(self._device_config.liveid, title_id)
+    async def launch_app(self, one_store_product_id: str) -> None:
+        await self._client.launch_app(self._device_config.liveid, one_store_product_id)
 
     async def refresh_game_library(self) -> None:
         if self._client and self._client.is_connected:
-            self._installed_games = await self._client.get_installed_games()
+            self._installed_games = await self._client.get_installed_apps(self._device_config.liveid)
 
     async def refresh_tokens(self) -> None:
         if not self._client:
