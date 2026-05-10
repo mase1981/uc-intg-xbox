@@ -10,14 +10,14 @@ import ssl
 
 import certifi
 import httpx
-from xbox.webapi.api.client import XboxLiveClient
-from xbox.webapi.api.provider.smartglass.models import (
+from pythonxbox.api.client import XboxLiveClient
+from pythonxbox.api.provider.smartglass.models import (
     GuideTab,
     InputKeyType,
     VolumeDirection,
 )
-from xbox.webapi.authentication.manager import AuthenticationManager
-from xbox.webapi.authentication.models import OAuth2TokenResponse
+from pythonxbox.authentication.manager import AuthenticationManager
+from pythonxbox.authentication.models import OAuth2TokenResponse
 
 from uc_intg_xbox.const import OAUTH_REDIRECT_URI
 
@@ -188,25 +188,19 @@ class XboxClient:
 
     async def get_installed_apps(self, liveid: str) -> list[dict]:
         try:
-            sg = self._client.smartglass
-            url = f"{sg.SG_URL}/lists/installedApps"
-            resp = await self._client.session.get(
-                url, params={"deviceId": liveid}, headers=sg.HEADERS_SG
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            apps = data.get("result", [])
+            result = await self._client.smartglass.get_installed_apps(liveid)
+            apps = result.result if result else []
             games = []
             for app in apps:
-                product_id = app.get("oneStoreProductId")
-                if not product_id:
+                if not app.one_store_product_id:
+                    continue
+                if app.content_type and app.content_type != "Game":
                     continue
                 games.append({
-                    "one_store_product_id": product_id,
-                    "title_id": str(app.get("titleId", "")),
-                    "name": app.get("name") or f"Game {app.get('titleId', 'Unknown')}",
+                    "one_store_product_id": app.one_store_product_id,
+                    "title_id": str(app.title_id) if app.title_id else "",
+                    "name": app.name or f"Game {app.title_id or 'Unknown'}",
                     "image": "",
-                    "content_type": app.get("contentType", ""),
                 })
             return await self._enrich_game_images(games)
         except Exception as err:
