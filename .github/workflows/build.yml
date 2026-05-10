@@ -47,6 +47,7 @@ jobs:
                 --collect-all zeroconf \
                 --collect-all ucapi \
                 --collect-all ucapi_framework \
+                --collect-all pythonxbox \
                 --hidden-import uc_intg_${INTG_NAME}.driver \
                 --hidden-import uc_intg_${INTG_NAME}.device \
                 --hidden-import uc_intg_${INTG_NAME}.config \

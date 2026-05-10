@@ -1,6 +1,6 @@
 ucapi-framework>=1.9.2
 ucapi>=0.7.0
-xbox-webapi==2.1.0
+python-xbox==0.2.0
 httpx
 aiohttp>=3.9.0
 certifi>=2024.0.0
