@@ -9,7 +9,6 @@ import logging
 from typing import Any
 
 from ucapi import Pagination, StatusCodes, media_player
-from ucapi.api_definitions import Paging
 from ucapi.media_player import (
     BrowseMediaItem,
     BrowseOptions,
@@ -25,6 +24,8 @@ from uc_intg_xbox.config import XboxConfig
 from uc_intg_xbox.device import XboxDevice
 
 _LOG = logging.getLogger(__name__)
+
+PAGE_SIZE = 50
 
 FEATURES = [
     media_player.Features.ON_OFF,
@@ -48,6 +49,18 @@ FEATURES = [
     media_player.Features.SEARCH_MEDIA,
     media_player.Features.PLAY_MEDIA,
 ]
+
+
+def _game_to_browse_item(game: dict) -> BrowseMediaItem:
+    return BrowseMediaItem(
+        media_id=game["one_store_product_id"],
+        title=game["name"],
+        media_class=MediaClass.GAME,
+        media_type=MediaContentType.GAME,
+        can_browse=False,
+        can_play=True,
+        thumbnail=game.get("image", ""),
+    )
 
 
 class XboxMediaPlayer(MediaPlayerEntity):
@@ -105,35 +118,26 @@ class XboxMediaPlayer(MediaPlayerEntity):
             _LOG.warning("[%s] Could not refresh game library: %s", self.id, err)
 
         games = self._device.installed_games
-        paging: Paging = options.paging
+        total = len(games)
 
-        page_games = games[paging.offset : paging.offset + paging.limit]
+        page = options.paging.page if options.paging and options.paging.page else 1
+        limit = options.paging.limit if options.paging and options.paging.limit else PAGE_SIZE
+        start = (page - 1) * limit
+        end = min(start + limit, total)
 
-        items = [
-            BrowseMediaItem(
-                media_id=game["one_store_product_id"],
-                title=game["name"],
-                media_class=MediaClass.GAME,
-                can_browse=False,
-                can_play=True,
-                thumbnail=game.get("image") or None,
-            )
-            for game in page_games
-        ]
+        items = [_game_to_browse_item(game) for game in games[start:end]]
 
         return BrowseResults(
             media=BrowseMediaItem(
-                media_id="xbox_games",
+                media_id="games",
                 title="Games",
                 media_class=MediaClass.GAME,
+                media_type=MediaContentType.GAME,
                 can_browse=True,
+                can_search=True,
                 items=items,
             ),
-            pagination=Pagination(
-                page=paging.page,
-                limit=len(items),
-                count=len(games),
-            ),
+            pagination=Pagination(page=page, limit=len(items), count=total),
         )
 
     async def search(self, options: SearchOptions) -> SearchResults | StatusCodes:
@@ -145,28 +149,19 @@ class XboxMediaPlayer(MediaPlayerEntity):
             return SearchResults(media=[], pagination=Pagination(page=1, limit=0, count=0))
 
         matches = [
-            BrowseMediaItem(
-                media_id=game["one_store_product_id"],
-                title=game["name"],
-                media_class=MediaClass.GAME,
-                can_browse=False,
-                can_play=True,
-                thumbnail=game.get("image") or None,
-            )
+            _game_to_browse_item(game)
             for game in self._device.installed_games
             if query in game["name"].lower()
         ]
 
-        paging: Paging = options.paging
-        page_matches = matches[paging.offset : paging.offset + paging.limit]
+        page = options.paging.page if options.paging and options.paging.page else 1
+        limit = options.paging.limit if options.paging and options.paging.limit else PAGE_SIZE
+        start = (page - 1) * limit
+        end = min(start + limit, len(matches))
 
         return SearchResults(
-            media=page_matches,
-            pagination=Pagination(
-                page=paging.page,
-                limit=len(page_matches),
-                count=len(matches),
-            ),
+            media=matches[start:end],
+            pagination=Pagination(page=page, limit=end - start, count=len(matches)),
         )
 
     async def _handle_command(

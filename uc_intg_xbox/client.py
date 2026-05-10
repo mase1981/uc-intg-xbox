@@ -206,26 +206,17 @@ class XboxClient:
             return []
 
     async def _enrich_game_images(self, games: list[dict]) -> list[dict]:
-        if not games:
-            return games
-        try:
-            from xbox.webapi.api.provider.titlehub.models import TitleFields
-            title_ids = [g["title_id"] for g in games]
-            image_map: dict[str, str] = {}
-            for title_id in title_ids:
-                try:
-                    resp = await self._client.titlehub.get_title_info(
-                        title_id, fields=[TitleFields.IMAGE]
-                    )
-                    titles = getattr(resp, "titles", None) or []
-                    if titles:
-                        image_map[title_id] = getattr(titles[0], "display_image", "") or ""
-                except Exception:
-                    pass
-            for game in games:
-                game["image"] = image_map.get(game["title_id"], "")
-        except Exception as err:
-            _LOG.debug("Failed to enrich game images: %s", err)
+        for game in games:
+            try:
+                title_response = await self._client.titlehub.get_title_info(game["title_id"])
+                titles = getattr(title_response, "titles", None) or []
+                if titles:
+                    game["image"] = getattr(titles[0], "display_image", "") or ""
+                    name = getattr(titles[0], "name", None)
+                    if name:
+                        game["name"] = name
+            except Exception:
+                pass
         return games
 
     async def launch_app(self, liveid: str, one_store_product_id: str) -> None:
