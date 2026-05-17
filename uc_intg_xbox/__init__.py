@@ -42,6 +42,7 @@ async def main():
     logging.getLogger("aiohttp").setLevel(logging.WARNING)
     logging.getLogger("websockets.server").setLevel(logging.CRITICAL)
     logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
 
     _LOG = logging.getLogger(__name__)
     _LOG.info("Starting Xbox Integration v%s", __version__)

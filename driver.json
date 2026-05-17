@@ -1,13 +1,13 @@
 {
   "driver_id": "uc-intg-xbox",
-  "version": "5.2.2",
+  "version": "5.2.3",
   "min_core_api": "0.22.0",
   "name": {"en": "Xbox Integration"},
   "icon": "uc:gamepad-modern",
   "description": {"en": "Control your Xbox console and browse your game library"},
   "developer": {"name": "Meir Miyara", "email": "meir.miyara@gmail.com", "url": "https://github.com/mase1981"},
   "home_page": "https://github.com/mase1981/uc-intg-xbox",
-  "release_date": "2026-04-19",
+  "release_date": "2026-05-17",
   "setup_data_schema": {
     "title": {"en": "Xbox Integration"},
     "settings": [
