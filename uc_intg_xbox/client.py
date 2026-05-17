@@ -172,10 +172,13 @@ class XboxClient:
                         titles = getattr(title_response, "titles", None) or []
                         if titles:
                             title_data = titles[0]
+                            image = getattr(title_data, "display_image", "") or ""
+                            if image.startswith("http://"):
+                                image = "https://" + image[7:]
                             return {
                                 "state": "PLAYING",
                                 "title": title_data.name,
-                                "image": getattr(title_data, "display_image", ""),
+                                "image": image,
                             }
                     except Exception as err:
                         _LOG.error("Failed to fetch title info for %s: %s", title_id, err)
@@ -215,7 +218,10 @@ class XboxClient:
                 title_response = await self._client.titlehub.get_title_info(game["title_id"])
                 titles = getattr(title_response, "titles", None) or []
                 if titles:
-                    game["image"] = getattr(titles[0], "display_image", "") or ""
+                    image = getattr(titles[0], "display_image", "") or ""
+                    if image.startswith("http://"):
+                        image = "https://" + image[7:]
+                    game["image"] = image
                     name = getattr(titles[0], "name", None)
                     if name:
                         game["name"] = name

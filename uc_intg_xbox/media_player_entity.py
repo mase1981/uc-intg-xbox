@@ -112,11 +112,6 @@ class XboxMediaPlayer(MediaPlayerEntity):
         if self._device.state == "UNAVAILABLE":
             return StatusCodes.SERVICE_UNAVAILABLE
 
-        try:
-            await self._device.refresh_game_library()
-        except Exception as err:
-            _LOG.warning("[%s] Could not refresh game library: %s", self.id, err)
-
         games = self._device.installed_games
         total = len(games)
 
