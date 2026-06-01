@@ -36,6 +36,23 @@ class XboxDriver(BaseIntegrationDriver[XboxDevice, XboxConfig]):
         )
         self._token_refresh_task: asyncio.Task | None = None
 
+    def device_from_entity_id(self, entity_id: str) -> str | None:
+        if not entity_id:
+            return None
+        prefix_end = entity_id.find(".")
+        if prefix_end < 0:
+            return None
+        suffix = entity_id[prefix_end + 1:]
+        for device_id in self._device_instances:
+            if suffix == device_id or suffix.startswith(device_id + "."):
+                return device_id
+        if self._config_manager:
+            for cfg in self._config_manager.all():
+                cfg_id = getattr(cfg, "identifier", None)
+                if cfg_id and (suffix == cfg_id or suffix.startswith(cfg_id + ".")):
+                    return cfg_id
+        return suffix.split(".")[0] if "." in suffix else suffix
+
     async def on_device_connected(self, device_id: str) -> None:
         await super().on_device_connected(device_id)
         self._start_token_refresh()

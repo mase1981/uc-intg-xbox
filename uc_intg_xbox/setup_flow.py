@@ -79,7 +79,7 @@ class XboxSetupFlow(BaseSetupFlow[XboxConfig]):
         if not client_id:
             raise ValueError("Azure App Client ID is required")
 
-        identifier = f"xbox_{liveid}"
+        identifier = f"xbox_{liveid.replace('.', '_')}"
 
         self._pending_device_config = XboxConfig(
             identifier=identifier,
