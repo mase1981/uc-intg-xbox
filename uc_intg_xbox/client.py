@@ -150,6 +150,7 @@ class XboxClient:
             profile = next((p for p in people if getattr(p, "xuid", None) == self._xuid), None)
 
             if not profile:
+                _LOG.debug("Presence: own XUID %s not found in %d people", self._xuid, len(people))
                 return None
 
             presence_state = getattr(profile, "presence_state", "Offline")
@@ -159,12 +160,16 @@ class XboxClient:
 
             presence_text = getattr(profile, "presence_text", None)
             presence_details = getattr(profile, "presence_details", None) or []
+            _LOG.debug("Presence: state=%s, text=%s, details=%d",
+                       presence_state, presence_text, len(presence_details))
 
             for detail in presence_details:
                 detail_state = getattr(detail, "state", None)
                 is_primary = getattr(detail, "is_primary", False)
                 is_game = getattr(detail, "is_game", False)
                 title_id = getattr(detail, "title_id", None)
+                _LOG.debug("Presence detail: state=%s, is_game=%s, is_primary=%s, title_id=%s",
+                           detail_state, is_game, is_primary, title_id)
 
                 if detail_state == "Active" and title_id and is_game and is_primary:
                     try:
@@ -186,7 +191,7 @@ class XboxClient:
             return {"state": "ON", "title": presence_text or "Online", "image": ""}
 
         except Exception as err:
-            _LOG.debug("Failed to get presence: %s", err)
+            _LOG.debug("Failed to get presence: %s (%s)", err, type(err).__name__)
             return None
 
     async def get_installed_apps(self, liveid: str) -> list[dict]:

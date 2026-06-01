@@ -142,7 +142,10 @@ class XboxDevice(PollingDevice):
     async def _update_state(self) -> None:
         presence = await self._client.get_presence(self._device_config.liveid)
         if not presence:
-            raise ConnectionError("Failed to get presence data")
+            if self._presence_state == "OFF" or self._media_title == "Offline":
+                raise ConnectionError("Failed to get presence data")
+            _LOG.debug("[%s] Presence API returned None, keeping last-known state", self.log_id)
+            return
 
         self._presence_state = presence["state"]
         self._media_title = presence.get("title", "Unknown")
