@@ -145,18 +145,19 @@ class XboxSetupFlow(BaseSetupFlow[XboxConfig]):
         try:
             if manual_code:
                 auth_code = _extract_code(manual_code)
+                _LOG.debug("Extracted auth code from manual input (length=%d)", len(auth_code) if auth_code else 0)
             elif self._oauth_server:
                 auth_code = await self._oauth_server.wait_for_code(timeout=300)
         except ValueError as err:
             _LOG.error("OAuth error: %s", err)
             await self._cleanup_oauth()
-            return SetupError(IntegrationSetupError.AUTHENTICATION_FAILED)
+            return SetupError(IntegrationSetupError.AUTHORIZATION_ERROR)
         finally:
             await self._cleanup_oauth()
 
         if not auth_code:
             _LOG.error("No authorization code received")
-            return SetupError(IntegrationSetupError.AUTHENTICATION_FAILED)
+            return SetupError(IntegrationSetupError.AUTHORIZATION_ERROR)
 
         config = self._pending_device_config
         if not config:
@@ -168,10 +169,10 @@ class XboxSetupFlow(BaseSetupFlow[XboxConfig]):
             await client.close()
         except Exception as err:
             _LOG.error("Token exchange failed: %s", err)
-            return SetupError(IntegrationSetupError.AUTHENTICATION_FAILED)
+            return SetupError(IntegrationSetupError.AUTHORIZATION_ERROR)
 
         if not tokens:
-            return SetupError(IntegrationSetupError.AUTHENTICATION_FAILED)
+            return SetupError(IntegrationSetupError.AUTHORIZATION_ERROR)
 
         config.tokens = tokens
         return config

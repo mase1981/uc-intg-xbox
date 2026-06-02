@@ -255,7 +255,12 @@ class XboxClient:
         self._auth_mgr = AuthenticationManager(
             self._session, self._client_id, self._client_secret, OAUTH_REDIRECT_URI
         )
-        await self._auth_mgr.request_tokens(code)
+        try:
+            await self._auth_mgr.request_tokens(code)
+        except httpx.HTTPStatusError as err:
+            body = err.response.text if err.response else "no response body"
+            _LOG.error("Token exchange HTTP error: %s - %s", err.response.status_code, body)
+            raise
         self._client = XboxLiveClient(self._auth_mgr)
         self._xuid = self._client.xuid
         return self._auth_mgr.oauth.model_dump(mode="json")
