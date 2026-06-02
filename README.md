@@ -170,26 +170,36 @@ docker run -d --name uc-intg-xbox --restart unless-stopped --network host -v xbo
 #### Method 1: Mobile/Desktop App (Recommended)
 
 1. Go to https://portal.azure.com
-2. Navigate to **Microsoft Entra ID** → **App registrations**
-3. Click **"+ New registration"**
-4. Fill in:
+2. If you have multiple directories, click your profile icon (top right) and switch to the directory where you want to create the app
+3. Navigate to **Microsoft Entra ID** → **App registrations**
+4. Click **"+ New registration"**
+5. Fill in:
    - **Name**: `Unfolded Circle Xbox Integration`
    - **Supported accounts**: Select **"Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant) and personal Microsoft accounts (e.g. Skype, Xbox)"**
-5. Click **"Register"** (don't add redirect URI yet)
-6. Copy your **Application (client) ID**
-7. Click **Authentication** → **Add a platform** → Select **"Mobile and desktop applications"**
-8. In **Custom redirect URIs**, enter: `http://localhost:8765/callback`
-9. Click **Register**
-10. Click on **Settings** → Set **"Allow public client flows"** to **YES**
-11. Click **Save**
-12. During integration setup, **LEAVE THE CLIENT SECRET FIELD EMPTY** (don't enter anything)
+6. Click **"Register"** (don't add redirect URI yet)
+7. Copy your **Application (client) ID**
+8. Click **Authentication** → **Add a platform** → Select **"Mobile and desktop applications"**
+9. In **Custom redirect URIs**, enter: `http://localhost:8765/callback`
+10. Click **Configure**
+11. Set **"Allow public client flows"** to **YES** (this setting may appear at the bottom of the Authentication page)
+12. Click **Save**
+13. During integration setup, **LEAVE THE CLIENT SECRET FIELD EMPTY** (don't enter anything)
 
 **Note:** This method works for most users and doesn't require managing a client secret.
+
+> **Troubleshooting: "Property api.requestedAccessTokenVersion is invalid"**
+>
+> If you get this error when saving the Supported accounts setting in the Authentication menu:
+> 1. Go to **Manifest** in the left sidebar
+> 2. Find the `"api"` object and set `"requestedAccessTokenVersion": 2`
+> 3. Save the manifest — the value may reset to `null` on the first save
+> 4. Edit the manifest again and set it to `2` a second time, then save
+> 5. You should now be able to save the Supported accounts setting
 
 #### Method 2: Web App (Alternative)
 
 If you prefer using a client secret or Method 1 doesn't work:
-1. Follow steps 1-6 from Method 1
+1. Follow steps 1-7 from Method 1
 2. Click **Authentication** → **Add a platform** → Select **"Web"**
 3. Enter redirect URI: `http://localhost:8765/callback`
 4. Click **Configure**
@@ -205,7 +215,7 @@ If you prefer using a client secret or Method 1 doesn't work:
 #### Enable Remote Features:
 1. On Xbox console: **Settings** → **Devices & connections** → **Remote features**
 2. Enable **"Enable remote features"**
-3. Copy your **Xbox Live Device ID** (optional - v4.1.0+ can auto-discover consoles)
+3. Copy your **Xbox Live Device ID** (required — displayed on this screen)
 
 #### Configure Power Mode:
 1. On Xbox console: **Settings** → **General** → **Power options**
@@ -218,40 +228,33 @@ If you prefer using a client secret or Method 1 doesn't work:
 2. The Xbox integration should appear in **Available Integrations**
 3. Click **"Configure"** and follow the setup wizard:
 
-#### Page 1: Enter Credentials
+#### Page 1: Console Details
+- **Console Name**: Friendly name (e.g., "Living Room Xbox")
+- **Xbox Live Device ID**: Found in Xbox Settings → Devices & connections → Remote features
 - **Azure App Client ID**: Paste your Application (client) ID from Azure
 - **Azure App Client Secret**:
   - **If using Method 1 (Mobile/Desktop)**: Leave this field EMPTY
   - **If using Method 2 (Web)**: Paste your Client Secret Value
-- **Number of Consoles**: Enter how many Xbox consoles you want to configure
 - Click **Next**
 
-#### Page 2: Console Details
-- For each console, enter:
-  - **Console Name**: Friendly name (e.g., "Living Room Xbox")
-  - **Xbox Live Device ID**: Found in Xbox Settings → Devices & connections → Remote features
-- Click **Next**
-
-#### Page 3: Microsoft Authentication
-The integration uses a **hybrid authentication** system with automatic callback + manual fallback:
+#### Page 2: Microsoft Authentication
 
 **Steps:**
-1. **Click the Authorization URL** (opens in your browser)
-2. **Sign in** with your Microsoft account (the one linked to your Xbox)
-3. After signing in, Microsoft will redirect to `http://localhost:8765/callback?code=...`
-4. **The page won't load** (this is normal - the server is on the Remote, not your computer)
-5. **Copy the entire URL** from your browser's address bar
-6. **Paste the URL** into the **"Manual Code"** field in the setup flow
-7. Click **Submit**
-8. Authentication completes automatically
+1. **Copy the Authorization URL** from the setup screen
+2. **Open it in a browser** on your phone or computer (not on the Remote)
+3. **Sign in** with your Microsoft account (the one linked to your Xbox)
+4. After signing in, your browser will redirect to `http://localhost:8765/callback?code=...`
+5. **The page won't load** — this is expected
+6. **Copy the entire URL** from your browser's address bar (the full URL including `http://localhost:8765/callback?code=...`)
+7. **Paste the full URL** into the **"Manual Code"** field in the setup flow
+8. Click **Submit**
 
-#### Page 4: Console Discovery & Success
-After authentication, the integration will:
-1. **Automatically discover** all Xbox consoles on your account (if Live ID was empty)
-2. **Add all discovered consoles** to the configuration
-3. Create **TWO entities** for each console:
-   - **Remote Control**: Full button control
-   - **Media Player**: Gaming status display
+> **Important:** You must paste the **full redirect URL** (starting with `http://localhost:8765/callback?code=...`), not just the code portion. The integration will extract the authorization code automatically.
+
+#### Setup Complete
+After authentication, the integration will create **two entities** for your console:
+- **Remote Control**: Full button control
+- **Media Player**: Gaming status display
 
 ## Using the Integration
 
