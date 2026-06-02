@@ -184,14 +184,20 @@ class XboxSetupFlow(BaseSetupFlow[XboxConfig]):
 
 
 def _extract_code(auth_input: str) -> str:
+    _LOG.debug("_extract_code input (length=%d): starts_with_http=%s, has_code=%s",
+               len(auth_input), auth_input.startswith("http"), "code=" in auth_input)
+
     if auth_input.startswith("http") or "code=" in auth_input:
         try:
-            if auth_input.startswith("http%3A"):
+            if auth_input.startswith("http%3A") or auth_input.startswith("http%3a"):
                 auth_input = unquote(auth_input)
+                _LOG.debug("URL-decoded input (length=%d)", len(auth_input))
 
             if auth_input.startswith("http"):
                 parsed = urlparse(auth_input)
                 params = parse_qs(parsed.query)
+                _LOG.debug("Parsed URL: scheme=%s, query_keys=%s, fragment_length=%d",
+                           parsed.scheme, list(params.keys()), len(parsed.fragment))
 
                 error = params.get("error", [None])[0]
                 if error:
@@ -202,13 +208,23 @@ def _extract_code(auth_input: str) -> str:
                 if code:
                     return code
 
-            elif "code=" in auth_input:
+                if parsed.fragment:
+                    frag_params = parse_qs(parsed.fragment)
+                    code = frag_params.get("code", [None])[0]
+                    if code:
+                        _LOG.debug("Found code in URL fragment")
+                        return code
+
+            if "code=" in auth_input:
                 parts = auth_input.split("code=")
                 if len(parts) > 1:
-                    return parts[1].split("&")[0].split("#")[0]
+                    code = parts[1].split("&")[0].split("#")[0].split(" ")[0]
+                    _LOG.debug("Extracted code via split (length=%d)", len(code))
+                    return code
         except ValueError:
             raise
-        except Exception:
-            pass
+        except Exception as err:
+            _LOG.warning("_extract_code parse error: %s", err)
 
+    _LOG.debug("_extract_code: returning raw input as code")
     return auth_input
