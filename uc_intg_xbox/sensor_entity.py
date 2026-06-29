@@ -34,13 +34,12 @@ class GamertagSensor(SensorEntity):
 
     async def sync_state(self) -> None:
         if self._device.state == "UNAVAILABLE":
-            self.set_state(sensor.States.UNAVAILABLE, update=True)
+            self.update({sensor.Attributes.STATE: sensor.States.UNAVAILABLE})
             return
-        self.set_attributes(
-            state=sensor.States.ON,
-            value=self._device.gamertag or "Unknown",
-            update=True,
-        )
+        self.update({
+            sensor.Attributes.STATE: sensor.States.ON,
+            sensor.Attributes.VALUE: self._device.gamertag or "Unknown",
+        })
 
 
 class CurrentGameSensor(SensorEntity):
@@ -61,13 +60,12 @@ class CurrentGameSensor(SensorEntity):
 
     async def sync_state(self) -> None:
         if self._device.state == "UNAVAILABLE":
-            self.set_state(sensor.States.UNAVAILABLE, update=True)
+            self.update({sensor.Attributes.STATE: sensor.States.UNAVAILABLE})
             return
-        self.set_attributes(
-            state=sensor.States.ON,
-            value=self._device.media_title or "None",
-            update=True,
-        )
+        self.update({
+            sensor.Attributes.STATE: sensor.States.ON,
+            sensor.Attributes.VALUE: self._device.media_title or "None",
+        })
 
 
 def create_sensors(config: XboxConfig, device: XboxDevice) -> list:
