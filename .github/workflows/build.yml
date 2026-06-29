@@ -127,9 +127,7 @@ jobs:
       - uses: ncipollo/release-action@v1
         with:
           artifacts: "*.tar.gz,${{needs.build.outputs.driver_id}}.hash"
-          draft: false
-          prerelease: true
-          makeLatest: false
+          draft: true
           generateReleaseNotes: true
           artifactErrorsFailBuild: true
           tag: v${{needs.build.outputs.version}}
