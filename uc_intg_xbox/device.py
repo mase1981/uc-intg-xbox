@@ -101,6 +101,7 @@ class XboxDevice(PollingDevice):
 
         self._state = "ON"
         self._consecutive_failures = 0
+        self.push_update()
         return self._client
 
     async def poll_device(self) -> None:

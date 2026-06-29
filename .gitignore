@@ -15,6 +15,11 @@ config.json
 tests/
 simulator/
 
+# Local-only build/dev artifacts (never push)
+venv/
+artifacts/
+tools/
+
 # Claude (local only)
 .claude/
 knowledge-base/

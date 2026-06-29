@@ -109,12 +109,10 @@ class XboxRemote(RemoteEntity):
 
     async def sync_state(self) -> None:
         if self._device.state == "UNAVAILABLE":
-            self.set_state(remote.States.UNAVAILABLE, update=True)
+            self.update({remote.Attributes.STATE: remote.States.UNAVAILABLE})
             return
-        if self._device.presence_state == "OFF":
-            self.set_state(remote.States.OFF, update=True)
-        else:
-            self.set_state(remote.States.ON, update=True)
+        state = remote.States.OFF if self._device.presence_state == "OFF" else remote.States.ON
+        self.update({remote.Attributes.STATE: state})
 
     async def _handle_command(
         self, entity: Any, cmd_id: str, params: dict[str, Any] | None

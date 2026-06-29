@@ -86,7 +86,7 @@ class XboxMediaPlayer(MediaPlayerEntity):
 
     async def sync_state(self) -> None:
         if self._device.state == "UNAVAILABLE":
-            self.set_state(media_player.States.UNAVAILABLE, update=True)
+            self.update({media_player.Attributes.STATE: media_player.States.UNAVAILABLE})
             return
 
         presence = self._device.presence_state
@@ -97,13 +97,12 @@ class XboxMediaPlayer(MediaPlayerEntity):
         else:
             state = media_player.States.ON
 
-        self.set_attributes(
-            state=state,
-            media_title=self._device.media_title or "",
-            media_image_url=self._device.media_image or "",
-            media_type=MediaContentType.GAME if presence == "PLAYING" else "",
-            update=True,
-        )
+        self.update({
+            media_player.Attributes.STATE: state,
+            media_player.Attributes.MEDIA_TITLE: self._device.media_title or "",
+            media_player.Attributes.MEDIA_IMAGE_URL: self._device.media_image or "",
+            media_player.Attributes.MEDIA_TYPE: MediaContentType.GAME if presence == "PLAYING" else "",
+        })
 
     async def browse(self, options: BrowseOptions) -> BrowseResults | StatusCodes:
         if not self._device.client or not self._device.client.is_connected:

@@ -100,6 +100,8 @@ jobs:
             type=ref,event=tag
             type=raw,value=latest
       - uses: docker/build-push-action@v5
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -115,6 +117,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/download-artifact@v4
+        with:
+          pattern: uc-intg-*
       - run: for D in *; do if [ -d "${D}" ]; then mv $D/* ./; fi; done
       - run: |
           for f in *.tar.gz; do
