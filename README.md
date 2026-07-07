@@ -215,7 +215,7 @@ If you prefer using a client secret or Method 1 doesn't work:
 #### Enable Remote Features:
 1. On Xbox console: **Settings** → **Devices & connections** → **Remote features**
 2. Enable **"Enable remote features"**
-3. Copy your **Xbox Live Device ID** (required — displayed on this screen)
+3. Copy your **Xbox Network Device ID** (required — displayed on this screen)
 
 #### Configure Power Mode:
 1. On Xbox console: **Settings** → **General** → **Power options**
