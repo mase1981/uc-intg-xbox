@@ -3,7 +3,7 @@ name: "Build & Draft Release"
 "on":
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 env:
   INTG_NAME: xbox
@@ -12,12 +12,13 @@ env:
 jobs:
   build:
     name: Build Release
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-arm
     outputs:
       version: ${{ steps.get-version-and-id.outputs.VERSION }}
       driver_id: ${{ steps.get-version-and-id.outputs.DRIVER_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 200
 
@@ -32,8 +33,7 @@ jobs:
 
       - name: Build
         run: |
-          sudo apt-get update && sudo apt-get install -y qemu-system-arm binfmt-support qemu-user-static
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          echo "Starting pyinstaller build for driver_id: ${DRIVER_ID}"
           docker run --rm --name builder \
             --platform=linux/arm64 \
             --user=$(id -u):$(id -g) \
@@ -62,15 +62,25 @@ jobs:
                 uc_intg_${INTG_NAME}/__init__.py"
 
       - name: Prepare artifacts
+        shell: bash
         run: |
           mkdir -p artifacts/bin
           mv dist/driver/* artifacts/bin/
           cp driver.json artifacts/
           echo "ARTIFACT_NAME=uc-intg-${{ env.DRIVER_ID }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
+          echo "=== Artifact structure ==="
+          ls -laR artifacts/
 
-      - run: tar czvf ${{ env.ARTIFACT_NAME }}.tar.gz -C ${GITHUB_WORKSPACE}/artifacts .
+      - name: Create upload artifact archive
+        shell: bash
+        run: |
+          tar czvf ${{ env.ARTIFACT_NAME }}.tar.gz -C ${GITHUB_WORKSPACE}/artifacts .
+          echo "=== Archive contents ==="
+          tar tzvf ${{ env.ARTIFACT_NAME }}.tar.gz
+          ls -lah ${{ env.ARTIFACT_NAME }}.tar.gz
 
       - uses: actions/upload-artifact@v4
+        id: upload_artifact
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.ARTIFACT_NAME }}.tar.gz
@@ -85,21 +95,30 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - id: meta
+
+      - name: Extract metadata
+        id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/uc-intg-xbox
           tags: |
             type=ref,event=tag
             type=raw,value=latest
-      - uses: docker/build-push-action@v5
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
@@ -115,16 +134,30 @@ jobs:
     needs: [build, docker]
     permissions:
       contents: write
+
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
           pattern: uc-intg-*
-      - run: for D in *; do if [ -d "${D}" ]; then mv $D/* ./; fi; done
-      - run: |
-          for f in *.tar.gz; do
-            echo "sha256 $(sha256sum $f)" >> ${{needs.build.outputs.driver_id}}.hash
+
+      - name: Extract build archives from downloaded files
+        run: |
+          ls -R
+          for D in *; do
+            if [ -d "${D}" ]; then
+              mv "${D}"/* ./
+            fi
           done
-      - uses: ncipollo/release-action@v1
+
+      - name: Create hash file
+        run: |
+          for filename in *.tar.gz; do
+            echo "sha256 $(sha256sum "$filename")" >> ${{needs.build.outputs.driver_id}}.hash
+          done
+
+      - name: Create release draft
+        uses: ncipollo/release-action@v1
         with:
           artifacts: "*.tar.gz,${{needs.build.outputs.driver_id}}.hash"
           draft: true

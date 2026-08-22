@@ -5,6 +5,7 @@ Xbox Live API client.
 :license: MPL-2.0, see LICENSE for more details.
 """
 
+import asyncio
 import logging
 import ssl
 
@@ -19,7 +20,7 @@ from pythonxbox.api.provider.smartglass.models import (
 from pythonxbox.authentication.manager import AuthenticationManager
 from pythonxbox.authentication.models import OAuth2TokenResponse
 
-from uc_intg_xbox.const import OAUTH_REDIRECT_URI
+from uc_intg_xbox.const import OAUTH_REDIRECT_URI, TITLEHUB_CONCURRENCY
 
 _LOG = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ class XboxClient:
     def is_connected(self) -> bool:
         return self._client is not None
 
-    async def connect(self, tokens: dict) -> dict | None:
+    async def connect(self, tokens: dict, on_tokens_refreshed=None) -> dict | None:
         ssl_context = ssl.create_default_context(cafile=certifi.where())
         self._session = httpx.AsyncClient(verify=ssl_context)
 
@@ -59,6 +60,9 @@ class XboxClient:
 
         await self._auth_mgr.refresh_tokens()
         _LOG.info("Xbox tokens refreshed successfully")
+
+        if on_tokens_refreshed:
+            on_tokens_refreshed(self._auth_mgr.oauth.model_dump(mode="json"))
 
         self._client = XboxLiveClient(self._auth_mgr)
         self._xuid = self._client.xuid
@@ -216,11 +220,14 @@ class XboxClient:
             return []
 
     async def _enrich_game_images(self, games: list[dict]) -> list[dict]:
-        for game in games:
+        semaphore = asyncio.Semaphore(TITLEHUB_CONCURRENCY)
+
+        async def enrich(game: dict) -> None:
             if not game.get("title_id"):
-                continue
+                return
             try:
-                title_response = await self._client.titlehub.get_title_info(game["title_id"])
+                async with semaphore:
+                    title_response = await self._client.titlehub.get_title_info(game["title_id"])
                 titles = getattr(title_response, "titles", None) or []
                 if titles:
                     image = getattr(titles[0], "display_image", "") or ""
@@ -232,6 +239,8 @@ class XboxClient:
                         game["name"] = name
             except Exception:
                 pass
+
+        await asyncio.gather(*(enrich(game) for game in games))
         return games
 
     async def launch_app(self, liveid: str, one_store_product_id: str) -> None:
