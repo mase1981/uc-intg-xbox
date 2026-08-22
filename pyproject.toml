@@ -17,7 +17,7 @@ classifiers = [
     "Topic :: Home Automation",
 ]
 dependencies = [
-    "ucapi-framework>=1.9.2",
+    "ucapi-framework>=1.9.5",
     "ucapi>=0.7.0",
     "python-xbox==0.2.0",
     "httpx",

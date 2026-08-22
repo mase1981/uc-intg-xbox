@@ -5,6 +5,7 @@ Xbox device implementation using PollingDevice.
 :license: MPL-2.0, see LICENSE for more details.
 """
 
+import asyncio
 import logging
 from typing import Any
 
@@ -33,6 +34,7 @@ class XboxDevice(PollingDevice):
         self._media_image: str = ""
         self._gamertag: str = "Xbox User"
         self._installed_games: list[dict] = []
+        self._library_task: asyncio.Task | None = None
 
     @property
     def identifier(self) -> str:
@@ -81,11 +83,12 @@ class XboxDevice(PollingDevice):
     async def establish_connection(self) -> XboxClient:
         self._client = XboxClient(self._device_config.client_id, self._device_config.client_secret)
 
-        refreshed_tokens = await self._client.connect(self._device_config.tokens)
+        refreshed_tokens = await self._client.connect(
+            self._device_config.tokens, on_tokens_refreshed=self._persist_tokens
+        )
         if not refreshed_tokens:
             raise ConnectionError(f"Failed to authenticate Xbox client for {self.log_id}")
 
-        self._persist_tokens(refreshed_tokens)
         self._gamertag = self._client.gamertag
 
         try:
@@ -93,16 +96,25 @@ class XboxDevice(PollingDevice):
         except ConnectionError:
             _LOG.warning("[%s] Initial state query failed, using defaults", self.log_id)
 
-        try:
-            self._installed_games = await self._client.get_installed_apps(self._device_config.liveid)
-            _LOG.info("[%s] Found %d installed games", self.log_id, len(self._installed_games))
-        except Exception as err:
-            _LOG.warning("[%s] Could not fetch game library: %s", self.log_id, err)
-
         self._state = "ON"
         self._consecutive_failures = 0
         self.push_update()
+
+        self._schedule_library_refresh()
         return self._client
+
+    def _schedule_library_refresh(self) -> None:
+        if self._library_task and not self._library_task.done():
+            return
+        self._library_task = asyncio.create_task(self._refresh_library())
+
+    async def _refresh_library(self) -> None:
+        try:
+            self._installed_games = await self._client.get_installed_apps(self._device_config.liveid)
+            _LOG.info("[%s] Found %d installed games", self.log_id, len(self._installed_games))
+            self.push_update()
+        except Exception as err:
+            _LOG.warning("[%s] Could not fetch game library: %s", self.log_id, err)
 
     async def poll_device(self) -> None:
         if self._state == "UNAVAILABLE":
@@ -165,6 +177,9 @@ class XboxDevice(PollingDevice):
             return False
 
     async def disconnect(self) -> None:
+        if self._library_task and not self._library_task.done():
+            self._library_task.cancel()
+        self._library_task = None
         if self._client:
             await self._client.close()
             self._client = None
