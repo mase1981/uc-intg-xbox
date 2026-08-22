@@ -67,7 +67,7 @@ jobs:
           mkdir -p artifacts/bin
           mv dist/driver/* artifacts/bin/
           cp driver.json artifacts/
-          echo "ARTIFACT_NAME=uc-intg-${{ env.DRIVER_ID }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
+          echo "ARTIFACT_NAME=${{ env.DRIVER_ID }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
           echo "=== Artifact structure ==="
           ls -laR artifacts/
 
