@@ -11,6 +11,7 @@ import ssl
 
 import certifi
 import httpx
+from pydantic import ValidationError
 from pythonxbox.api.client import XboxLiveClient
 from pythonxbox.api.provider.smartglass.models import (
     GuideTab,
@@ -102,9 +103,15 @@ class XboxClient:
         except Exception:
             return False
 
+    async def _send_command(self, coro) -> None:
+        try:
+            await coro
+        except ValidationError as err:
+            _LOG.debug("Command delivered; response validation skipped: %s", err)
+
     async def turn_on(self, liveid: str) -> None:
         try:
-            await self._client.smartglass.wake_up(liveid)
+            await self._send_command(self._client.smartglass.wake_up(liveid))
         except httpx.HTTPStatusError as err:
             if err.response.status_code == 404:
                 raise ValueError(
@@ -113,39 +120,39 @@ class XboxClient:
             raise
 
     async def turn_off(self, liveid: str) -> None:
-        await self._client.smartglass.turn_off(liveid)
+        await self._send_command(self._client.smartglass.turn_off(liveid))
 
     async def press_button(self, liveid: str, button: str) -> None:
         button_enum = InputKeyType(button)
-        await self._client.smartglass.press_button(liveid, button_enum)
+        await self._send_command(self._client.smartglass.press_button(liveid, button_enum))
 
     async def change_volume(self, liveid: str, direction: str) -> None:
         direction_enum = VolumeDirection(direction)
-        await self._client.smartglass.volume(liveid, direction_enum)
+        await self._send_command(self._client.smartglass.volume(liveid, direction_enum))
 
     async def mute(self, liveid: str) -> None:
-        await self._client.smartglass.mute(liveid)
+        await self._send_command(self._client.smartglass.mute(liveid))
 
     async def show_guide(self, liveid: str) -> None:
-        await self._client.smartglass.show_guide_tab(liveid, GuideTab.Guide)
+        await self._send_command(self._client.smartglass.show_guide_tab(liveid, GuideTab.Guide))
 
     async def go_home(self, liveid: str) -> None:
-        await self._client.smartglass.go_home(liveid)
+        await self._send_command(self._client.smartglass.go_home(liveid))
 
     async def go_back(self, liveid: str) -> None:
-        await self._client.smartglass.go_back(liveid)
+        await self._send_command(self._client.smartglass.go_back(liveid))
 
     async def play(self, liveid: str) -> None:
-        await self._client.smartglass.play(liveid)
+        await self._send_command(self._client.smartglass.play(liveid))
 
     async def pause(self, liveid: str) -> None:
-        await self._client.smartglass.pause(liveid)
+        await self._send_command(self._client.smartglass.pause(liveid))
 
     async def next_track(self, liveid: str) -> None:
-        await self._client.smartglass.next(liveid)
+        await self._send_command(self._client.smartglass.next(liveid))
 
     async def previous_track(self, liveid: str) -> None:
-        await self._client.smartglass.previous(liveid)
+        await self._send_command(self._client.smartglass.previous(liveid))
 
     async def get_presence(self, liveid: str) -> dict | None:
         try:
@@ -244,7 +251,7 @@ class XboxClient:
         return games
 
     async def launch_app(self, liveid: str, one_store_product_id: str) -> None:
-        await self._client.smartglass.launch_app(liveid, one_store_product_id)
+        await self._send_command(self._client.smartglass.launch_app(liveid, one_store_product_id))
 
     def generate_auth_url(self) -> str:
         query_params = {
