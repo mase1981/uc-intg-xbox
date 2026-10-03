@@ -64,16 +64,16 @@ Your support helps maintain this integration. Thank you! ❤️
 Real-time display of Xbox gaming activity:
 - **Currently Playing** - Shows active game title when playing
 - **Game Artwork** - Displays official game cover art from Xbox Live
-- **Online Status** - Shows "Online" when on dashboard
+- **App in Focus** - Shows the app or game the console reports (Netflix, YouTube, games), with its store artwork
 - **Offline Status** - Shows "Offline" when console is off
-- **Player State** - Distinguishes between OFF, ON (dashboard), and PLAYING (in-game)
+- **Player State** - OFF, ON (dashboard or app), PLAYING (in-game or video playing) and PAUSED
 
 #### **Dynamic Metadata**
 - **Game Title** - Current game being played
 - **Xbox Gamertag** - Your Xbox Live gamertag display
-- **Presence State** - Real-time activity status
-- **Media Type** - Tagged as "GAME" for proper display
-- **Automatic Updates** - Status refreshes every 60 seconds
+- **Console Status** - Read from the console itself; falls back to your Xbox Live presence if unavailable
+- **Media Type** - Tagged as game or app
+- **Automatic Updates** - Console status refreshes every 15 seconds
 
 ### 🔌 **Power Management**
 
@@ -215,7 +215,7 @@ If you prefer using a client secret or Method 1 doesn't work:
 #### Enable Remote Features:
 1. On Xbox console: **Settings** → **Devices & connections** → **Remote features**
 2. Enable **"Enable remote features"**
-3. Copy your **Xbox Network Device ID** (required — displayed on this screen)
+3. Optional: copy your **Xbox Network Device ID** (displayed on this screen). If you leave it empty during setup, the integration lists your consoles after you sign in.
 
 #### Configure Power Mode:
 1. On Xbox console: **Settings** → **General** → **Power options**
@@ -230,7 +230,7 @@ If you prefer using a client secret or Method 1 doesn't work:
 
 #### Page 1: Console Details
 - **Console Name**: Friendly name (e.g., "Living Room Xbox")
-- **Xbox Live Device ID**: Found in Xbox Settings → Devices & connections → Remote features
+- **Xbox Live Device ID (Optional)**: Leave empty to pick your console after signing in, or enter it from Xbox Settings → Devices & connections → Remote features
 - **Azure App Client ID**: Paste your Application (client) ID from Azure
 - **Azure App Client Secret**:
   - **If using Method 1 (Mobile/Desktop)**: Leave this field EMPTY
@@ -248,13 +248,15 @@ If you prefer using a client secret or Method 1 doesn't work:
 6. **Copy the entire URL** from your browser's address bar (the full URL including `http://localhost:8765/callback?code=...`)
 7. **Paste the full URL** into the **"Manual Code"** field in the setup flow
 8. Click **Submit**
+9. If you left the Device ID empty and have more than one console, choose your console from the list
 
 > **Important:** You must paste the **full redirect URL** (starting with `http://localhost:8765/callback?code=...`), not just the code portion. The integration will extract the authorization code automatically.
 
 #### Setup Complete
-After authentication, the integration will create **two entities** for your console:
+After authentication, the integration creates these entities for your console:
 - **Remote Control**: Full button control
 - **Media Player**: Gaming status display
+- **Sensors**: Gamertag, Current Game, Status, Gamerscore, Platform, Achievements, Game Gamerscore, Game Progress, Last Online, Friends Online, Followers, Following, In Party, Free Storage, Total Storage
 
 ## Using the Integration
 
@@ -271,17 +273,38 @@ The remote control entity provides complete Xbox dashboard navigation:
 - **View** - Options/view button
 - **Media Controls** - Play/Pause, Stop, Next/Previous
 - **Volume Up/Down** - TV volume via HDMI-CEC
+- **Extra commands** - `REBOOT`, `UNMUTE`, and `TEXT:your text` (types text into an on-screen keyboard)
+- **Repeat and sequences** - Send Command supports repeat and delay; sequences accept a list or comma separated commands
 
 ### Media Player Entity
 
 The media player entity displays live Xbox gaming activity:
 
-- **Status Display**: OFF (powered off), ON (dashboard), PLAYING (in-game)
-- **Media Title**: Current game title or status
-- **Gamertag**: Your Xbox Live gamertag
-- **Game Artwork**: Official game cover art from Xbox Live
-- **Activity State**: Real-time presence information
-- **Automatic Updates**: Status refreshes every 60 seconds
+- **Status Display**: OFF (powered off), ON (dashboard or app), PLAYING (in-game or video playing), PAUSED
+- **Media Title**: Current game or app title
+- **Game Artwork**: Official store artwork for the game or app
+- **Activity State**: Read from the console, with Xbox Live presence as a fallback
+- **Automatic Updates**: Console status every 15 seconds; profile every minute; friends every 5 minutes; storage every 10 minutes
+
+### Sensors
+
+| Sensor | Shows |
+|---|---|
+| Gamertag | Your gamertag |
+| Current Game | Game or app on screen |
+| Status | Your Xbox Live status text |
+| Gamerscore | Total gamerscore |
+| Platform | Where you are playing (Xbox Series X\|S, Xbox One, Windows, Android, iOS...) |
+| Achievements | Unlocked / total in the current game |
+| Game Gamerscore | Earned / total in the current game |
+| Game Progress | Completion of the current game (%) |
+| Last Online | "Online now", or how long ago you were seen |
+| Friends Online | Friends online right now |
+| Followers / Following | Social counts |
+| In Party | Yes or No, with the party's join setting |
+| Free / Total Storage | Summed across all console drives (GB) |
+
+Sensors show "-" when there is nothing to report (for example, no game running).
 
 ## Credits
 

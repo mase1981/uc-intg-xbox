@@ -5,6 +5,7 @@ Xbox remote entity with UI pages and button mappings.
 :license: MPL-2.0, see LICENSE for more details.
 """
 
+import asyncio
 import logging
 from typing import Any
 
@@ -23,7 +24,7 @@ SIMPLE_COMMANDS = [
     "A", "B", "X", "Y",
     "BACK", "HOME", "MENU", "CONTEXT_MENU", "NEXUS",
     "PLAY", "PAUSE", "PLAY_PAUSE", "NEXT", "PREVIOUS", "FAST_FORWARD", "REWIND",
-    "VOLUME_UP", "VOLUME_DOWN", "MUTE_TOGGLE",
+    "VOLUME_UP", "VOLUME_DOWN", "MUTE_TOGGLE", "UNMUTE", "REBOOT",
 ]
 
 
@@ -89,6 +90,19 @@ def _create_ui_pages() -> list[UiPage]:
     return [main_page, buttons_page, media_page]
 
 
+def _repeat_delay(params: dict[str, Any]) -> tuple[int, float]:
+    """Repeat count (at least 1) and delay in seconds from the command parameters."""
+    try:
+        repeat = max(1, int(params.get("repeat") or 1))
+    except (TypeError, ValueError):
+        repeat = 1
+    try:
+        delay = max(0, int(params.get("delay") or 0)) / 1000
+    except (TypeError, ValueError):
+        delay = 0.0
+    return repeat, delay
+
+
 class XboxRemote(RemoteEntity):
     """Xbox remote entity."""
 
@@ -125,18 +139,32 @@ class XboxRemote(RemoteEntity):
                 await self._device.power_off()
                 return StatusCodes.OK
             if cmd_id == remote.Commands.TOGGLE:
-                await self._device.send_command("POWER_TOGGLE")
-                return StatusCodes.OK
+                ok = await self._device.send_command("POWER_TOGGLE")
+                return StatusCodes.OK if ok else StatusCodes.SERVER_ERROR
             if cmd_id == remote.Commands.SEND_CMD and params:
                 command = params.get("command", "")
                 if command:
-                    success = await self._device.send_command(command)
-                    return StatusCodes.OK if success else StatusCodes.SERVER_ERROR
+                    repeat, delay = _repeat_delay(params)
+                    for index in range(repeat):
+                        if index and delay:
+                            await asyncio.sleep(delay)
+                        if not await self._device.send_command(command):
+                            return StatusCodes.SERVER_ERROR
+                    return StatusCodes.OK
             if cmd_id == remote.Commands.SEND_CMD_SEQUENCE and params:
-                for command in params.get("sequence", []):
-                    success = await self._device.send_command(command)
-                    if not success:
-                        return StatusCodes.SERVER_ERROR
+                sequence = params.get("sequence", [])
+                if isinstance(sequence, str):
+                    sequence = [part.strip() for part in sequence.split(",")]
+                commands = [command for command in sequence if command]
+                repeat, delay = _repeat_delay(params)
+                first = True
+                for _ in range(repeat):
+                    for command in commands:
+                        if not first and delay:
+                            await asyncio.sleep(delay)
+                        first = False
+                        if not await self._device.send_command(command):
+                            return StatusCodes.SERVER_ERROR
                 return StatusCodes.OK
             return StatusCodes.NOT_IMPLEMENTED
         except Exception as err:

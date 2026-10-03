@@ -89,19 +89,27 @@ class XboxMediaPlayer(MediaPlayerEntity):
             self.update({media_player.Attributes.STATE: media_player.States.UNAVAILABLE})
             return
 
-        presence = self._device.presence_state
-        if presence == "OFF":
-            state = media_player.States.OFF
-        elif presence == "PLAYING":
-            state = media_player.States.PLAYING
+        player = self._device.player_state
+        state = {
+            "OFF": media_player.States.OFF,
+            "PLAYING": media_player.States.PLAYING,
+            "PAUSED": media_player.States.PAUSED,
+        }.get(player, media_player.States.ON)
+
+        if player == "OFF":
+            media_type = ""
+        elif self._device.is_game:
+            media_type = MediaContentType.GAME
+        elif self._device.media_title and self._device.media_title not in ("Online", "Offline"):
+            media_type = MediaContentType.APP
         else:
-            state = media_player.States.ON
+            media_type = ""
 
         self.update({
             media_player.Attributes.STATE: state,
             media_player.Attributes.MEDIA_TITLE: self._device.media_title or "",
             media_player.Attributes.MEDIA_IMAGE_URL: self._device.media_image or "",
-            media_player.Attributes.MEDIA_TYPE: MediaContentType.GAME if presence == "PLAYING" else "",
+            media_player.Attributes.MEDIA_TYPE: media_type,
         })
 
     async def browse(self, options: BrowseOptions) -> BrowseResults | StatusCodes:
@@ -162,60 +170,62 @@ class XboxMediaPlayer(MediaPlayerEntity):
         self, entity: Any, cmd_id: str, params: dict[str, Any] | None
     ) -> StatusCodes:
         try:
+            ok = True
             match cmd_id:
                 case media_player.Commands.ON:
                     await self._device.power_on()
                 case media_player.Commands.OFF:
                     await self._device.power_off()
                 case media_player.Commands.TOGGLE:
-                    await self._device.send_command("POWER_TOGGLE")
+                    ok = await self._device.send_command("POWER_TOGGLE")
                 case media_player.Commands.PLAY_PAUSE:
-                    await self._device.send_command("PLAY_PAUSE")
+                    ok = await self._device.send_command("PLAY_PAUSE")
                 case media_player.Commands.NEXT:
-                    await self._device.send_command("NEXT")
+                    ok = await self._device.send_command("NEXT")
                 case media_player.Commands.PREVIOUS:
-                    await self._device.send_command("PREVIOUS")
+                    ok = await self._device.send_command("PREVIOUS")
                 case media_player.Commands.FAST_FORWARD:
-                    await self._device.send_command("FAST_FORWARD")
+                    ok = await self._device.send_command("FAST_FORWARD")
                 case media_player.Commands.REWIND:
-                    await self._device.send_command("REWIND")
+                    ok = await self._device.send_command("REWIND")
                 case media_player.Commands.VOLUME_UP:
-                    await self._device.send_command("VOLUME_UP")
+                    ok = await self._device.send_command("VOLUME_UP")
                 case media_player.Commands.VOLUME_DOWN:
-                    await self._device.send_command("VOLUME_DOWN")
+                    ok = await self._device.send_command("VOLUME_DOWN")
                 case media_player.Commands.MUTE_TOGGLE:
-                    await self._device.send_command("MUTE_TOGGLE")
+                    ok = await self._device.send_command("MUTE_TOGGLE")
                 case media_player.Commands.HOME:
-                    await self._device.send_command("HOME")
+                    ok = await self._device.send_command("HOME")
                 case media_player.Commands.MENU:
-                    await self._device.send_command("MENU")
+                    ok = await self._device.send_command("MENU")
                 case media_player.Commands.CONTEXT_MENU:
-                    await self._device.send_command("CONTEXT_MENU")
+                    ok = await self._device.send_command("CONTEXT_MENU")
                 case media_player.Commands.CURSOR_UP:
-                    await self._device.send_command("DPAD_UP")
+                    ok = await self._device.send_command("DPAD_UP")
                 case media_player.Commands.CURSOR_DOWN:
-                    await self._device.send_command("DPAD_DOWN")
+                    ok = await self._device.send_command("DPAD_DOWN")
                 case media_player.Commands.CURSOR_LEFT:
-                    await self._device.send_command("DPAD_LEFT")
+                    ok = await self._device.send_command("DPAD_LEFT")
                 case media_player.Commands.CURSOR_RIGHT:
-                    await self._device.send_command("DPAD_RIGHT")
+                    ok = await self._device.send_command("DPAD_RIGHT")
                 case media_player.Commands.CURSOR_ENTER:
-                    await self._device.send_command("A")
+                    ok = await self._device.send_command("A")
                 case media_player.Commands.BACK:
-                    await self._device.send_command("BACK")
+                    ok = await self._device.send_command("BACK")
                 case media_player.Commands.FUNCTION_RED:
-                    await self._device.send_command("B")
+                    ok = await self._device.send_command("B")
                 case media_player.Commands.FUNCTION_GREEN:
-                    await self._device.send_command("A")
+                    ok = await self._device.send_command("A")
                 case media_player.Commands.FUNCTION_YELLOW:
-                    await self._device.send_command("Y")
+                    ok = await self._device.send_command("Y")
                 case media_player.Commands.FUNCTION_BLUE:
-                    await self._device.send_command("X")
+                    ok = await self._device.send_command("X")
                 case media_player.Commands.PLAY_MEDIA:
                     return await self._handle_play_media(params)
                 case _:
                     return StatusCodes.NOT_IMPLEMENTED
-            return StatusCodes.OK
+
+            return StatusCodes.OK if ok else StatusCodes.SERVER_ERROR
         except Exception as err:
             _LOG.error("[%s] Command %s failed: %s", entity.id, cmd_id, err)
             return StatusCodes.SERVER_ERROR
