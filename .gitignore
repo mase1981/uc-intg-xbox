@@ -25,6 +25,6 @@ tools/
 knowledge-base/
 *.knowledge.md
 
-# Xbox probe (tools/xbox_probe.py)
+# Xbox probe (xbox_probe.py) output
 xbox_probe_tokens.json
 xbox_probe_log.txt
