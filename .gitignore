@@ -24,3 +24,7 @@ tools/
 .claude/
 knowledge-base/
 *.knowledge.md
+
+# Xbox probe (tools/xbox_probe.py)
+xbox_probe_tokens.json
+xbox_probe_log.txt
