@@ -1,4 +1,7 @@
-"""Xbox probe: shows what your console and Xbox Live report, every 10 seconds.
+"""Xbox probe: shows what your console and Xbox Live report, every 15 seconds.
+
+Disable the Xbox integration on the Remote while this runs: Xbox Live rate limits
+the profile call per account, and both would share that limit.
 
 Run from the repository root (needs the integration's requirements installed):
 
@@ -110,7 +113,8 @@ async def snapshot(client: XboxClient, liveid: str, names: dict) -> dict:
         snap["console"] = f"ERROR {type(err).__name__}: {err}"
         app = None
 
-    # Source of the Status sensor and of 5.3.3's title
+    # Source of the Status sensor and of 5.3.3's title (rate limited: called once per round)
+    person = None
     try:
         response = await raw.people.get_friend_by_xuid(client.xuid)
         person = (response.people or [None])[0]
@@ -119,7 +123,7 @@ async def snapshot(client: XboxClient, liveid: str, names: dict) -> dict:
             if person else "no person"
         )
     except Exception as err:  # noqa: BLE001
-        snap["profile"] = f"ERROR {type(err).__name__}: {err}"
+        snap["profile"] = f"ERROR {type(err).__name__}: {str(err).splitlines()[0][:80]}"
 
     # Source of 5.2.9's title
     try:
@@ -130,7 +134,7 @@ async def snapshot(client: XboxClient, liveid: str, names: dict) -> dict:
             if person else "no person"
         )
     except Exception as err:  # noqa: BLE001
-        snap["presence_batch"] = f"ERROR {type(err).__name__}: {err}"
+        snap["presence_batch"] = f"ERROR {type(err).__name__}: {str(err).splitlines()[0][:80]}"
 
     # What each version would show as the current game
     try:
@@ -138,19 +142,26 @@ async def snapshot(client: XboxClient, liveid: str, names: dict) -> dict:
         snap["5.2.9 shows"] = repr((presence or {}).get("title"))
     except Exception as err:  # noqa: BLE001
         snap["5.2.9 shows"] = f"ERROR {err}"
-    try:
-        profile = await client.get_profile()
+    # 5.3.3: catalog title, else the profile (same rules as the integration, from the call above)
+    if snap["profile"].startswith("ERROR"):
+        snap["5.3.3 shows"] = "(profile unavailable this round)"
+    else:
         title = (app or {}).get("title")
-        if not title and profile and profile.get("online"):
-            title_id = profile.get("title_id")
-            if title_id and title_id not in names:
-                info = await client.get_title_progress(title_id)
-                names[title_id] = (info or {}).get("name") or ""
-            title = names.get(title_id) if title_id else None
-            title = title or profile.get("status")
+        if not title and person is not None and person.presence_state == "Online":
+            active = next(
+                (d for d in person.presence_details or [] if d.state == "Active" and d.is_game), None
+            )
+            if active:
+                if active.title_id not in names:
+                    try:
+                        info = await client.get_title_progress(active.title_id)
+                        names[active.title_id] = (info or {}).get("name") or ""
+                    except Exception:  # noqa: BLE001
+                        names[active.title_id] = ""
+                title = names[active.title_id] or person.presence_text
+            else:
+                title = person.presence_text
         snap["5.3.3 shows"] = repr(title or "")
-    except Exception as err:  # noqa: BLE001
-        snap["5.3.3 shows"] = f"ERROR {err}"
     return snap
 
 
@@ -190,7 +201,7 @@ async def main() -> None:
                     print(f"{index}. {item['name']}")
                 console = consoles[int(input("Console number: ")) - 1]
             liveid, name = console["id"], console["name"]
-        log(f"=== probe start, {name} ({liveid[:4]}…), every 10 s for {args.minutes:g} min")
+        log(f"=== probe start, {name} ({liveid[:4]}…), every 15 s for {args.minutes:g} min")
 
         last: dict = {}
         names: dict = {}
@@ -203,7 +214,7 @@ async def main() -> None:
                 for key, value in snap.items():
                     log(f"{'*' if key in changed else ' '} {key:15} {value}")
             last = snap
-            await asyncio.sleep(10)
+            await asyncio.sleep(15)
         log("=== probe end")
     finally:
         await client.close()
