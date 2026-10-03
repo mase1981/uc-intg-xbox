@@ -402,18 +402,22 @@ class XboxClient:
         return sum(1 for friend in getattr(response, "people", None) or [] if friend.presence_state == "Online")
 
     async def get_title_progress(self, title_id: str) -> dict | None:
-        """Achievements and gamerscore earned in one title."""
+        """Name, artwork, and achievements and gamerscore earned in one title."""
         response = await self._client.titlehub.get_title_info(title_id)
         titles = getattr(response, "titles", None) or []
-        achievement = getattr(titles[0], "achievement", None) if titles else None
-        if achievement is None:
+        if not titles:
             return None
-        return {
-            # Some titles report no totals (0); show only what was earned then.
-            "achievements": _of(achievement.current_achievements, achievement.total_achievements),
-            "gamerscore": _of(achievement.current_gamerscore, achievement.total_gamerscore),
-            "progress": int(achievement.progress_percentage),
-        }
+        title = titles[0]
+        info = {"name": title.name or "", "image": _https(title.display_image or "")}
+        achievement = getattr(title, "achievement", None)
+        if achievement is not None:
+            info.update({
+                # Some titles report no totals (0); show only what was earned then.
+                "achievements": _of(achievement.current_achievements, achievement.total_achievements),
+                "gamerscore": _of(achievement.current_gamerscore, achievement.total_gamerscore),
+                "progress": int(achievement.progress_percentage),
+            })
+        return info
 
     # ------------------------------------------------------------------
     # Extra console commands (Home Assistant's remote set)
