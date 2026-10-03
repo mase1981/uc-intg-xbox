@@ -25,11 +25,19 @@ class XboxSetupFlow(BaseSetupFlow[XboxConfig]):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._oauth_server: OAuthCallbackServer | None = None
+        self._choosing_console = False  # waiting for the console picker answer
 
-    def get_manual_entry_form(self) -> RequestUserInput:
+    def get_manual_entry_form(self, error: str = "") -> RequestUserInput:
+        fields = []
+        if error:
+            fields.append({
+                "id": "error",
+                "label": {"en": "Error"},
+                "field": {"label": {"value": {"en": error}}},
+            })
         return RequestUserInput(
             {"en": "Xbox Configuration"},
-            [
+            fields + [
                 {
                     "id": "name",
                     "label": {"en": "Console Name"},
@@ -37,7 +45,7 @@ class XboxSetupFlow(BaseSetupFlow[XboxConfig]):
                 },
                 {
                     "id": "liveid",
-                    "label": {"en": "Xbox Live Device ID"},
+                    "label": {"en": "Xbox Live Device ID (Optional)"},
                     "field": {"text": {"value": ""}},
                 },
                 {
@@ -56,7 +64,8 @@ class XboxSetupFlow(BaseSetupFlow[XboxConfig]):
                     "field": {
                         "label": {
                             "value": {
-                                "en": "Find your Xbox Live Device ID in: Xbox Settings > Devices & connections > Remote features.\n\n"
+                                "en": "Leave the Live Device ID empty to pick your console after signing in. "
+                                "To enter it yourself: Xbox Settings > Devices & connections > Remote features.\n\n"
                                 "You need an Azure App Registration with Xbox Live API permissions.\n"
                                 "Client Secret is optional (required for Web apps, not needed for Mobile/Desktop apps)."
                             }
@@ -74,12 +83,12 @@ class XboxSetupFlow(BaseSetupFlow[XboxConfig]):
         client_id = input_values.get("client_id", "").strip()
         client_secret = input_values.get("client_secret", "").strip()
 
-        if not liveid:
-            raise ValueError("Xbox Live Device ID is required")
         if not client_id:
-            raise ValueError("Azure App Client ID is required")
+            self._pending_device_config = None
+            return self.get_manual_entry_form("Azure App Client ID is required.")
 
-        identifier = f"xbox_{liveid.replace('.', '_')}"
+        self._choosing_console = False
+        identifier = _identifier(liveid) if liveid else ""
 
         self._pending_device_config = XboxConfig(
             identifier=identifier,
@@ -139,6 +148,16 @@ class XboxSetupFlow(BaseSetupFlow[XboxConfig]):
 
     async def handle_additional_configuration_response(self, msg) -> XboxConfig | None:
         input_values = msg.input_values if hasattr(msg, "input_values") else {}
+
+        if self._choosing_console:
+            # Console picker answer; the framework already copied "liveid" into the config.
+            self._choosing_console = False
+            config = self._pending_device_config
+            if not config or not config.liveid:
+                return SetupError(IntegrationSetupError.NOT_FOUND)
+            config.identifier = _identifier(config.liveid)
+            return config
+
         manual_code = input_values.get("manual_code", "").strip()
         auth_code = None
 
@@ -163,24 +182,67 @@ class XboxSetupFlow(BaseSetupFlow[XboxConfig]):
         if not config:
             return SetupError(IntegrationSetupError.OTHER)
 
+        client = XboxClient(config.client_id, config.client_secret)
         try:
-            client = XboxClient(config.client_id, config.client_secret)
-            tokens = await client.exchange_code(auth_code)
+            try:
+                tokens = await client.exchange_code(auth_code)
+            except Exception as err:
+                _LOG.error("Token exchange failed: %s", err)
+                return SetupError(IntegrationSetupError.AUTHORIZATION_ERROR)
+
+            if not tokens:
+                return SetupError(IntegrationSetupError.AUTHORIZATION_ERROR)
+            config.tokens = tokens
+
+            if config.liveid:
+                return config
+
+            try:
+                consoles = await client.get_consoles()
+            except Exception as err:
+                _LOG.error("Could not list consoles: %s", err)
+                return SetupError(IntegrationSetupError.CONNECTION_REFUSED)
+        finally:
             await client.close()
-        except Exception as err:
-            _LOG.error("Token exchange failed: %s", err)
-            return SetupError(IntegrationSetupError.AUTHORIZATION_ERROR)
 
-        if not tokens:
-            return SetupError(IntegrationSetupError.AUTHORIZATION_ERROR)
+        if not consoles:
+            _LOG.error("No consoles found on this account")
+            return SetupError(IntegrationSetupError.NOT_FOUND)
 
-        config.tokens = tokens
-        return config
+        if len(consoles) == 1:
+            config.liveid = consoles[0]["id"]
+            config.identifier = _identifier(config.liveid)
+            _LOG.info("Using console %s (%s)", consoles[0]["name"], config.liveid)
+            return config
+
+        self._choosing_console = True
+        return RequestUserInput(
+            {"en": "Choose your Xbox"},
+            [
+                {
+                    "id": "liveid",
+                    "label": {"en": "Console"},
+                    "field": {
+                        "dropdown": {
+                            "value": consoles[0]["id"],
+                            "items": [
+                                {"id": console["id"], "label": {"en": f"{console['name']} ({console['id']})"}}
+                                for console in consoles
+                            ],
+                        }
+                    },
+                },
+            ],
+        )
 
     async def _cleanup_oauth(self) -> None:
         if self._oauth_server:
             await self._oauth_server.stop()
             self._oauth_server = None
+
+
+def _identifier(liveid: str) -> str:
+    return f"xbox_{liveid.replace('.', '_')}"
 
 
 def _extract_code(auth_input: str) -> str:

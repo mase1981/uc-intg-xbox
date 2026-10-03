@@ -1,19 +1,33 @@
 """
 Xbox device implementation using PollingDevice.
 
+State comes from the console itself (power, playback and the app in focus),
+the same source Home Assistant uses. If that call fails, the account presence
+is used as before, so the tile never goes blank. Profile, friends and storage
+refresh less often than the console status.
+
 :copyright: (c) 2025 by Meir Miyara.
 :license: MPL-2.0, see LICENSE for more details.
 """
 
 import asyncio
 import logging
+from datetime import datetime
 from typing import Any
 
 from ucapi_framework import DeviceEvents, PollingDevice
 
 from uc_intg_xbox.client import XboxClient
 from uc_intg_xbox.config import XboxConfig
-from uc_intg_xbox.const import MAX_CONSECUTIVE_FAILURES, POLL_INTERVAL, POLL_INTERVAL_OFF, RECONNECT_INTERVAL
+from uc_intg_xbox.const import (
+    CONSOLES_EVERY,
+    FRIENDS_EVERY,
+    MAX_CONSECUTIVE_FAILURES,
+    POLL_INTERVAL,
+    PROFILE_EVERY,
+    RECONNECT_INTERVAL,
+    RECONNECT_MAX,
+)
 
 _LOG = logging.getLogger(__name__)
 
@@ -28,7 +42,12 @@ class XboxDevice(PollingDevice):
         self._state: str = "UNAVAILABLE"
         self._consecutive_failures: int = 0
         self._reconnect_poll_count: int = 0
+        self._reconnect_wait: int = RECONNECT_INTERVAL  # seconds, doubles on each failure
+        self._tick: int = 0
+        # The framework can call connect() twice at once; one client per device.
+        self._connect_lock = asyncio.Lock()
 
+        # Presence (fallback) state, as before
         self._presence_state: str = "OFF"
         self._media_title: str = "Offline"
         self._media_image: str = ""
@@ -36,6 +55,17 @@ class XboxDevice(PollingDevice):
         self._installed_games: list[dict] = []
         self._library_task: asyncio.Task | None = None
 
+        # Console status (primary)
+        self._console: dict | None = None  # {"power", "playback", "focus_app", "app"}
+        self._profile: dict | None = None
+        self._progress: dict | None = None
+        self._progress_title: str | None = None
+        self._friends_online: int | None = None
+        self._storage: list[dict] = []
+
+    # ------------------------------------------------------------------
+    # Identity
+    # ------------------------------------------------------------------
     @property
     def identifier(self) -> str:
         return self._device_config.identifier
@@ -56,16 +86,53 @@ class XboxDevice(PollingDevice):
     def state(self) -> str:
         return self._state
 
+    # ------------------------------------------------------------------
+    # State for entities
+    # ------------------------------------------------------------------
     @property
     def presence_state(self) -> str:
+        """OFF, ON or PLAYING (kept for compatibility)."""
+        player = self.player_state
+        return "OFF" if player == "OFF" else ("PLAYING" if player in ("PLAYING", "PAUSED") else "ON")
+
+    @property
+    def player_state(self) -> str:
+        """OFF, ON, PLAYING or PAUSED."""
+        if self._console is not None:
+            if self._console["power"] != "On":
+                return "OFF"
+            if self._console["playback"] == "Playing":
+                return "PLAYING"
+            if self._console["playback"] == "Paused":
+                return "PAUSED"
+            app = self._console.get("app") or {}
+            return "PLAYING" if app.get("is_game") else "ON"
         return self._presence_state
 
     @property
+    def is_game(self) -> bool:
+        if self._console is not None and self._console.get("app"):
+            return bool(self._console["app"].get("is_game"))
+        return self._presence_state == "PLAYING"
+
+    @property
     def media_title(self) -> str:
+        if self._console is not None:
+            if self._console["power"] != "On":
+                return "Offline"
+            app = self._console.get("app") or {}
+            if app.get("title"):
+                return app["title"]
         return self._media_title
 
     @property
     def media_image(self) -> str:
+        if self._console is not None:
+            if self._console["power"] != "On":
+                return ""
+            app = self._console.get("app") or {}
+            if app.get("image"):
+                return app["image"]
         return self._media_image
 
     @property
@@ -80,28 +147,69 @@ class XboxDevice(PollingDevice):
     def client(self) -> XboxClient | None:
         return self._client
 
-    async def establish_connection(self) -> XboxClient:
-        self._client = XboxClient(self._device_config.client_id, self._device_config.client_secret)
+    @property
+    def profile(self) -> dict | None:
+        return self._profile
 
-        refreshed_tokens = await self._client.connect(
-            self._device_config.tokens, on_tokens_refreshed=self._persist_tokens
-        )
-        if not refreshed_tokens:
-            raise ConnectionError(f"Failed to authenticate Xbox client for {self.log_id}")
+    @property
+    def progress(self) -> dict | None:
+        return self._progress
 
-        self._gamertag = self._client.gamertag
+    @property
+    def friends_online(self) -> int | None:
+        return self._friends_online
 
+    @property
+    def storage(self) -> list[dict]:
+        return self._storage
+
+    # ------------------------------------------------------------------
+    # Connection
+    # ------------------------------------------------------------------
+    async def connect(self) -> bool:
+        async with self._connect_lock:
+            return await super().connect()
+
+    async def _connect_client(self) -> bool:
+        """Sign in with the stored tokens. Never raises."""
+        if self._client:
+            await self._client.close()  # never leave the previous HTTP session open
+            self._client = None
+        client = XboxClient(self._device_config.client_id, self._device_config.client_secret)
+        try:
+            refreshed = await client.connect(self._device_config.tokens, on_tokens_refreshed=self._persist_tokens)
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            _LOG.warning("[%s] Sign-in failed: %s", self.log_id, err)
+            await client.close()
+            return False
+        if not refreshed:
+            await client.close()
+            return False
+        self._client = client
+        self._gamertag = client.gamertag
+        return True
+
+    async def establish_connection(self) -> XboxClient | None:
+        """Connect; on failure stay UNAVAILABLE and let the poll loop retry (never raise)."""
+        if not await self._connect_client():
+            self._state = "UNAVAILABLE"
+            self._reconnect_poll_count = 0
+            self.push_update()
+            return None
+        self._reconnect_wait = RECONNECT_INTERVAL
+        await self._after_connect()
+        return self._client
+
+    async def _after_connect(self) -> None:
+        self._tick = 0
         try:
             await self._update_state()
         except ConnectionError:
             _LOG.warning("[%s] Initial state query failed, using defaults", self.log_id)
-
         self._state = "ON"
         self._consecutive_failures = 0
         self.push_update()
-
         self._schedule_library_refresh()
-        return self._client
 
     def _schedule_library_refresh(self) -> None:
         if self._library_task and not self._library_task.done():
@@ -113,16 +221,20 @@ class XboxDevice(PollingDevice):
             self._installed_games = await self._client.get_installed_apps(self._device_config.liveid)
             _LOG.info("[%s] Found %d installed games", self.log_id, len(self._installed_games))
             self.push_update()
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOG.warning("[%s] Could not fetch game library: %s", self.log_id, err)
 
     async def poll_device(self) -> None:
         if self._state == "UNAVAILABLE":
             self._reconnect_poll_count += 1
-            polls_needed = RECONNECT_INTERVAL // max(POLL_INTERVAL, 1)
-            if self._reconnect_poll_count >= max(polls_needed, 3):
+            polls_needed = self._reconnect_wait // max(POLL_INTERVAL, 1)
+            if self._reconnect_poll_count >= max(polls_needed, 1):
                 self._reconnect_poll_count = 0
-                await self._try_reconnect()
+                if await self._try_reconnect():
+                    self._reconnect_wait = RECONNECT_INTERVAL
+                else:
+                    # Back off so a revoked sign-in does not hit Microsoft every 30 seconds.
+                    self._reconnect_wait = min(self._reconnect_wait * 2, RECONNECT_MAX)
             return
 
         if not self._client:
@@ -131,14 +243,8 @@ class XboxDevice(PollingDevice):
         try:
             await self._update_state()
             self._consecutive_failures = 0
-
-            if self._presence_state == "OFF":
-                self._poll_interval = POLL_INTERVAL_OFF
-            else:
-                self._poll_interval = POLL_INTERVAL
-
             self.push_update()
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             self._consecutive_failures += 1
             _LOG.debug("[%s] Poll error (%d/%d): %s", self.log_id,
                        self._consecutive_failures, MAX_CONSECUTIVE_FAILURES, err)
@@ -148,62 +254,132 @@ class XboxDevice(PollingDevice):
                 self._presence_state = "OFF"
                 self._media_title = "Offline"
                 self._media_image = ""
+                self._console = None
                 self._reconnect_poll_count = 0
                 self.push_update()
                 self.events.emit(DeviceEvents.DISCONNECTED, self.identifier)
 
     async def _update_state(self) -> None:
+        """Console status every poll; profile, friends and storage less often."""
+        liveid = self._device_config.liveid
+        tick = self._tick
+        self._tick += 1
+
+        console_ok = False
+        try:
+            self._console = await self._client.get_console_status(liveid)
+            console_ok = True
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            _LOG.debug("[%s] Console status unavailable, using presence: %s", self.log_id, err)
+            self._console = None
+
+        if not console_ok:
+            await self._update_presence()
+
+        if tick % PROFILE_EVERY == 0:
+            await self._update_profile()
+        if tick % FRIENDS_EVERY == 0:
+            await self._quietly(self._update_friends())
+        if tick % CONSOLES_EVERY == 0:
+            await self._quietly(self._update_storage())
+
+    async def _update_presence(self) -> None:
+        """The previous (presence based) state source, used when console status fails."""
         presence = await self._client.get_presence(self._device_config.liveid)
         if not presence:
             if self._presence_state == "OFF" or self._media_title == "Offline":
                 raise ConnectionError("Failed to get presence data")
             _LOG.debug("[%s] Presence API returned None, keeping last-known state", self.log_id)
             return
-
         self._presence_state = presence["state"]
         self._media_title = presence.get("title", "Unknown")
         self._media_image = presence.get("image", "")
 
+    async def _update_profile(self) -> None:
+        try:
+            profile = await self._client.get_profile()
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            _LOG.debug("[%s] Profile unavailable: %s", self.log_id, err)
+            return
+        if profile is None:
+            return
+        previous = (self._profile or {}).get("last_seen")
+        if previous and profile.get("last_seen") and isinstance(previous, datetime):
+            # The API flips between two close timestamps; keep the newest (as Home Assistant does).
+            profile["last_seen"] = max(previous, profile["last_seen"])
+        self._profile = profile
+        title_id = profile.get("title_id")
+        if not title_id:
+            self._progress, self._progress_title = None, None
+        elif title_id != self._progress_title or self._progress is None:
+            try:
+                self._progress = await self._client.get_title_progress(title_id)
+                self._progress_title = title_id
+            except Exception as err:  # pylint: disable=broad-exception-caught
+                _LOG.debug("[%s] Title progress unavailable: %s", self.log_id, err)
+
+    async def _update_friends(self) -> None:
+        self._friends_online = await self._client.get_friends_online()
+
+    async def _update_storage(self) -> None:
+        for console in await self._client.get_consoles():
+            if console["id"] == self._device_config.liveid:
+                self._storage = console["storage"]
+                return
+
+    async def _quietly(self, coro) -> None:
+        try:
+            await coro
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            _LOG.debug("[%s] Optional update failed: %s", self.log_id, err)
+
     async def _try_reconnect(self) -> bool:
         _LOG.info("[%s] Attempting reconnection...", self.log_id)
-        try:
-            await self.establish_connection()
-            _LOG.info("[%s] Reconnected successfully", self.log_id)
-            self.push_update()
-            self.events.emit(DeviceEvents.CONNECTED, self.identifier)
-            return True
-        except Exception as err:
-            _LOG.debug("[%s] Reconnection failed: %s", self.log_id, err)
+        if not await self._connect_client():
             return False
+        await self._after_connect()
+        _LOG.info("[%s] Reconnected successfully", self.log_id)
+        self.push_update()
+        self.events.emit(DeviceEvents.CONNECTED, self.identifier)
+        return True
 
     async def disconnect(self) -> None:
-        if self._library_task and not self._library_task.done():
-            self._library_task.cancel()
-        self._library_task = None
-        if self._client:
-            await self._client.close()
-            self._client = None
-        self._state = "UNAVAILABLE"
-        await super().disconnect()
+        async with self._connect_lock:
+            if self._library_task and not self._library_task.done():
+                self._library_task.cancel()
+            self._library_task = None
+            if self._client:
+                await self._client.close()
+                self._client = None
+            self._state = "UNAVAILABLE"
+            await super().disconnect()
 
     def _persist_tokens(self, tokens: dict) -> None:
         self.update_config(tokens=tokens)
 
+    # ------------------------------------------------------------------
+    # Commands
+    # ------------------------------------------------------------------
     async def send_command(self, command: str) -> bool:
         if not self._client or not self._client.is_connected:
             return False
         liveid = self._device_config.liveid
         try:
+            if command[:5].upper() == "TEXT:":
+                await self._client.insert_text(liveid, command[5:])
+                return True
             match command:
                 case "POWER_ON":
                     await self._client.turn_on(liveid)
                 case "POWER_OFF":
                     await self._client.turn_off(liveid)
                 case "POWER_TOGGLE":
-                    if self._presence_state == "OFF":
+                    if self.player_state == "OFF":
                         await self._client.turn_on(liveid)
                     else:
                         await self._client.turn_off(liveid)
+                case "REBOOT":
+                    await self._client.reboot(liveid)
                 case "HOME":
                     await self._client.show_guide(liveid)
                 case "BACK":
@@ -235,7 +411,11 @@ class XboxDevice(PollingDevice):
                 case "PAUSE":
                     await self._client.pause(liveid)
                 case "PLAY_PAUSE":
-                    await self._client.play(liveid)
+                    # The console reports its playback state, so this can toggle.
+                    if self._console is not None and self._console["playback"] == "Playing":
+                        await self._client.pause(liveid)
+                    else:
+                        await self._client.play(liveid)
                 case "NEXT" | "FAST_FORWARD":
                     await self._client.next_track(liveid)
                 case "PREVIOUS" | "REWIND":
@@ -246,13 +426,15 @@ class XboxDevice(PollingDevice):
                     await self._client.change_volume(liveid, "Down")
                 case "MUTE_TOGGLE":
                     await self._client.mute(liveid)
+                case "UNMUTE":
+                    await self._client.unmute(liveid)
                 case "NEXUS":
                     await self._client.press_button(liveid, "Nexus")
                 case _:
                     _LOG.warning("[%s] Unknown command: %s", self.log_id, command)
                     return False
             return True
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOG.error("[%s] Command %s failed: %s", self.log_id, command, err)
             return False
 

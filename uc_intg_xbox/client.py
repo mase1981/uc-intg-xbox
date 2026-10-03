@@ -8,11 +8,14 @@ Xbox Live API client.
 import asyncio
 import logging
 import ssl
+from datetime import datetime
 
 import certifi
 import httpx
 from pydantic import ValidationError
 from pythonxbox.api.client import XboxLiveClient
+from pythonxbox.api.provider.catalog.const import SYSTEM_PFN_ID_MAP
+from pythonxbox.api.provider.catalog.models import AlternateIdType
 from pythonxbox.api.provider.smartglass.models import (
     GuideTab,
     InputKeyType,
@@ -24,6 +27,36 @@ from pythonxbox.authentication.models import OAuth2TokenResponse
 from uc_intg_xbox.const import OAUTH_REDIRECT_URI, TITLEHUB_CONCURRENCY
 
 _LOG = logging.getLogger(__name__)
+
+# Same picks as Home Assistant: platform names and party join restrictions.
+PLATFORM_NAMES = {
+    "Android": "Android",
+    "iOS": "iOS",
+    "Nintendo": "Nintendo Switch",
+    "Scarlett": "Xbox Series X|S",
+    "WindowsOneCore": "Windows",
+    "Xbox360": "Xbox 360",
+    "XboxOne": "Xbox One",
+}
+JOIN_RESTRICTIONS = {"local": "Invite only", "followed": "Joinable"}
+_IMAGE_PURPOSES = ("FeaturePromotionalSquareArt", "Tile", "Logo", "BoxArt")
+
+
+def _https(url: str) -> str:
+    return "https://" + url[7:] if url and url.startswith("http://") else (url or "")
+
+
+def _square_image(images) -> str:
+    """Best square artwork of at least 300 px, in Home Assistant's order of preference."""
+    for purpose in _IMAGE_PURPOSES:
+        for image in images or []:
+            if (
+                getattr(image, "image_purpose", None) == purpose
+                and getattr(image, "width", 0) == getattr(image, "height", -1)
+                and getattr(image, "width", 0) >= 300
+            ):
+                return _https(getattr(image, "uri", ""))
+    return ""
 
 
 class XboxClient:
@@ -37,6 +70,7 @@ class XboxClient:
         self._client: XboxLiveClient | None = None
         self._xuid: str | None = None
         self._gamertag: str = "Xbox User"
+        self._app_cache: dict[str, dict] = {}  # focus app id -> {"title", "image", "is_game"}
 
     @property
     def xuid(self) -> str | None:
@@ -252,6 +286,135 @@ class XboxClient:
 
     async def launch_app(self, liveid: str, one_store_product_id: str) -> None:
         await self._send_command(self._client.smartglass.launch_app(liveid, one_store_product_id))
+
+    # ------------------------------------------------------------------
+    # Console status (the console's own state, as Home Assistant reads it)
+    # ------------------------------------------------------------------
+    async def get_consoles(self) -> list[dict]:
+        """Consoles on the account, with their storage devices."""
+        result = await self._client.smartglass.get_console_list()
+        consoles = []
+        for console in getattr(result, "result", None) or []:
+            storage = [
+                {
+                    "name": device.storage_device_name,
+                    "total": device.total_space_bytes,
+                    "free": device.free_space_bytes,
+                }
+                for device in (console.storage_devices or [])
+            ]
+            consoles.append({
+                "id": console.id,
+                "name": console.name,
+                "type": str(getattr(console, "console_type", "")),
+                "storage": storage,
+            })
+        return consoles
+
+    async def get_console_status(self, liveid: str) -> dict:
+        """Power state, playback state and the app in focus on this console."""
+        status = await self._client.smartglass.get_console_status(liveid)
+        aumid = status.focus_app_aumid or ""
+        app = await self._app_details(aumid) if aumid else None
+        return {
+            "power": str(status.power_state.value if hasattr(status.power_state, "value") else status.power_state),
+            "playback": str(status.playback_state.value if hasattr(status.playback_state, "value") else status.playback_state),
+            "focus_app": aumid,
+            "app": app,
+        }
+
+    async def _app_details(self, aumid: str) -> dict | None:
+        """Look up the focused app in the Microsoft Store catalog (cached per app)."""
+        app_id = aumid.split("!", maxsplit=1)[0]
+        if app_id in self._app_cache:
+            return self._app_cache[app_id]
+        id_type = AlternateIdType.PACKAGE_FAMILY_NAME
+        lookup_id = app_id
+        if app_id in SYSTEM_PFN_ID_MAP:
+            id_type = AlternateIdType.LEGACY_XBOX_PRODUCT_ID
+            lookup_id = SYSTEM_PFN_ID_MAP[app_id][id_type]
+        details = None
+        try:
+            result = await self._client.catalog.get_product_from_alternate_id(lookup_id, id_type)
+            products = getattr(result, "products", None) or []
+            if products:
+                product = products[0]
+                props = (product.localized_properties or [None])[0]
+                if props is not None:
+                    details = {
+                        "title": props.product_title or props.short_title or "",
+                        "image": _square_image(props.images),
+                        "is_game": getattr(product, "product_family", "") == "Games",
+                    }
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            _LOG.debug("Catalog lookup failed for %s: %s", app_id, err)
+            return None  # not cached: try again next time
+        self._app_cache[app_id] = details or {}
+        return details
+
+    # ------------------------------------------------------------------
+    # Profile, friends and the current game's progress
+    # ------------------------------------------------------------------
+    async def get_profile(self) -> dict | None:
+        """Own profile: status, gamerscore, followers, party and the active title."""
+        response = await self._client.people.get_friend_by_xuid(self._xuid)
+        people = getattr(response, "people", None) or []
+        if not people:
+            return None
+        person = people[0]
+        detail = getattr(person, "detail", None)
+        party = getattr(person, "multiplayer_summary", None)
+        party_details = getattr(party, "party_details", None) or []
+        active = next(
+            (d for d in person.presence_details or [] if d.state == "Active" and d.is_game),
+            None,
+        ) or next((d for d in person.presence_details or [] if d.state == "Active"), None)
+        last_seen = getattr(person, "last_seen_date_time_utc", None)
+        return {
+            "status": person.presence_text or person.presence_state or "",
+            "online": person.presence_state == "Online",
+            "gamerscore": person.gamer_score,
+            "followers": detail.follower_count if detail else None,
+            "following": detail.following_count if detail else None,
+            "in_party": bool(party.in_party) if party else None,
+            "join_restriction": (
+                JOIN_RESTRICTIONS.get(party_details[0].join_restriction, party_details[0].join_restriction)
+                if party_details else None
+            ),
+            "platform": PLATFORM_NAMES.get(active.device, active.device) if active else None,
+            "title_id": active.title_id if active and active.is_game else None,
+            "last_seen": last_seen if isinstance(last_seen, datetime) else None,
+            "gamerpic": _https(getattr(person, "display_pic_raw", "") or ""),
+        }
+
+    async def get_friends_online(self) -> int:
+        response = await self._client.people.get_friends_own()
+        return sum(1 for friend in getattr(response, "people", None) or [] if friend.presence_state == "Online")
+
+    async def get_title_progress(self, title_id: str) -> dict | None:
+        """Achievements and gamerscore earned in one title."""
+        response = await self._client.titlehub.get_title_info(title_id)
+        titles = getattr(response, "titles", None) or []
+        achievement = getattr(titles[0], "achievement", None) if titles else None
+        if achievement is None:
+            return None
+        return {
+            "achievements": f"{achievement.current_achievements} / {achievement.total_achievements}",
+            "gamerscore": f"{achievement.current_gamerscore} / {achievement.total_gamerscore}",
+            "progress": int(achievement.progress_percentage),
+        }
+
+    # ------------------------------------------------------------------
+    # Extra console commands (Home Assistant's remote set)
+    # ------------------------------------------------------------------
+    async def reboot(self, liveid: str) -> None:
+        await self._send_command(self._client.smartglass.reboot(liveid))
+
+    async def unmute(self, liveid: str) -> None:
+        await self._send_command(self._client.smartglass.unmute(liveid))
+
+    async def insert_text(self, liveid: str, text: str) -> None:
+        await self._send_command(self._client.smartglass.insert_text(liveid, text))
 
     def generate_auth_url(self) -> str:
         query_params = {

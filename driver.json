@@ -1,13 +1,13 @@
 {
   "driver_id": "uc-intg-xbox",
-  "version": "5.2.9",
+  "version": "5.3.0",
   "min_core_api": "0.22.0",
   "name": {"en": "Xbox Integration"},
   "icon": "uc:gamepad-modern",
   "description": {"en": "Control your Xbox console and browse your game library"},
   "developer": {"name": "Meir Miyara", "email": "meir.miyara@gmail.com", "url": "https://github.com/mase1981"},
   "home_page": "https://github.com/mase1981/uc-intg-xbox",
-  "release_date": "2026-05-17",
+  "release_date": "2026-10-03",
   "setup_data_schema": {
     "title": {"en": "Xbox Integration"},
     "settings": [
@@ -17,7 +17,7 @@
         "field": {
           "label": {
             "value": {
-              "en": "You will need your Azure App Client ID and Xbox Live Device ID to set up this integration. Find your Live ID in: Xbox Settings > Devices & connections > Remote features."
+              "en": "You will need your Azure App Client ID to set up this integration. The Xbox Live Device ID is optional: leave it empty to pick your console after signing in."
             }
           }
         }
