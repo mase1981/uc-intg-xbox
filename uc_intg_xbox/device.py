@@ -12,6 +12,7 @@ refresh less often than the console status.
 
 import asyncio
 import logging
+import time
 from datetime import datetime
 from typing import Any
 
@@ -24,6 +25,7 @@ from uc_intg_xbox.const import (
     FRIENDS_EVERY,
     MAX_CONSECUTIVE_FAILURES,
     POLL_INTERVAL,
+    PRESENCE_LAG,
     PROFILE_EVERY,
     RECONNECT_INTERVAL,
     RECONNECT_MAX,
@@ -49,7 +51,10 @@ class XboxDevice(PollingDevice):
 
         # Presence (fallback) state, as before
         self._presence_state: str = "OFF"
-        self._presence_ok: bool = False  # presence fetched this poll
+        self._presence_ok: bool = False  # presence fetched this poll and describes the current app
+        self._last_focus: str | None = None  # app in focus at the previous poll
+        self._stale_title: str = ""  # presence title from before the focus changed
+        self._stale_until: float = 0.0  # ignore that title until then (presence lag)
         self._media_title: str = "Offline"
         self._media_image: str = ""
         self._gamertag: str = "Xbox User"
@@ -103,6 +108,14 @@ class XboxDevice(PollingDevice):
         app = self._console.get("app") or {}
         return app if app.get("title") else None
 
+    def _at_home(self) -> bool:
+        """Console on with no app in focus: the Home screen."""
+        return (
+            self._console is not None
+            and self._console["power"] == "On"
+            and not self._console.get("focus_app")
+        )
+
     def _presence_title(self) -> str:
         """The presence title, only when fetched for the console's current state."""
         if self._presence_ok and self._media_title not in ("Offline", "Online"):
@@ -119,6 +132,8 @@ class XboxDevice(PollingDevice):
                 return "PLAYING"
             if self._console["playback"] == "Paused":
                 return "PAUSED"
+            if self._at_home():
+                return "ON"
             app = self._console_app()
             if app is not None:
                 return "PLAYING" if app.get("is_game") else "ON"
@@ -128,6 +143,8 @@ class XboxDevice(PollingDevice):
 
     @property
     def is_game(self) -> bool:
+        if self._at_home():
+            return False
         if self._console is not None:
             app = self._console_app()
             if app is not None:
@@ -140,6 +157,8 @@ class XboxDevice(PollingDevice):
         if self._console is not None:
             if self._console["power"] != "On":
                 return "Offline"
+            if self._at_home():
+                return "Home"
             app = self._console_app()
             if app is not None:
                 return app["title"]
@@ -149,7 +168,7 @@ class XboxDevice(PollingDevice):
     @property
     def media_image(self) -> str:
         if self._console is not None:
-            if self._console["power"] != "On":
+            if self._console["power"] != "On" or self._at_home():
                 return ""
             app = self._console_app()
             if app is not None and app.get("image"):
@@ -175,7 +194,8 @@ class XboxDevice(PollingDevice):
 
     @property
     def progress(self) -> dict | None:
-        return self._progress
+        # Presence lags behind the console: no game progress while on the Home screen.
+        return None if self._at_home() else self._progress
 
     @property
     def friends_online(self) -> int | None:
@@ -296,13 +316,34 @@ class XboxDevice(PollingDevice):
             self._console = None
 
         self._presence_ok = False
+        focus_changed = False
         if not console_ok:
             await self._update_presence()
-        elif self._console["power"] == "On" and self._console_app() is None:
-            # The Store catalog does not know every title: get the name from presence (as before 5.3.0).
-            await self._quietly(self._update_presence())
+        elif self._console["power"] == "On":
+            focus = self._console.get("focus_app") or ""
+            if focus != self._last_focus:
+                focus_changed = self._last_focus is not None
+                # Xbox Live presence lags behind the console; until it changes, it still
+                # describes the previous app.
+                self._stale_title = self._media_title if focus_changed else ""
+                self._stale_until = time.monotonic() + PRESENCE_LAG
+                self._last_focus = focus
+            if focus and self._console_app() is None:
+                # The Store catalog does not know every title: get the name from presence (as before 5.3.0).
+                await self._quietly(self._update_presence())
+                if self._presence_ok and self._media_title == "Home":
+                    self._presence_ok = False  # an app is in focus, so presence still shows Home
+                elif (
+                    self._presence_ok
+                    and self._stale_title
+                    and self._media_title == self._stale_title
+                    and time.monotonic() < self._stale_until  # same game again: accept it after the lag
+                ):
+                    self._presence_ok = False
+                elif self._presence_ok:
+                    self._stale_title = ""
 
-        if tick % PROFILE_EVERY == 0:
+        if tick % PROFILE_EVERY == 0 or focus_changed:  # status follows a game change sooner
             await self._update_profile()
         if tick % FRIENDS_EVERY == 0:
             await self._quietly(self._update_friends())

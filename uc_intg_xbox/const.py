@@ -10,6 +10,7 @@ POLL_INTERVAL_OFF = 90  # unused since 5.3.0, kept for reference
 PROFILE_EVERY = 4  # polls between profile updates (1 minute)
 FRIENDS_EVERY = 20  # polls between friends updates (5 minutes)
 CONSOLES_EVERY = 40  # polls between console list / storage updates (10 minutes)
+PRESENCE_LAG = 120  # seconds Xbox Live presence may still show the previous app
 MAX_CONSECUTIVE_FAILURES = 5
 RECONNECT_INTERVAL = 30  # first reconnect attempt, doubles on failure
 RECONNECT_MAX = 900  # longest wait between reconnect attempts
