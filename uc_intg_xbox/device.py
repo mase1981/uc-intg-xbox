@@ -52,6 +52,10 @@ class XboxDevice(PollingDevice):
         self._presence_state: str = "OFF"
         self._last_focus: str | None = None  # app in focus at the previous poll
         self._last_logged: tuple | None = None
+        # Set by the Home command: Xbox Live keeps reporting a suspended game as active
+        # (Quick Resume), so after going Home the integration shows Home itself until
+        # something new starts. Holds what was running when Home was pressed.
+        self._home: dict | None = None
         self._media_title: str = "Offline"
         self._media_image: str = ""
         self._gamertag: str = "Xbox User"
@@ -105,6 +109,35 @@ class XboxDevice(PollingDevice):
         app = self._console.get("app") or {}
         return app if app.get("title") else None
 
+    def _activity_signature(self) -> tuple:
+        """What presence and the console say is running (to notice that something new started)."""
+        profile = self._profile or {}
+        focus = (self._console or {}).get("focus_app") or ""
+        return (profile.get("title_id"), profile.get("status"), focus)
+
+    def _clear_home(self, reason: str) -> None:
+        if self._home is not None:
+            _LOG.info("[%s] Leaving Home: %s", self.log_id, reason)
+            self._home = None
+
+    def _check_home(self) -> None:
+        """Keep showing Home until a different game or app shows up."""
+        if self._home is None:
+            return
+        if self._console is not None and self._console["power"] != "On":
+            self._clear_home("console off")
+            return
+        before, now = self._home["signature"], self._activity_signature()
+        if before[:2] == (None, None) and now[:2] != (None, None):
+            self._home["signature"] = now  # no profile was known when Home was pressed
+            return
+        if now[2] and now[2] != before[2]:
+            self._clear_home("console reports another app")
+        elif now[0] and now[0] != before[0]:
+            self._clear_home("presence reports another game")
+        elif not now[0] and now[1] not in (before[1], "Home") and now[1]:
+            self._clear_home("presence reports another app")
+
     def _profile_activity(self) -> dict | None:
         """What the profile says is running (the same source as the Status sensor).
 
@@ -134,12 +167,16 @@ class XboxDevice(PollingDevice):
                 return "PLAYING"
             if self._console["playback"] == "Paused":
                 return "PAUSED"
+            if self._home is not None:
+                return "ON"
             app = self._console_app() or self._profile_activity()
             return "PLAYING" if app and app.get("is_game") else "ON"
         return self._presence_state
 
     @property
     def is_game(self) -> bool:
+        if self._home is not None:
+            return False
         if self._console is not None:
             app = self._console_app() or self._profile_activity()
             return bool(app and app.get("is_game"))
@@ -150,6 +187,8 @@ class XboxDevice(PollingDevice):
         if self._console is not None:
             if self._console["power"] != "On":
                 return "Offline"
+            if self._home is not None:
+                return "Home"
             app = self._console_app() or self._profile_activity()
             return app["title"] if app else ""
         return self._media_title
@@ -157,7 +196,7 @@ class XboxDevice(PollingDevice):
     @property
     def media_image(self) -> str:
         if self._console is not None:
-            if self._console["power"] != "On":
+            if self._console["power"] != "On" or self._home is not None:
                 return ""
             app = self._console_app() or self._profile_activity()
             return (app or {}).get("image") or ""
@@ -181,7 +220,7 @@ class XboxDevice(PollingDevice):
 
     @property
     def progress(self) -> dict | None:
-        return self._progress
+        return None if self._home is not None else self._progress
 
     @property
     def friends_online(self) -> int | None:
@@ -317,6 +356,7 @@ class XboxDevice(PollingDevice):
 
         if tick % profile_every == 0 or focus_changed:  # follow a game change sooner
             await self._update_profile()
+        self._check_home()
         if tick % FRIENDS_EVERY == 0:
             await self._quietly(self._update_friends())
         if tick % CONSOLES_EVERY == 0:
@@ -433,6 +473,8 @@ class XboxDevice(PollingDevice):
                 case "REBOOT":
                     await self._client.reboot(liveid)
                 case "HOME":
+                    await self.go_home()
+                case "GUIDE":
                     await self._client.show_guide(liveid)
                 case "BACK":
                     await self._client.go_back(liveid)
@@ -496,8 +538,17 @@ class XboxDevice(PollingDevice):
     async def power_off(self) -> None:
         await self._client.turn_off(self._device_config.liveid)
 
+    async def go_home(self) -> None:
+        """Go to the dashboard (as Home Assistant does) and show Home right away."""
+        await self._client.go_home(self._device_config.liveid)
+        await self._quietly(self._update_profile())  # baseline: what was running when Home was pressed
+        self._home = {"signature": self._activity_signature()}
+        _LOG.info("[%s] Home", self.log_id)
+        self.push_update()
+
     async def launch_app(self, one_store_product_id: str) -> None:
         await self._client.launch_app(self._device_config.liveid, one_store_product_id)
+        self._clear_home("app launched from the Remote")
 
     async def refresh_game_library(self) -> None:
         if self._client and self._client.is_connected:
