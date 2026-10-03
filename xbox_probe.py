@@ -4,6 +4,10 @@ Run from the repository root (needs the integration's requirements installed):
 
     pip install -r requirements.txt
     python xbox_probe.py --client-id YOUR_AZURE_CLIENT_ID [--client-secret SECRET] [--minutes 10]
+        [--liveid YOUR_XBOX_LIVE_DEVICE_ID] [--fresh]
+
+--liveid skips the console list (the Device ID from Xbox Settings > Devices &
+connections > Remote features). --fresh forgets the saved sign-in.
 
 While it runs: play a game, go back to Home, start another game, open an app.
 It prints a line only when something changes, and writes the same to
@@ -155,21 +159,38 @@ async def main() -> None:
     parser.add_argument("--client-id", required=True)
     parser.add_argument("--client-secret", default="")
     parser.add_argument("--minutes", type=float, default=10)
+    parser.add_argument("--liveid", default="")
+    parser.add_argument("--fresh", action="store_true")
     args = parser.parse_args()
 
+    if args.fresh and os.path.exists(TOKENS_FILE):
+        os.remove(TOKENS_FILE)
     client = await sign_in(args.client_id, args.client_secret)
     try:
-        consoles = await client.get_consoles()
-        if not consoles:
-            print("No consoles on this account.")
-            return
-        console = consoles[0]
-        if len(consoles) > 1:
-            for index, item in enumerate(consoles, 1):
-                print(f"{index}. {item['name']}")
-            console = consoles[int(input("Console number: ")) - 1]
-        liveid = console["id"]
-        log(f"=== probe start, console {console['name']} ({liveid[:4]}…), every 10 s for {args.minutes:g} min")
+        # Shown on screen only (not in the log file), to check the right account signed in.
+        print(f"\nSigned in as gamertag: {client.gamertag}\n")
+        liveid = args.liveid.strip()
+        name = "console"
+        if not liveid:
+            try:
+                consoles = await client.get_consoles()
+            except Exception as err:  # noqa: BLE001
+                print(f"Console list failed: {type(err).__name__}: {err}")
+                consoles = []
+            if not consoles:
+                print(
+                    "No consoles found for this account. If that gamertag is not yours, run again with "
+                    "--fresh and sign in with the account linked to your Xbox (use a private browser "
+                    "window if the browser signs in automatically). Or pass --liveid YOUR_DEVICE_ID."
+                )
+                return
+            console = consoles[0]
+            if len(consoles) > 1:
+                for index, item in enumerate(consoles, 1):
+                    print(f"{index}. {item['name']}")
+                console = consoles[int(input("Console number: ")) - 1]
+            liveid, name = console["id"], console["name"]
+        log(f"=== probe start, {name} ({liveid[:4]}…), every 10 s for {args.minutes:g} min")
 
         last: dict = {}
         names: dict = {}
