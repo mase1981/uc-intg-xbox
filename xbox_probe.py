@@ -7,7 +7,11 @@ Run from the repository root (needs the integration's requirements installed):
 
     pip install -r requirements.txt
     python xbox_probe.py --client-id YOUR_AZURE_CLIENT_ID [--client-secret SECRET] [--minutes 10]
-        [--liveid YOUR_XBOX_LIVE_DEVICE_ID] [--fresh]
+        [--liveid YOUR_XBOX_LIVE_DEVICE_ID] [--fresh] [--raw | --live]
+
+--live runs the integration's own device code (what the Remote would show) and
+lets you type commands while it runs: home, guide, back, a, b, x, y, up, down,
+left, right, menu, nexus, or any command name the remote entity accepts.
 
 --liveid skips the console list (the Device ID from Xbox Settings > Devices &
 connections > Remote features). --fresh forgets the saved sign-in.
@@ -206,6 +210,81 @@ async def snapshot(client: XboxClient, liveid: str, names: dict) -> dict:
     return snap
 
 
+async def live(client: XboxClient, liveid: str, minutes: float) -> None:
+    """Run the integration's XboxDevice against the real console and show what it would display."""
+    import logging
+
+    from uc_intg_xbox.config import XboxConfig
+    from uc_intg_xbox.device import XboxDevice
+
+    class _ToLog(logging.Handler):
+        def emit(self, record):
+            log(f"  [integration] {record.getMessage()}")
+
+    device_log = logging.getLogger("uc_intg_xbox.device")
+    device_log.addHandler(_ToLog())
+    device_log.setLevel(logging.INFO)
+    device_log.propagate = False
+
+    device = XboxDevice(XboxConfig(identifier="probe", name="Xbox", liveid=liveid, client_id="probe"))
+    device.push_update = lambda *a, **k: None
+    device.update_config = lambda **k: None
+    device._client = client  # pylint: disable=protected-access
+    device._gamertag = client.gamertag  # pylint: disable=protected-access
+    device._state = "ON"  # pylint: disable=protected-access
+
+    def shown() -> str:
+        progress = device.progress or {}
+        return (
+            f"media player: {device.player_state:7} title={device.media_title!r}  "
+            f"Current Game={device.media_title or 'None'!r}  achievements={progress.get('achievements', '-')!r}"
+        )
+
+    log("=== live: type a command and press Enter (home, guide, back, a, nexus, ...), q to stop")
+    commands: asyncio.Queue = asyncio.Queue()
+
+    async def read_input():
+        loop = asyncio.get_running_loop()
+        while True:
+            line = (await loop.run_in_executor(None, sys.stdin.readline)).strip()
+            if line:
+                await commands.put(line)
+
+    reader = asyncio.create_task(read_input())
+    last = None
+    end = time.monotonic() + minutes * 60
+    next_poll = 0.0
+    try:
+        while time.monotonic() < end:
+            if time.monotonic() >= next_poll:
+                try:
+                    await device._update_state()  # pylint: disable=protected-access
+                except Exception as err:  # noqa: BLE001
+                    log(f"  poll error: {str(err).splitlines()[0][:100]}")
+                next_poll = time.monotonic() + 15
+                now = shown()
+                if now != last:
+                    log(now)
+                    last = now
+            try:
+                line = await asyncio.wait_for(commands.get(), timeout=0.5)
+            except asyncio.TimeoutError:
+                continue
+            if line.lower() in ("q", "quit", "exit"):
+                break
+            command = {"a": "A", "b": "B", "x": "X", "y": "Y", "up": "DPAD_UP", "down": "DPAD_DOWN",
+                       "left": "DPAD_LEFT", "right": "DPAD_RIGHT"}.get(line.lower(), line.upper())
+            ok = await device.send_command(command)
+            log(f"> {command}: {'sent' if ok else 'FAILED'}")
+            now = shown()
+            if now != last:
+                log(now)
+                last = now
+    finally:
+        reader.cancel()
+    log("=== live end")
+
+
 async def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--client-id", required=True)
@@ -213,6 +292,7 @@ async def main() -> None:
     parser.add_argument("--minutes", type=float, default=10)
     parser.add_argument("--liveid", default="")
     parser.add_argument("--fresh", action="store_true")
+    parser.add_argument("--live", action="store_true", help="run the integration's device code, accept commands")
     parser.add_argument(
         "--raw", action="store_true",
         help="compare every field of the raw responses and print any that change",
@@ -247,6 +327,9 @@ async def main() -> None:
                 console = consoles[int(input("Console number: ")) - 1]
             liveid, name = console["id"], console["name"]
         log(f"=== probe start, {name} ({liveid[:4]}…), every 15 s for {args.minutes:g} min")
+        if args.live:
+            await live(client, liveid, args.minutes)
+            return
 
         last: dict = {}
         names: dict = {}
