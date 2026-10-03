@@ -88,6 +88,47 @@ def _save(tokens: dict | None) -> None:
             json.dump(tokens, file)
 
 
+def _flatten(value, prefix="") -> dict:
+    """Nested JSON as {"a.b[0].c": value} so any changed field can be named."""
+    out = {}
+    if isinstance(value, dict):
+        for key, item in value.items():
+            out.update(_flatten(item, f"{prefix}.{key}" if prefix else key))
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            out.update(_flatten(item, f"{prefix}[{index}]"))
+    else:
+        out[prefix] = value
+    return out
+
+
+# Account-identifying fields are left out of the raw comparison.
+_PRIVATE = (
+    "xuid", "gamertag", "modern_gamertag", "modern_gamertag_suffix", "unique_modern_gamertag",
+    "display_name", "real_name", "display_pic_raw", "id", "agent_user_id",
+)
+
+
+async def raw_fields(client: XboxClient, liveid: str) -> dict:
+    """Every field of the console status and both people responses, flattened."""
+    raw = client._client  # pylint: disable=protected-access
+    fields = {}
+    for name, call in (
+        ("console", lambda: raw.smartglass.get_console_status(liveid)),
+        ("profile", lambda: raw.people.get_friend_by_xuid(client.xuid)),
+        ("batch", lambda: raw.people.get_friends_own_batch([client.xuid])),
+    ):
+        try:
+            data = (await call()).model_dump(mode="json")
+        except Exception as err:  # noqa: BLE001
+            fields[f"{name}.ERROR"] = str(err).splitlines()[0][:60]
+            continue
+        for key, value in _flatten(data, name).items():
+            if key.rsplit(".", 1)[-1].split("[")[0] not in _PRIVATE:
+                fields[key] = value
+    return fields
+
+
 def _details(person) -> list[str]:
     out = []
     for d in getattr(person, "presence_details", None) or []:
@@ -172,6 +213,10 @@ async def main() -> None:
     parser.add_argument("--minutes", type=float, default=10)
     parser.add_argument("--liveid", default="")
     parser.add_argument("--fresh", action="store_true")
+    parser.add_argument(
+        "--raw", action="store_true",
+        help="compare every field of the raw responses and print any that change",
+    )
     args = parser.parse_args()
 
     if args.fresh and os.path.exists(TOKENS_FILE):
@@ -205,8 +250,23 @@ async def main() -> None:
 
         last: dict = {}
         names: dict = {}
+        last_raw: dict | None = None
         end = time.monotonic() + args.minutes * 60
         while time.monotonic() < end:
+            if args.raw:
+                fields = await raw_fields(client, liveid)
+                if last_raw is None:
+                    log(f"raw: watching {len(fields)} fields")
+                else:
+                    keys = sorted(set(fields) | set(last_raw))
+                    changes = [k for k in keys if fields.get(k) != last_raw.get(k)]
+                    if changes:
+                        log("-" * 60)
+                        for key in changes:
+                            log(f"* {key}: {last_raw.get(key)!r} -> {fields.get(key)!r}")
+                last_raw = fields
+                await asyncio.sleep(15)
+                continue
             snap = await snapshot(client, liveid, names)
             changed = {key: value for key, value in snap.items() if last.get(key) != value}
             if changed:
