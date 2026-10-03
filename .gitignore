@@ -28,3 +28,5 @@ knowledge-base/
 # Xbox probe (xbox_probe.py) output
 xbox_probe_tokens.json
 xbox_probe_log.txt
+xbox_local_log.txt
+sgtest/
