@@ -273,6 +273,8 @@ The remote control entity provides complete Xbox dashboard navigation:
 - **View** - Options/view button
 - **Media Controls** - Play/Pause, Stop, Next/Previous
 - **Volume Up/Down** - TV volume via HDMI-CEC
+- **Home** - goes to the Xbox dashboard (like Xbox button > Home); the media player shows Home right away and follows the next game or app you start
+- **Guide** - `GUIDE` opens the Xbox guide
 - **Extra commands** - `REBOOT`, `UNMUTE`, and `TEXT:your text` (types text into an on-screen keyboard)
 - **Repeat and sequences** - Send Command supports repeat and delay; sequences accept a list or comma separated commands
 

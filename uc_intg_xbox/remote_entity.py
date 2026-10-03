@@ -22,7 +22,7 @@ SIMPLE_COMMANDS = [
     "POWER_ON", "POWER_OFF", "POWER_TOGGLE",
     "DPAD_UP", "DPAD_DOWN", "DPAD_LEFT", "DPAD_RIGHT", "DPAD_CENTER",
     "A", "B", "X", "Y",
-    "BACK", "HOME", "MENU", "CONTEXT_MENU", "NEXUS",
+    "BACK", "HOME", "GUIDE", "MENU", "CONTEXT_MENU", "NEXUS",
     "PLAY", "PAUSE", "PLAY_PAUSE", "NEXT", "PREVIOUS", "FAST_FORWARD", "REWIND",
     "VOLUME_UP", "VOLUME_DOWN", "MUTE_TOGGLE", "UNMUTE", "REBOOT",
 ]
@@ -55,7 +55,8 @@ def _create_button_mapping() -> list:
 def _create_ui_pages() -> list[UiPage]:
     main_page = UiPage("main", "Main", grid=Size(4, 6), items=[
         create_ui_icon("uc:power-on", 0, 0, cmd="POWER_TOGGLE"),
-        create_ui_text("Guide", 1, 0, cmd="HOME"),
+        create_ui_text("Home", 1, 0, cmd="HOME"),
+        create_ui_text("Guide", 3, 1, cmd="GUIDE"),
         create_ui_text("Menu", 2, 0, cmd="MENU"),
         create_ui_text("Nexus", 3, 0, cmd="NEXUS"),
         create_ui_icon("uc:up-arrow", 1, 1, cmd="DPAD_UP"),
