@@ -46,6 +46,10 @@ def _https(url: str) -> str:
     return "https://" + url[7:] if url and url.startswith("http://") else (url or "")
 
 
+def _of(current, total) -> str:
+    return f"{current} / {total}" if total else str(current)
+
+
 def _square_image(images) -> str:
     """Best square artwork of at least 300 px, in Home Assistant's order of preference."""
     for purpose in _IMAGE_PURPOSES:
@@ -71,6 +75,7 @@ class XboxClient:
         self._xuid: str | None = None
         self._gamertag: str = "Xbox User"
         self._app_cache: dict[str, dict] = {}  # focus app id -> {"title", "image", "is_game"}
+        self._catalog_logged: set[str] = set()  # log a catalog problem once per app
 
     @property
     def xuid(self) -> str | None:
@@ -337,6 +342,9 @@ class XboxClient:
         try:
             result = await self._client.catalog.get_product_from_alternate_id(lookup_id, id_type)
             products = getattr(result, "products", None) or []
+            if not products and app_id not in self._catalog_logged:
+                self._catalog_logged.add(app_id)
+                _LOG.info("No Store catalog entry for %s, using presence for the title", app_id)
             if products:
                 product = products[0]
                 props = (product.localized_properties or [None])[0]
@@ -347,7 +355,9 @@ class XboxClient:
                         "is_game": getattr(product, "product_family", "") == "Games",
                     }
         except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOG.debug("Catalog lookup failed for %s: %s", app_id, err)
+            log = _LOG.debug if app_id in self._catalog_logged else _LOG.warning
+            self._catalog_logged.add(app_id)
+            log("Catalog lookup failed for %s: %s", app_id, err)
             return None  # not cached: try again next time
         self._app_cache[app_id] = details or {}
         return details
@@ -399,8 +409,9 @@ class XboxClient:
         if achievement is None:
             return None
         return {
-            "achievements": f"{achievement.current_achievements} / {achievement.total_achievements}",
-            "gamerscore": f"{achievement.current_gamerscore} / {achievement.total_gamerscore}",
+            # Some titles report no totals (0); show only what was earned then.
+            "achievements": _of(achievement.current_achievements, achievement.total_achievements),
+            "gamerscore": _of(achievement.current_gamerscore, achievement.total_gamerscore),
             "progress": int(achievement.progress_percentage),
         }
 
