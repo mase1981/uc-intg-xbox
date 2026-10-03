@@ -303,6 +303,8 @@ The media player entity displays live Xbox gaming activity:
 | Followers / Following | Social counts |
 | In Party | Yes or No, with the party's join setting |
 | Free / Total Storage | Summed across all console drives (GB) |
+| Storage Used | Used space over all drives (%) |
+| Drives Used | Each drive with its used space, e.g. "Internal 72% · WD_BLACK 41%" |
 
 Sensors show "-" when there is nothing to report (for example, no game running).
 

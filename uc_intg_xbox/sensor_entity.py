@@ -160,6 +160,33 @@ def _storage_gb(device: XboxDevice, key: str) -> float | None:
     return round(total / 1_000_000_000, 1)
 
 
+def _percent_used(drive: dict) -> int | None:
+    total = drive.get("total") or 0
+    if total <= 0:
+        return None
+    return round(100 * (total - (drive.get("free") or 0)) / total)
+
+
+def _storage_used(device: XboxDevice) -> int | None:
+    """Used space over all drives, in %."""
+    drives = device.storage
+    total = sum(drive.get("total") or 0 for drive in drives)
+    if not drives or total <= 0:
+        return None
+    free = sum(drive.get("free") or 0 for drive in drives)
+    return round(100 * (total - free) / total)
+
+
+def _drives(device: XboxDevice) -> str | None:
+    """Each drive with its used space, e.g. "Internal 72% · WD_BLACK 41%"."""
+    parts = []
+    for drive in device.storage:
+        used = _percent_used(drive)
+        if used is not None:
+            parts.append(f"{drive.get('name') or 'Drive'} {used}%")
+    return " · ".join(parts) or None
+
+
 def create_sensors(config: XboxConfig, device: XboxDevice) -> list:
     def value(key, label, getter, unit=""):
         return XboxValueSensor(config, device, key, label, getter, unit)
@@ -180,4 +207,6 @@ def create_sensors(config: XboxConfig, device: XboxDevice) -> list:
         value("in_party", "In Party", _in_party),
         value("storage_free", "Free Storage", lambda d: _storage_gb(d, "free"), "GB"),
         value("storage_total", "Total Storage", lambda d: _storage_gb(d, "total"), "GB"),
+        value("storage_used", "Storage Used", _storage_used, "%"),
+        value("drives", "Drives Used", _drives),
     ]
