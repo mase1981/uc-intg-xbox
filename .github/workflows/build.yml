@@ -2,15 +2,46 @@ name: "Build & Draft Release"
 
 "on":
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+  workflow_dispatch:
 
 env:
   INTG_NAME: xbox
   PYTHON_VER: 3.11.12-0.3.0
 
 jobs:
+  check:
+    name: Check for new version
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      release: ${{ steps.check.outputs.release }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check whether version needs a release
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(jq -r .version driver.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          # Existing tag or release (published or draft) for this version?
+          if [ -n "$(git ls-remote --tags origin "refs/tags/v$VERSION")" ] || \
+             gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate --jq '.[].tag_name' | grep -qx "v$VERSION"; then
+            echo "v$VERSION already released, nothing to do"
+            echo "release=false" >> $GITHUB_OUTPUT
+          else
+            echo "release=true" >> $GITHUB_OUTPUT
+          fi
+
   build:
+    needs: [check]
+    if: needs.check.outputs.release == 'true'
     name: Build Release
     runs-on: ubuntu-24.04-arm
     outputs:
@@ -25,7 +56,7 @@ jobs:
       - name: Get version and id
         id: get-version-and-id
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=${{ needs.check.outputs.version }}
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_ENV
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
@@ -90,7 +121,7 @@ jobs:
   docker:
     name: Build and Push Docker Image
     runs-on: ubuntu-24.04
-    needs: [build]
+    needs: [check, build]
     permissions:
       contents: read
       packages: write
@@ -114,7 +145,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/uc-intg-xbox
           tags: |
-            type=ref,event=tag
+            type=raw,value=v${{ needs.check.outputs.version }}
             type=raw,value=latest
 
       - name: Build and push Docker image
@@ -164,3 +195,4 @@ jobs:
           generateReleaseNotes: true
           artifactErrorsFailBuild: true
           tag: v${{needs.build.outputs.version}}
+          commit: ${{ github.sha }}
